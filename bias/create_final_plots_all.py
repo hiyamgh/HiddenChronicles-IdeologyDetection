@@ -42,7 +42,8 @@ else:
 #         txt_file='israeli_palestinian_conflict/participants+methods_violence/methods_of_violence_arabic.txt')
 
 
-def plot_overtime_scatter(word_list1, word_list2, neutral_list, years, archive, topK):
+def plot_overtime_scatter(word_list1, word_list2, neutral_list, years, archive, topK,
+                          ylab, fig_name, out_folder):
     years = list(sorted(years))
     biases_cas = []
     for yr in years:
@@ -51,7 +52,8 @@ def plot_overtime_scatter(word_list1, word_list2, neutral_list, years, archive, 
         casualties = get_casualties_diff_by_year(yr)
         biases_cas.append((emb_bias, casualties))
 
-    plot_bias_overtime_scatter_casualties(biases_cass=biases_cas)
+    plot_bias_overtime_scatter_casualties(biases_cass=biases_cas, ylab=ylab,
+                                          fig_name=fig_name, out_folder=out_folder)
 
 
 if __name__ == '__main__':
@@ -130,7 +132,18 @@ if __name__ == '__main__':
 
     plot_overtime_scatter(word_list1=participants_israel, word_list2=participants_palestine,
                           neutral_list=terrorism_list, years=list(range(1988, 2012)),
-                          archive='assafir', topK=3)
+                          archive='assafir', topK=3, ylab='Israeli Terrorism-Bias',
+                          fig_name='assafir_bias_casualties_terrorism', out_folder='latest/census/')
+
+    plot_overtime_scatter(word_list1=participants_israel, word_list2=participants_palestine,
+                          neutral_list=methods_of_violence, years=list(range(1988, 2012)),
+                          archive='assafir', topK=3, ylab='Israeli Violence-Bias',
+                          fig_name='assafir_bias_casualties_violence', out_folder='latest/census/')
+
+    plot_overtime_scatter(word_list1=participants_israel, word_list2=participants_palestine,
+                          neutral_list=peace_practices, years=list(range(1988, 2012)),
+                          archive='assafir', topK=3, ylab='Israeli Peace-Bias',
+                          fig_name='assafir_bias_casualties_peace', out_folder='latest/census/')
 
 
     # for archive in ['nahar', 'hayat']:

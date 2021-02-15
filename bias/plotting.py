@@ -28,7 +28,7 @@ def mkdir(dir_name):
 #         print('year: {}, embedding_bias: {}'.format(year, emb_bias))
 
 
-def plot_bias_overtime_scatter_casualties(biases_cass):
+def plot_bias_overtime_scatter_casualties(biases_cass, ylab, fig_name, out_folder):
     ''' plot bias over time with scatter plot of regression of emb_boas vs casualties '''
     emb_biases = [eb for eb, _ in biases_cass]
     cas = [c for _, c in biases_cass] # for casualties
@@ -48,7 +48,10 @@ def plot_bias_overtime_scatter_casualties(biases_cass):
 
     sns.regplot(x=cas, y=emb_biases, scatter = True, scatter_kws = scatter_kws, truncate  = True)#,scatter_kws={"s": sizes})
     sns.despine()
-    plt.savefig('emb_cas_reg.png')
+    plt.xlabel('Israeli Fatalities Raw Difference')
+    plt.ylabel(ylab)
+    mkdir(out_folder)
+    plt.savefig(os.path.join(out_folder, '{}.png'.format(fig_name)))
     plt.close()
 
 
