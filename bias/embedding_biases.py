@@ -118,9 +118,9 @@ def calculate_embedding_bias(word_list1, word_list2, neutral_list, word2vec_curr
 
 def get_casualties_diff_by_year(year):
     ''' census data difference (cannot get the percentage)'''
-    if str(year) in list(casualties['Year']):
-        cas_israeli = int(casualties.loc[casualties.Year == str(year), 'Israelis'])
-        cas_palestinians = int(casualties.loc[casualties.Year == str(year), 'Palestinians'])
+    if year in list(casualties['Year']):
+        cas_israeli = int(casualties.loc[casualties.Year == year, 'Israelis'])
+        cas_palestinians = int(casualties.loc[casualties.Year == year, 'Palestinians'])
         return cas_israeli - cas_palestinians
 
 
