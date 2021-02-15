@@ -1,6 +1,6 @@
-from bias.embedding_biases import *
+from embedding_biases import *
 import getpass
-from bias.plotting import *
+from plotting import *
 
 if getpass.getuser() == '96171':
     archives_wordembeddings = {
@@ -40,6 +40,19 @@ else:
 #         txt_file='israeli_palestinian_conflict/participants+methods_violence/participants_palestine_arabic.txt')
 #     methods_of_violence = file_to_list(
 #         txt_file='israeli_palestinian_conflict/participants+methods_violence/methods_of_violence_arabic.txt')
+
+
+def plot_overtime_scatter(word_list1, word_list2, neutral_list, years, archive, topK):
+    years = list(sorted(years))
+    biases_cas = []
+    for yr in years:
+        emb_bias = get_embedding_bias_by_year(word_list1, word_list2, neutral_list,
+                                              archive, yr, archives_wordembeddings, topKneighbs=topK)
+        casualties = get_casualties_diff_by_year(yr)
+        biases_cas.append((emb_bias, casualties))
+
+    plot_bias_overtime_scatter_casualties(biases_cass=biases_cas)
+
 
 if __name__ == '__main__':
 
@@ -115,43 +128,50 @@ if __name__ == '__main__':
     #                                                                                                      1974, 1984),
     #                            distype='norm', topKneighbs=3)
 
-    for archive in ['nahar', 'hayat']:
-        if archive == 'nahar':
-            get_changing_attitudes(word_lists1=target_list1, word_lists2=target_list2,
-                                   neutral_lists=neutral_lists, archive=archive, desired_years=(1940, 1950),
-                                   wemb_path=archives_wordembeddings,
-                                   output_dir='latest', fig_name='israel_palestine_attitude_{}_{}-{}'.format(archive,
-                                                                                                             1940, 1950),
-                                   distype='norm', topKneighbs=3)
+    plot_overtime_scatter(word_list1=participants_israel, word_list2=participants_palestine,
+                          neutral_list=terrorism_list, years=list(range(1988, 2012)),
+                          archive='assafir', topK=3)
 
-        get_changing_attitudes(word_lists1=target_list1, word_lists2=target_list2,
-                               neutral_lists=neutral_lists, archive=archive, desired_years=(1950, 1960),
-                               wemb_path=archives_wordembeddings,
-                               output_dir='latest', fig_name='israel_palestine_attitude_{}_{}-{}'.format(archive,
-                                                                                                         1950, 1960),
-                               distype='norm', topKneighbs=3)
 
-        get_changing_attitudes(word_lists1=target_list1, word_lists2=target_list2,
-                               neutral_lists=neutral_lists, archive=archive, desired_years=(1960, 1970),
-                               wemb_path=archives_wordembeddings,
-                               output_dir='latest', fig_name='israel_palestine_attitude_{}_{}-{}'.format(archive,
-                                                                                                         1960, 1970),
-                               distype='norm', topKneighbs=3)
+    # for archive in ['nahar', 'hayat']:
+    #     if archive == 'nahar':
+    #         get_changing_attitudes(word_lists1=target_list1, word_lists2=target_list2,
+    #                                neutral_lists=neutral_lists, archive=archive, desired_years=(1940, 1950),
+    #                                wemb_path=archives_wordembeddings,
+    #                                output_dir='latest', fig_name='israel_palestine_attitude_{}_{}-{}'.format(archive,
+    #                                                                                                          1940, 1950),
+    #                                distype='norm', topKneighbs=3)
+    #
+    #     get_changing_attitudes(word_lists1=target_list1, word_lists2=target_list2,
+    #                            neutral_lists=neutral_lists, archive=archive, desired_years=(1950, 1960),
+    #                            wemb_path=archives_wordembeddings,
+    #                            output_dir='latest', fig_name='israel_palestine_attitude_{}_{}-{}'.format(archive,
+    #                                                                                                      1950, 1960),
+    #                            distype='norm', topKneighbs=3)
+    #
+    #     get_changing_attitudes(word_lists1=target_list1, word_lists2=target_list2,
+    #                            neutral_lists=neutral_lists, archive=archive, desired_years=(1960, 1970),
+    #                            wemb_path=archives_wordembeddings,
+    #                            output_dir='latest', fig_name='israel_palestine_attitude_{}_{}-{}'.format(archive,
+    #                                                                                                      1960, 1970),
+    #                            distype='norm', topKneighbs=3)
+    #
+    #     get_changing_attitudes(word_lists1=target_list1, word_lists2=target_list2,
+    #                            neutral_lists=neutral_lists, archive=archive, desired_years=(1974, 1984),
+    #                            wemb_path=archives_wordembeddings,
+    #                            output_dir='latest', fig_name='israel_palestine_attitude_{}_{}-{}'.format(archive,
+    #                                                                                                      1974, 1984),
+    #                            distype='norm', topKneighbs=3)
+    #
+    # for archive in ['assafir']:
+    #     get_changing_attitudes(word_lists1=target_list1, word_lists2=target_list2,
+    #                            neutral_lists=neutral_lists, archive=archive, desired_years=(1974, 1984),
+    #                            wemb_path=archives_wordembeddings,
+    #                            output_dir='latest', fig_name='israel_palestine_attitude_{}_{}-{}'.format(archive,
+    #                                                                                                      1974, 1984),
+    #                            distype='norm', topKneighbs=3)
 
-        get_changing_attitudes(word_lists1=target_list1, word_lists2=target_list2,
-                               neutral_lists=neutral_lists, archive=archive, desired_years=(1974, 1984),
-                               wemb_path=archives_wordembeddings,
-                               output_dir='latest', fig_name='israel_palestine_attitude_{}_{}-{}'.format(archive,
-                                                                                                         1974, 1984),
-                               distype='norm', topKneighbs=3)
 
-    for archive in ['assafir']:
-        get_changing_attitudes(word_lists1=target_list1, word_lists2=target_list2,
-                               neutral_lists=neutral_lists, archive=archive, desired_years=(1974, 1984),
-                               wemb_path=archives_wordembeddings,
-                               output_dir='latest', fig_name='israel_palestine_attitude_{}_{}-{}'.format(archive,
-                                                                                                         1974, 1984),
-                               distype='norm', topKneighbs=3)
 
     # for archive in ['assafir']:
     #     get_changing_attitudes(word_lists1=target_list1, word_lists2=target_list2,

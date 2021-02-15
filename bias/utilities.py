@@ -101,6 +101,15 @@ def get_archive_year(archive, archive_path):
     return years
 
 
+def load_model_by_year(archive_path, target_year):
+    for file in os.listdir(archive_path):
+        if not file.endswith('.npy'):
+            desired_model_path = os.path.join(archive_path, file)
+            year = int(file.split('_')[1])
+            if year == target_year:
+                return Word2Vec.load(desired_model_path)
+
+
 def load_all_models(archive_path):
     word2vec_models_dict = {}
     for file in os.listdir(archive_path):

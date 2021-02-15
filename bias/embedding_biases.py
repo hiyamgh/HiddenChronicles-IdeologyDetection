@@ -20,33 +20,7 @@ attr1 and attr2 must be of equal size
 apply the data augmentation I've been doing so far
 '''
 
-
-def add_gender_nouns(txt_file):
-    ''' add the other gender of a given noun - specific only to arabic '''
-    if not os.path.exists(txt_file):
-        raise ValueError('File {} does not exist'.format(txt_file))
-
-    with open(txt_file, 'r', encoding="utf-8") as of:
-        terms_ar =  of.read().splitlines()
-        terms_new = []
-        for ta_gender1 in terms_ar:
-            if ta_gender1 == 'شرطة':
-                ta_gender1 = 'شرطي'
-                ta_gender2 = 'شرطيه'
-                terms_new.append(ta_gender1)
-                terms_new.append(ta_gender2)
-            else:
-                terms_new.append(ta_gender1)
-                if ta_gender1[-1] != 'ه' and  ta_gender1[-1] !=  'ة' :
-                    ta_gender2 = ta_gender1 + 'ه'
-                    terms_new.append(ta_gender2)
-                else:
-                    ta_gender2 = ta_gender1[:-1]
-                    terms_new.append(ta_gender2)
-    with open('{}_gender_based.txt'.format(txt_file[:-4]), 'w', encoding="utf-8") as f:
-        for tn_ar in terms_new:
-            f.write(tn_ar + '\n')
-
+casualties = pd.read_csv('casualties/casualties_1988_2011.csv')
 
 def get_embedding_bias_decade_level(word_list1, word_list2, neutral_list, decades_path,
                                     archive, fig_name, ylab, output_folder, distype='norm', topKneighbs=3):
@@ -130,6 +104,7 @@ def get_embedding_bias_decade_level(word_list1, word_list2, neutral_list, decade
 #                        distype='norm', topKneighbs=3):
 
 def calculate_embedding_bias(word_list1, word_list2, neutral_list, word2vec_currmodel, distype='norm'):
+    ''' calculates the value of embedding bias, given target lists and attribute/neutral list '''
     repres1 = get_mean_vector(word2vec_currmodel, word_list1)
     repres2 = get_mean_vector(word2vec_currmodel, word_list2)
 
@@ -141,10 +116,40 @@ def calculate_embedding_bias(word_list1, word_list2, neutral_list, word2vec_curr
     return embedding_bias
 
 
+def get_casualties_diff_by_year(year):
+    ''' census data difference (cannot get the percentage)'''
+    if str(year) in list(casualties['Year']):
+        cas_israeli = int(casualties.loc[casualties.Year == str(year), 'Israelis'])
+        cas_palestinians = int(casualties.loc[casualties.Year == str(year), 'Palestinians'])
+        return cas_israeli - cas_palestinians
+
+
+def get_embedding_bias_by_year(word_list1, word_list2, neutral_list, archive, year, wemb_path,
+                               distype='norm', topKneighbs=3):
+    ''' calculate the embedding bias per year '''
+    word2vec_model = load_model_by_year(archive_path=wemb_path[archive], target_year=year)
+
+    word_list1_found, word_list2_found, neutral_list_found = get_modified_word_lists(word_list1, word_list2,
+                                                                                     neutral_list,
+                                                                                     word2vec_model,
+                                                                                     topKneighbs)
+    print('{} - YEAR: {}'.format(archive, year))
+    if word_list1_found == -1 or word_list2_found == -1 or neutral_list_found == -1:
+        raise ValueError('could not find desired words in archive {} for year {}'.format(archive, year))
+    else:
+        print('list1 populated: {}'.format(word_list1_found))
+        print('list2 populated: {}'.format(word_list2_found))
+        print('neutral populated: {}'.format(neutral_list_found))
+
+        embedding_bias = calculate_embedding_bias(word_list1_found, word_list2_found,
+                                                  neutral_list_found, word2vec_model)
+        return embedding_bias
+
+
 def get_embedding_bias(word_lists1, word_lists2, neutral_lists, desired_archives, wemb_path,
                            distype='norm', topKneighbs=3):
     """
-    web_path: dictionary mapping archive name to the path to its word embeddings
+    wemb_path: dictionary mapping archive name to the path to its word embeddings
     :return:
     """
     embedding_biases = {}

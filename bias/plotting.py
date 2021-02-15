@@ -1,10 +1,55 @@
 import plotly.graph_objects as go
 import os
+import pandas as pd
+import statsmodels.api as sm
+import seaborn as sns
+sns.set(style="whitegrid") #TODO test this whitegrid, otherwise remove
+import matplotlib.pyplot as plt
 
 
 def mkdir(dir_name):
     if not os.path.exists(dir_name):
         os.makedirs(dir_name)
+
+# def plot_overtime_scatter(wl1, wl2, nl, arch, years, ):
+#     arch = 'nahar'
+#     biases_diff, casualties_diff = [], []
+#     for year in range(1988, 2012):
+#         emb_bias = get_embedding_bias_by_year(word_list1=participants_israel, word_list2=participants_palestine,
+#                                               neutral_list=terrorism_list,
+#                                               archive=arch,
+#                                               year=year,
+#                                               distype='cossim',
+#                                               wemb_path=archives_wordembeddings[arch])
+#         cas_diff = get_casualties_diff_by_year(year)
+#         biases_diff.append(emb_bias)
+#         casualties_diff.append(cas_diff)
+#
+#         print('year: {}, embedding_bias: {}'.format(year, emb_bias))
+
+
+def plot_bias_overtime_scatter_casualties(biases_cass):
+    ''' plot bias over time with scatter plot of regression of emb_boas vs casualties '''
+    emb_biases = [eb for eb, _ in biases_cass]
+    cas = [c for _, c in biases_cass] # for casualties
+    print('{} & {} & {} & {} & {} \\\\'.format('r^2', 'coefficient p-value', 'coefficient value', 'intercept p-value', 'intercept value') )
+    df = pd.DataFrame([emb_biases, cas])
+    df = df.transpose()
+    df.columns = ['embedding bias', 'cas num']
+    df['const'] = 1
+    model = sm.OLS(df['embedding bias'], df[['cas num', 'const']]).fit()
+    print('${:.4}$ & ${:.4}$ & ${:.4} \pm {:.4}$& ${:.4}$ & ${:.4} \pm {:.4}$\\\\'.format(model.rsquared,model.pvalues[0], model.params[0], model.bse[0],model.pvalues[1], model.params[1], model.bse[1] )) # summarize_model(model)
+    scatter_kws = {"s" : 20}
+    # if years_all is not None:
+    #     yrs_order = list(sorted(set(years_all)))
+    #     pallete = sns.color_palette("hls", len(yrs_order))
+    #     color = [pallete[yrs_order.index(y)] for y in yrs_order]
+    #     scatter_kws['color']= color
+
+    sns.regplot(x=cas, y=emb_biases, scatter = True, scatter_kws = scatter_kws, truncate  = True)#,scatter_kws={"s": sizes})
+    sns.despine()
+    plt.savefig('emb_cas_reg.png')
+    plt.close()
 
 
 def plot_embedding_bias_time(embedding_biases, output_dir, fig_names, ylabs):
