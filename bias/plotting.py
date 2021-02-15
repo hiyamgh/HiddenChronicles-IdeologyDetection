@@ -54,6 +54,10 @@ def plot_bias_overtime_scatter_casualties(biases_cass, ylab, fig_name, out_folde
     plt.savefig(os.path.join(out_folder, '{}.png'.format(fig_name)))
     plt.close()
 
+    with open(os.path.join(out_folder, '{}.txt'.format(fig_name)), 'w') as f:
+        f.writelines('{} & {} & {} & {} & {} \\\\\n'.format('r^2', 'coefficient p-value', 'coefficient value', 'intercept p-value', 'intercept value'))
+        f.writelines('${:.4}$ & ${:.4}$ & ${:.4} \pm {:.4}$& ${:.4}$ & ${:.4} \pm {:.4}$\\\\'.format(model.rsquared,model.pvalues[0], model.params[0], model.bse[0],model.pvalues[1], model.params[1], model.bse[1]))
+        f.close()
 
 def plot_embedding_bias_time(embedding_biases, output_dir, fig_names, ylabs):
     mkdir(output_dir)
