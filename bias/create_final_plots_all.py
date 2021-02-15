@@ -51,7 +51,7 @@ if __name__ == '__main__':
     # get the keywords
     main_dir = 'israeli_palestinian_conflict/occupations_vs_peace+israel/'
     peace_practices = file_to_list(txt_file=os.path.join(main_dir, 'non_occupation_practices_arabic.txt'))
-    occupation_practices = file_to_list(txt_file=os.path.join(main_dir, 'occupation_practices_arabic.txt'))
+    # occupation_practices = file_to_list(txt_file=os.path.join(main_dir, 'occupation_practices_arabic.txt'))
     israel_list = file_to_list(txt_file=os.path.join(main_dir, 'israel_list_arabic.txt'))
     palestine_list = file_to_list(txt_file=os.path.join(main_dir, 'participants_palestine_arabic.txt'))
 
@@ -60,7 +60,7 @@ if __name__ == '__main__':
     main_dir2 = 'israeli_palestinian_conflict/participants+methods_violence/'
     participants_israel = file_to_list(txt_file=os.path.join(main_dir2, 'participants_Israel_arabic.txt'))
     participants_palestine = file_to_list(txt_file=os.path.join(main_dir2, 'participants_palestine_arabic.txt'))
-    occupation_list = file_to_list(txt_file='occupation/occupation_list_arabic.txt')
+    # occupation_list = file_to_list(txt_file='occupation/occupation_list_arabic.txt')
 
     # set 3
     # participants israel vs. participants palestine
@@ -91,7 +91,8 @@ if __name__ == '__main__':
 
     target_list1 = [participants_israel, participants_israel, participants_israel]
     target_list2 = [participants_palestine, participants_palestine, participants_palestine]
-    neutral_lists = [occupation_list, terrorism_list, methods_of_violence]
+    neutral_lists = [terrorism_list, methods_of_violence, peace_practices]
+
     # for archive in ['nahar', 'hayat']:
     # for archive in ['nahar']:
     #     get_changing_attitudes(word_lists1=target_list1, word_lists2=target_list2,
