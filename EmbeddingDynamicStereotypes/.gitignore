@@ -1,0 +1,12 @@
+*.pyc
+*.xml
+.idea/*
+*.ipynb_checkpoints*
+*.pkl
+*.pdf
+*.png
+__pycache__*
+*.py.bak
+plots/*
+run_results/*
+regressions/*
