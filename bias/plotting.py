@@ -1,8 +1,10 @@
 import plotly.graph_objects as go
 import os
+import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 import seaborn as sns
+from scipy.interpolate import splrep, splev
 sns.set(style="whitegrid") #TODO test this whitegrid, otherwise remove
 import matplotlib.pyplot as plt
 
@@ -73,7 +75,10 @@ def plot_embedding_bias_time(embedding_biases, output_dir, fig_names, ylabs):
         # fig = go.Figure()
         # get the ith data from each archive
         for archive in embedding_biases:
-            plt.plot(all_years, embedding_biases[archive][i]['biases'], label='{} bias'.format(archive))
+            bias = embedding_biases[archive][i]['biases']
+            biasspl = splrep(all_years, bias, s=5)
+            biasspl_y = splev(all_years, biasspl)
+            plt.plot(all_years, biasspl_y, label='{} bias'.format(archive))
             # fig.add_trace(go.Scatter(
             #     x=all_years,
             #     y=embedding_biases[archive][i]['biases'],
@@ -89,6 +94,7 @@ def plot_embedding_bias_time(embedding_biases, output_dir, fig_names, ylabs):
         # fig.write_html((os.path.join(output_dir, '{}.html'.format(fig_names[i]))))
         plt.xlabel('Years')
         plt.ylabel(ylabs[i])
+        plt.legend(loc='best')
         fig = plt.gcf()
         fig.set_size_inches(18.5, 10.5)
         fig.savefig(os.path.join(output_dir, '{}.png'.format(fig_names[i])))
