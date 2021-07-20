@@ -90,6 +90,8 @@ if __name__ == '__main__':
         [plot_embedding_bias_start_end, [all_embedding_biases, 0, ['nahar', 'assafir', 'hayat'], 1950, 1960, 'Avg. Embedding Bias Israeli Terrorism', 'output/bias_overtime_start_end/', 'israel_palestine_terrorism']],
         [plot_embedding_bias_start_end, [all_embedding_biases, 1, ['nahar', 'assafir', 'hayat'], 1950, 1960, 'Avg. Embedding Bias Israeli Violence', 'output/bias_overtime_start_end/', 'israel_palestine_violence']],
 
+        [plot_embedding_bias_start_end, [all_embedding_biases, 0, ['nahar', 'assafir'], 1990, 2000, 'Avg. Embedding Bias Israeli Peace','output/bias_overtime_start_end/', 'israel_palestine_terrorism']],
+        [plot_embedding_bias_start_end, [all_embedding_biases, 1, ['nahar', 'assafir'], 1990, 2000, 'Avg. Embedding Bias Israeli Peace', 'output/bias_overtime_start_end/', 'israel_palestine_violence']],
         [plot_embedding_bias_start_end, [all_embedding_biases, 2, ['nahar', 'assafir'], 1990, 2000, 'Avg. Embedding Bias Israeli Peace', 'output/bias_overtime_start_end/', 'israel_palestine_peace']],
 
         [plot_embedding_bias_start_end, [all_embedding_biases, 0, ['nahar', 'assafir'], 2000, 2009, 'Avg. Embedding Bias Israeli Terrorism', 'output/bias_overtime_start_end/', 'israel_palestine_terrorism']],
