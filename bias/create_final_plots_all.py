@@ -1,19 +1,15 @@
 from embedding_biases import *
-import getpass
 from plotting import *
 
-if getpass.getuser() == '96171':
-    archives_wordembeddings = {
-        'nahar': 'E:/newspapers/word2vec/nahar/embeddings/',
-        'hayat': 'E:/newspapers/word2vec/hayat/embeddings/',
-        'assafir': 'E:/newspapers/word2vec/assafir/embeddings/'
+archives_wordembeddings = {
+        'nahar': '../input/word2vec/nahar/embeddings/',
+        'hayat': '../input/word2vec/hayat/embeddings/',
+        'assafir': '../input/word2vec/assafir/embeddings/',
     }
-else:
-    archives_wordembeddings = {
-        'nahar': 'D:/word2vec/nahar/embeddings/',
-        'hayat': 'D:/word2vec/hayat/embeddings/',
-        'assafir': 'D:/word2vec/assafir/embeddings/'
-    }
+
+keyword_paths = {
+
+}
 
 # # get the keywords
 #     participant_israel = file_to_list(
@@ -58,6 +54,7 @@ def plot_overtime_scatter(word_list1, word_list2, neutral_list, years, archive, 
 
 if __name__ == '__main__':
 
+    # target list 1 vs. target list 2 - neutral list
     # peace vs. occupation - israel
     # participant israel vs. participant palestine - occupation
     # participant israel vs. participant palestine - terrorism
