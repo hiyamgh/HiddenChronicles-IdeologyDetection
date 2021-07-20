@@ -70,22 +70,53 @@ def plot_embedding_bias_time(embedding_biases, output_dir, fig_names, ylabs):
     all_years = list(range(min_year, max_year + 1))
 
     for i in range(len(fig_names)):
-        fig = go.Figure()
+        # fig = go.Figure()
         # get the ith data from each archive
         for archive in embedding_biases:
-            fig.add_trace(go.Scatter(
-                x=all_years,
-                y=embedding_biases[archive][i]['biases'],
-                name='<b>{}</b> bias'.format(archive), # Style name/legend entry with html tags
-                connectgaps=True,# override default to connect the gaps
-                mode='lines+markers'
-            ))
+            plt.plot(all_years, embedding_biases[archive][i]['biases'], label='{}'.format(archive))
+            # fig.add_trace(go.Scatter(
+            #     x=all_years,
+            #     y=embedding_biases[archive][i]['biases'],
+            #     name='<b>{}</b> bias'.format(archive), # Style name/legend entry with html tags
+            #     connectgaps=True,# override default to connect the gaps
+            #     mode='lines+markers'
+            # ))
 
-        fig.update_layout(width=1500,
-                          xaxis_title='Years',
-                          yaxis_title=ylabs[i])
-        fig.write_image((os.path.join(output_dir, '{}.png'.format(fig_names[i]))))
+        # fig.update_layout(width=1500,
+        #                   xaxis_title='Years',
+        #                   yaxis_title=ylabs[i])
+        # fig.write_image((os.path.join(output_dir, '{}.png'.format(fig_names[i]))))
         # fig.write_html((os.path.join(output_dir, '{}.html'.format(fig_names[i]))))
+        plt.xlabel('Years')
+        plt.ylabel(ylabs[i])
+        plt.savefig(os.path.join(output_dir, '{}.png'.format(fig_names[i])))
+
+# def plot_embedding_bias_time(embedding_biases, output_dir, fig_names, ylabs):
+#     mkdir(output_dir)
+#     min_year, max_year = -1, -1
+#     for archive in embedding_biases:
+#         min_year = min(embedding_biases[archive][0]['years'])
+#         max_year = max(embedding_biases[archive][0]['years'])
+#         break
+#     all_years = list(range(min_year, max_year + 1))
+#
+#     for i in range(len(fig_names)):
+#         fig = go.Figure()
+#         # get the ith data from each archive
+#         for archive in embedding_biases:
+#             fig.add_trace(go.Scatter(
+#                 x=all_years,
+#                 y=embedding_biases[archive][i]['biases'],
+#                 name='<b>{}</b> bias'.format(archive), # Style name/legend entry with html tags
+#                 connectgaps=True,# override default to connect the gaps
+#                 mode='lines+markers'
+#             ))
+#
+#         fig.update_layout(width=1500,
+#                           xaxis_title='Years',
+#                           yaxis_title=ylabs[i])
+#         fig.write_image((os.path.join(output_dir, '{}.png'.format(fig_names[i]))))
+#         # fig.write_html((os.path.join(output_dir, '{}.html'.format(fig_names[i]))))
 
 
 def plot_counts(counts_biases, output_dir, fig_name):
