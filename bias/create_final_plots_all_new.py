@@ -4,9 +4,9 @@ import os
 import pickle
 
 archives_wordembeddings = {
-    'nahar': 'input/word2vec/nahar/embeddings/',
-    'hayat': 'input/word2vec/hayat/embeddings/',
-    'assafir': 'input/word2vec/assafir/embeddings/',
+    'nahar': '../input/word2vec/nahar/embeddings/',
+    'hayat': '../input/word2vec/hayat/embeddings/',
+    'assafir': '../input/word2vec/assafir/embeddings/',
 }
 
 
