@@ -22,6 +22,13 @@ apply the data augmentation I've been doing so far
 
 casualties = pd.read_csv('casualties/casualties_1988_2011.csv')
 
+archives_wordembeddings = {
+    'nahar': 'input/word2vec/nahar/embeddings/',
+    'hayat': 'input/word2vec/hayat/embeddings/',
+    'assafir': 'input/word2vec/assafir/embeddings/',
+}
+
+
 def get_embedding_bias_decade_level(word_list1, word_list2, neutral_list, decades_path,
                                     archive, fig_name, ylab, output_folder, distype='norm', topKneighbs=3):
     embedding_biases = []
@@ -142,7 +149,7 @@ def get_embedding_bias_by_year(word_list1, word_list2, neutral_list, archive, ye
         print('neutral populated: {}'.format(neutral_list_found))
 
         embedding_bias = calculate_embedding_bias(word_list1_found, word_list2_found,
-                                                  neutral_list_found, word2vec_model)
+                                                  neutral_list_found, word2vec_model,)
         return embedding_bias
 
 
@@ -186,9 +193,8 @@ def get_embedding_bias(word_lists1, word_lists2, neutral_lists, desired_archives
                     word2vec_currmodel = word2vec_models_dict[year]
 
                     word_list1_found, word_list2_found, neutral_list_found = get_modified_word_lists(word_list1, word_list2,
-                                                                                                   neutral_list,
-                                                                                                   word2vec_currmodel,
-                                                                                                   topKneighbs)
+                                                                                                     neutral_list, word2vec_currmodel,
+                                                                                                     topKneighbs)
 
                     if word_list1_found == -1 or word_list2_found == -1 or neutral_list_found == -1:
                         print('data augmentation with edit distances did not work')
@@ -214,7 +220,7 @@ def get_embedding_bias(word_lists1, word_lists2, neutral_lists, desired_archives
                         # # embedding_bias = euclid1 - euclid2
                         # embedding_bias = dist1 - dist2
 
-                        embedding_bias = calculate_embedding_bias(word_list1_found, word_list2_found, neutral_list_found, word2vec_currmodel)
+                        embedding_bias = calculate_embedding_bias(word_list1_found, word_list2_found, neutral_list_found, word2vec_currmodel, distype)
                         print('Embedding Bias: {}'.format(embedding_bias))
                         embedding_biases[archive][i]['years'].append(year)
                         embedding_biases[archive][i]['biases'].append(embedding_bias)

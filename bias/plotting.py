@@ -59,6 +59,7 @@ def plot_bias_overtime_scatter_casualties(biases_cass, ylab, fig_name, out_folde
         f.writelines('${:.4}$ & ${:.4}$ & ${:.4} \pm {:.4}$& ${:.4}$ & ${:.4} \pm {:.4}$\\\\'.format(model.rsquared,model.pvalues[0], model.params[0], model.bse[0],model.pvalues[1], model.params[1], model.bse[1]))
         f.close()
 
+
 def plot_embedding_bias_time(embedding_biases, output_dir, fig_names, ylabs):
     mkdir(output_dir)
     min_year, max_year = -1, -1
@@ -84,7 +85,7 @@ def plot_embedding_bias_time(embedding_biases, output_dir, fig_names, ylabs):
                           xaxis_title='Years',
                           yaxis_title=ylabs[i])
         fig.write_image((os.path.join(output_dir, '{}.png'.format(fig_names[i]))))
-        fig.write_html((os.path.join(output_dir, '{}.html'.format(fig_names[i]))))
+        # fig.write_html((os.path.join(output_dir, '{}.html'.format(fig_names[i]))))
 
 
 def plot_counts(counts_biases, output_dir, fig_name):
@@ -108,4 +109,4 @@ def plot_counts(counts_biases, output_dir, fig_name):
                       xaxis_title='Years',
                       yaxis_title='Counts of Israeli-Related Words')
     fig.write_image((os.path.join(output_dir, '{}.png'.format(fig_name))))
-    fig.write_html((os.path.join(output_dir, '{}.html'.format(fig_name))))
+    # fig.write_html((os.path.join(output_dir, '{}.html'.format(fig_name))))
