@@ -51,6 +51,6 @@ if __name__ == '__main__':
         df.loc[idx, 'Israelis'] = get_sum(row['Israelis'])
 
     df = df.sort_values(by="Year", ascending=True)
-    out_dir = "casualties"
-    mkdir(out_dir)
-    df.to_csv(os.path.join(out_dir, "casualties_1988_2011.csv"), index=False)
+    # out_dir = "casualties"
+    # mkdir(out_dir)
+    df.to_csv("casualties_1988_2011.csv")
