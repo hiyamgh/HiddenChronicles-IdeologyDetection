@@ -67,6 +67,7 @@ if __name__ == '__main__':
     for plot in plots_to_do_bias_casualties_overtime:
         print(plot[0], plot[1][1:])
         all_embedding_biases = plot[0](*plot[1])
-        plot_embedding_bias_time(all_embedding_biases, 'output/bias_over_time/', fig_names, ylabs)
         with open('embedding_biases.pickle', 'wb') as handle:
             pickle.dump(all_embedding_biases, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        # plot_embedding_bias_time(all_embedding_biases, 'output/bias_over_time/', fig_names, ylabs)
+
