@@ -48,11 +48,14 @@ if __name__ == '__main__':
     target_list2 = [participants_palestine, participants_palestine, participants_palestine]
     neutral_lists = [terrorism_list, methods_of_violence, peace_practices]
 
-    # plots_to_do_scatter_casualties = [
-    #     [plot_overtime_scatter, [participants_israel, participants_palestine, terrorism_list, list(range(1988, 2012)), 'assafir', 3, 'Israeli-Terrorism Bias', 'assafir_israeli_terrorism', 'output/scatter/']],
-    #     [plot_overtime_scatter, [participants_israel, participants_palestine, methods_of_violence, list(range(1988, 2012)), 'assafir', 3, 'Israeli-Violence Bias', 'assafir_israeli_violence', 'output/scatter/']],
-    #     [plot_overtime_scatter, [participants_israel, participants_palestine, peace_practices, list(range(1988, 2012)), 'assafir', 3, 'Israeli-Peace Bias', 'assafir_israeli_peace', 'output/scatter/']],
-    # ]
+    with open('embedding_biases.pickle', 'rb') as handle:
+        all_embedding_biases = pickle.load(handle)
+
+    plots_to_do_scatter_casualties = [
+        [plot_overtime_scatter, [participants_israel, participants_palestine, terrorism_list, list(range(1988, 2012)), 'assafir', 3, 'Israeli-Terrorism Bias', 'assafir_israeli_terrorism', 'output/scatter/']],
+        [plot_overtime_scatter, [participants_israel, participants_palestine, methods_of_violence, list(range(1988, 2012)), 'assafir', 3, 'Israeli-Violence Bias', 'assafir_israeli_violence', 'output/scatter/']],
+        [plot_overtime_scatter, [participants_israel, participants_palestine, peace_practices, list(range(1988, 2012)), 'assafir', 3, 'Israeli-Peace Bias', 'assafir_israeli_peace', 'output/scatter/']],
+    ]
 
     plots_to_do_bias_overtime = [
         [get_embedding_bias, [[participants_israel, participants_israel, participants_israel],
@@ -61,44 +64,61 @@ if __name__ == '__main__':
                               ['nahar', 'hayat', 'assafir'], archives_wordembeddings, 'cosine', 3]]
     ]
 
-    fig_names = ['israel_palestine_terrorism', 'israel_palestine_violence', 'israel_palestine_peace']
-    ylabs = ['Avg. Embedding Bias Israeli Terrorism', 'Avg. Embedding Bias Israeli Methods of Violence', 'Avg. Embedding Bias Peace Practices']
+    plots_to_do_heatmap = [
+        [cross_time_correlation_heatmap, [all_embedding_biases, 'nahar', 'output/heatmap/', 1933, 1943, 'cross_time_1933_1943']],
+        [cross_time_correlation_heatmap, [all_embedding_biases, 'nahar', 'output/heatmap/', 1974, 1984, 'cross_time_1974_1984']],
+        [cross_time_correlation_heatmap, [all_embedding_biases, 'nahar', 'output/heatmap/', 2000, 2009, 'cross_time_2000_2009']],
 
-    with open('embedding_biases.pickle', 'rb') as handle:
-        all_embedding_biases = pickle.load(handle)
+        # [cross_time_correlation_heatmap, [all_embedding_biases, 'hayat', 'output/heatmap/', 1974, 1984, 'cross_time_1974_1984']],
+        # [cross_time_correlation_heatmap, [all_embedding_biases, 'assafir', 'output/heatmap/', 2000, 2009, 'cross_time_2000_2009']],
 
-    # for plot in plots_to_do_bias_overtime:
-    #     # print(plot[0], plot[1][1:])
-    #     # all_embedding_biases = plot[0](*plot[1])
-    #     # with open('embedding_biases.pickle', 'wb') as handle:
-    #     #     pickle.dump(all_embedding_biases, handle, protocol=pickle.HIGHEST_PROTOCOL)
-    #     plot_embedding_bias_time(all_embedding_biases, 'output/bias_over_time/', fig_names, ylabs)
-    #
-    # plots_to_do_heatmap = [
-    #     [cross_time_correlation_heatmap, [all_embedding_biases, 'nahar', 'output/heatmap/', 1933, 1943, 'cross_time_1933_1943']],
-    #     [cross_time_correlation_heatmap, [all_embedding_biases, 'nahar', 'output/heatmap/', 1974, 1984, 'cross_time_1974_1984']],
-    #     [cross_time_correlation_heatmap, [all_embedding_biases, 'nahar', 'output/heatmap/', 2000, 2009, 'cross_time_2000_2009']],
-    #
-    #     # [cross_time_correlation_heatmap, [all_embedding_biases, 'hayat', 'output/heatmap/', 1974, 1984, 'cross_time_1974_1984']],
-    #     # [cross_time_correlation_heatmap, [all_embedding_biases, 'assafir', 'output/heatmap/', 2000, 2009, 'cross_time_2000_2009']],
-    #
-    # ]
-    #
-    # for plot in plots_to_do_heatmap:
-    #     print(plot[0], plot[1][1:])
-    #     plot[0](*plot[1])
-    #     print('==============================================================')
+    ]
 
     plots_to_do_bias_casualties_overtime = [
         [plot_embedding_bias_census, [all_embedding_biases, 0, 'nahar', 1990, 2009, 'Avg. Embedding Bias Israeli Terrorism', 'output/bias_casualties_over_time/', 'israel_palestine_terrorism']],
         [plot_embedding_bias_census, [all_embedding_biases, 0, 'assafir', 1990, 2011, 'Avg. Embedding Bias Israeli Terrorism', 'output/bias_casualties_over_time/', 'israel_palestine_terrorism']],
         [plot_embedding_bias_census, [all_embedding_biases, 1, 'nahar', 1990, 2009, 'Avg. Embedding Bias Israeli Methods of Violence', 'output/bias_casualties_over_time/', 'israel_palestine_violence']],
-        [plot_embedding_bias_census, [all_embedding_biases, 1, 'assafir', 1990, 2011, 'Avg. Embedding Bias Israeli Methods of Violence', 'output/bias_casualties_over_time/', 'israel_palestine_violence']],
+        [plot_embedding_bias_census, [all_embedding_biases, 1, 'assafir', 1990, 2011, 'Avg. Embedding Bias Israeli Methods of Violence',  'output/bias_casualties_over_time/', 'israel_palestine_violence']],
         # [plot_embedding_bias_census, [all_embedding_biases, 2, 'nahar', 1990, 2009, 'Avg. Embedding Bias Israeli Peace Practices', 'output/bias_casualties_over_time/', 'israel_palestine_peace']],
         [plot_embedding_bias_census, [all_embedding_biases, 2, 'assafir', 1990, 2011, 'Avg. Embedding Bias Israeli Peace Practices', 'output/bias_casualties_over_time/', 'israel_palestine_peace']]
     ]
 
+    plots_to_do_bias_start_end_overtime = [
+        [plot_embedding_bias_start_end, [all_embedding_biases, 0, ['nahar', 'assafir'], 1974, 1990, 'Avg. Embedding Bias Israeli Terrorism', 'output/bias_overtime_start_end/', 'israel_palestine_terrorism']],
+        [plot_embedding_bias_start_end, [all_embedding_biases, 1, ['nahar', 'assafir'], 1974, 1990, 'Avg. Embedding Bias Israeli Violence', 'output/bias_overtime_start_end/', 'israel_palestine_violence']],
+
+        [plot_embedding_bias_start_end, [all_embedding_biases, 0, ['nahar', 'assafir', 'hayat'], 1950, 1960, 'Avg. Embedding Bias Israeli Terrorism', 'output/bias_overtime_start_end/', 'israel_palestine_terrorism']],
+        [plot_embedding_bias_start_end, [all_embedding_biases, 1, ['nahar', 'assafir', 'hayat'], 1950, 1960, 'Avg. Embedding Bias Israeli Violence', 'output/bias_overtime_start_end/', 'israel_palestine_violence']],
+
+        [plot_embedding_bias_start_end, [all_embedding_biases, 2, ['nahar', 'assafir'], 1990, 2000, 'Avg. Embedding Bias Israeli Peace', 'output/bias_overtime_start_end/', 'israel_palestine_peace']],
+
+        [plot_embedding_bias_start_end, [all_embedding_biases, 0, ['nahar', 'assafir'], 2000, 2009, 'Avg. Embedding Bias Israeli Terrorism', 'output/bias_overtime_start_end/', 'israel_palestine_terrorism']],
+        [plot_embedding_bias_start_end, [all_embedding_biases, 1, ['nahar', 'assafir'], 2000, 2009, 'Avg. Embedding Bias Israeli Violence', 'output/bias_overtime_start_end/', 'israel_palestine_violence']],
+
+    ]
+
+    fig_names = ['israel_palestine_terrorism', 'israel_palestine_violence', 'israel_palestine_peace']
+    ylabs = ['Avg. Embedding Bias Israeli Terrorism', 'Avg. Embedding Bias Israeli Methods of Violence', 'Avg. Embedding Bias Peace Practices']
+
+
+    for plot in plots_to_do_bias_overtime:
+        # print(plot[0], plot[1][1:])
+        # all_embedding_biases = plot[0](*plot[1])
+        # with open('embedding_biases.pickle', 'wb') as handle:
+        #     pickle.dump(all_embedding_biases, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        plot_embedding_bias_time(all_embedding_biases, 'output/bias_over_time/', fig_names, ylabs)
+
+    for plot in plots_to_do_heatmap:
+        print(plot[0], plot[1][1:])
+        plot[0](*plot[1])
+        print('==============================================================')
+
     for plot in plots_to_do_bias_casualties_overtime:
+        print(plot[0], plot[1][1:])
+        plot[0](*plot[1])
+        print('==============================================================')
+
+    for plot in plots_to_do_bias_start_end_overtime:
         print(plot[0], plot[1][1:])
         plot[0](*plot[1])
         print('==============================================================')

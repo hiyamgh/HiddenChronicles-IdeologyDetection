@@ -60,6 +60,26 @@ def plot_bias_overtime_scatter_casualties(biases_cass, ylab, fig_name, out_folde
         f.close()
 
 
+def plot_embedding_bias_start_end(embedding_biases, bias_type, archives, start_year, end_year, ylab, output_folder, figname):
+    all_years = list(range(int(start_year), int(end_year) + 1))
+    for archive in archives:
+        biases = []
+        years_available = embedding_biases[archive][bias_type]['years']
+        for i, year in enumerate(years_available):
+            if int(year) in all_years:
+                biases.append(embedding_biases[archive][bias_type]['biases'][i])
+        plt.plot(all_years, biases, marker='o', label=archive)
+
+    plt.xlabel('Years')
+    plt.ylabel('{}'.format(ylab))
+    mkdir(output_folder)
+    plt.legend(loc='best')
+    fig = plt.gcf()
+    fig.set_size_inches(15.5, 6.5)
+    plt.savefig(os.path.join(output_folder, '{}_{}_{}'.format(figname, start_year, end_year)))
+    plt.close()
+
+
 def plot_embedding_bias_census(embedding_biases, bias_type, archive, start_year, end_year, ylab, output_folder, figname):
     all_years = list(range(int(start_year), int(end_year) + 1))
     years_available = embedding_biases[archive][bias_type]['years']
@@ -113,6 +133,7 @@ def plot_embedding_bias_time(embedding_biases, output_dir, fig_names, ylabs):
         # get the ith data from each archive
         for archive in embedding_biases:
             bias = embedding_biases[archive][i]['biases']
+            # bias_sm = savgol_filter(bias, 11, 3)
             plt.plot(all_years, bias, label='{} bias'.format(archive), marker='o')
 
         plt.xlabel('Years')
