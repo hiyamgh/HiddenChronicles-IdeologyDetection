@@ -1,37 +1,38 @@
 import os
-import glob
 import h5py
-import getpass
-import nexusformat.nexus as nx
-from text_dirs import get_text_dirs
+
+''' 
+Gather all the raw txt files into a tree like format (h5py) in order to access
+certain txt by year/month/date etc.
+'''
 
 
-def create_h5py_data():
-    hf = h5py.File('data.h5', 'w')
-    MAIN_DIR = 'sample_txt/'
-    # get list of all possible years
-    for issuepage in os.listdir(MAIN_DIR):
-        if issuepage[0].isdigit():
-            prefix = issuepage[:6]
-            year = issuepage[:2]
-            month = issuepage[2:4]
-            groupID = None
-            if int(year) < 20:
-                year_str = '20{}'.format(year)
-                if year_str not in hf.keys():
-                    groupID = hf.create_group(year_str)
-            else:
-                year_str = '19{}'.format(year)
-                if year_str not in hf.keys():
-                    groupID = hf.create_group(year_str)
+def get_text_dirs():
+    TEXT_DIR1_nahar = '../input/nahar/nahar-batch-1/out/'
+    TEXT_DIR2_nahar = '../input/nahar/nahar-batch-2/out/'
+    TEXT_DIR3_nahar = '../input/nahar/nahar-batch-3/out/'
+    TEXT_DIR4_nahar = '../input/nahar/nahar-batch-4/out/'
 
-            text_file = open(os.path.join(MAIN_DIR, issuepage), encoding='utf-8')
-            dt = h5py.special_dtype(vlen=str)
-            dset = groupID.create_dataset(issuepage[:-4], dtype=dt, data=text_file.read())
-            dset.attrs['month'] = month
-            dset.attrs['year'] = year_str
-    
-    hf.close()
+    # assafir archive
+    TEXT_DIR1_assafir = '../input/assafir/assafir-batch-1/out/'
+    TEXT_DIR2_assafir = '../input/assafir/assafir-batch-2/out/'
+
+    # hayat archive
+    TEXT_DIR1_hayat = '../input/hayat/hayat-batch-1/out/'
+    TEXT_DIR2_hayat = '../input/hayat/hayat-batch-2/out/'
+
+    # txt files directory for annahar
+    TEXT_DIRS_nahar = [TEXT_DIR1_nahar, TEXT_DIR2_nahar, TEXT_DIR3_nahar, TEXT_DIR4_nahar]
+    TEXT_DIRS_assafir = [TEXT_DIR1_assafir, TEXT_DIR2_assafir]
+    TEXT_DIRS_hayat = [TEXT_DIR1_hayat, TEXT_DIR2_hayat]
+
+    newspapers_dict = {
+        'nahar': TEXT_DIRS_nahar,
+        'assafir': TEXT_DIRS_assafir,
+        'hayat': TEXT_DIRS_hayat,
+    }
+
+    return newspapers_dict
 
 
 def create_archive_hdf5(TEXT_DIRS, archive):
@@ -42,12 +43,10 @@ def create_archive_hdf5(TEXT_DIRS, archive):
         print('processing files in {}'.format(txt_dir))
         for issuepage in os.listdir(txt_dir):
             if issuepage[0].isdigit() and issuepage.endswith('.txt'):
-                prefix = issuepage[:6]
                 year = issuepage[:2]
                 month = issuepage[2:4]
                 day = issuepage[4:6]
                 pagenb = issuepage[6:8]
-                groupID = None
 
                 if int(year) < 20:
                     year_str = '20{}'.format(year)
@@ -72,7 +71,7 @@ def create_archive_hdf5(TEXT_DIRS, archive):
 
                 count += 1
 
-                if count%1000 == 0:
+                if count % 1000 == 0:
                     print('processed {} files so far'.format(count))
 
     hf.close()
