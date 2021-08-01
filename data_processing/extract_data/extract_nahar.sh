@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#SBATCH --job-name=assafir
+#SBATCH --job-name=nahar
 #SBATCH --account=hkg02
 #SBATCH --partition=normal
 #SBATCH --nodes=1
