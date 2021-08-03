@@ -4,7 +4,7 @@
 created on 2014 Mar 28
 by disooqi
 '''
-from data_processing.clean_data import script
+import script
 
 
 class Stemmer:

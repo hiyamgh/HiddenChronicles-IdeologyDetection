@@ -1,9 +1,8 @@
-#!/usr/bin/python
-# -*- coding:utf-8 -*-
+
 '''
-created on 2014 Mar 28
-by disooqi
+This code was taken and modified from the following repository: https://github.com/disooqi/ArabicProcessingCog
 '''
+
 import re
 
 SPACE            = u'\u0020'
@@ -53,6 +52,9 @@ LEFT_CURLY_BRACKET   = u'\u007b'
 VERTICAL_LINE        = u'\u007c'
 RIGHT_CURLY_BRACKET  = u'\u007d'
 TILDE                = u'\u007e'
+
+# added this copyright
+COPYRIGHT            = u'\u00a9'
 
 Leftpointing_double_angle_quotation_mark  = u'\u00ab'
 MIDDLE_DOT                                = u'\u00b7' #unichr(183)
@@ -337,7 +339,7 @@ PUNCTUATIONS = (ar_COMMA, ar_SEMICOLON, ar_QUESTION, ar_PERCENT, ar_DECIMAL,
                 BACKSLASH, RIGHT_SQUARE_BRACKET, CIRCUMFLEX_ACCENT, UNDERSCORE,
                 GRAVE_ACCENT, LEFT_CURLY_BRACKET, VERTICAL_LINE,
                 RIGHT_CURLY_BRACKET, TILDE, Leftpointing_double_angle_quotation_mark,
-                MIDDLE_DOT, Rightpointing_double_angle_quotation_mark ) #APOSTROPHE
+                MIDDLE_DOT, Rightpointing_double_angle_quotation_mark, COPYRIGHT ) #APOSTROPHE
 
 ##
 ##punc_to_remove = (ar_COMMA, ar_SEMICOLON, ar_QUESTION, ar_PERCENT, ar_DECIMAL,

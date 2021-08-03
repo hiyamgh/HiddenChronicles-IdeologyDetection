@@ -6,6 +6,8 @@ Gather all the raw txt files into a tree like format (h5py) in order to access
 certain txt by year/month/date etc.
 '''
 
+# https://docs.h5py.org/en/stable/special.html
+
 
 def get_text_dirs():
     TEXT_DIR1_nahar = '../input/nahar/nahar-batch-1/out/'
