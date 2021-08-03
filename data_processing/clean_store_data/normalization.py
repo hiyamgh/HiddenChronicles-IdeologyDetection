@@ -202,9 +202,14 @@ if __name__ == '__main__':
         lines = f.readlines()
         cleaned = arabnormalizer.normalize_paragraph(lines)
 
+    # for line in cleaned:
+    #     print(line + '\n')
     with open('../some_txt_files/33090205_cleaned.txt', 'w', encoding='utf-8') as f:
         for line in cleaned:
-            f.write(line+'\n')
+            if line == '\n':
+                f.write(line)
+            else:
+                f.write(line + '\n')
         f.close()
 
 
