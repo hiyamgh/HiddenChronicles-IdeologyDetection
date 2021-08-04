@@ -9,4 +9,4 @@
 #SBATCH --mail-user=hkg02@mail.aub.edu
 
 module load python/3
-python nahar2hdf5.py
+python data2hdf5.py nahar
