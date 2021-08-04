@@ -2,6 +2,7 @@
 This code was taken and modified from the following repository: https://github.com/disooqi/ArabicProcessingCog
 '''
 
+import re
 import config
 from script import *
 from stopword_removing import StopwordRemover
@@ -58,15 +59,18 @@ class ArabicNormalizer:
                               ar_NINE: u''
                     }
 
+        # For normalizing sentences by removing punctuation marks,
+        # We will not remove full stop marks because they will help
+        # identify sentences, since Word2Vec need to be trained on sentences
         self.punctuation_norm_table = {
-            ar_COMMA: u'',
-            ar_SEMICOLON: u'',
-            ar_QUESTION: u'',
+            # ar_COMMA: u'',
+            # ar_SEMICOLON: u'',
+            # ar_QUESTION: u'',
             ar_PERCENT: u'',
             ar_DECIMAL: u'',
             ar_THOUSANDS: u'',
-            ar_FULL_STOP: u'',
-            EXCLAMATION: u'',
+            # ar_FULL_STOP: u'', # commented out for in order to identify sentences
+            # EXCLAMATION: u'',
             en_QUOTATION: u'',
             NUMBER_SIGN: u'',
             DOLLAR_SIGN: u'',
@@ -78,14 +82,14 @@ class ArabicNormalizer:
             PLUS_SIGN: u'',
             en_COMMA: u'',
             HYPHEN_MINUS: u'',
-            en_FULL_STOP: u'',
+            # en_FULL_STOP: u'', # commented out for in order to identify sentences
             SLASH: u'',
             en_COLON: u'',
-            en_SEMICOLON: u'',
+            # en_SEMICOLON: u'',
             en_LESS_THAN: u'',
             en_EQUALS_SIGN: u'',
             en_GREATER_THAN: u'',
-            en_QUESTION: u'',
+            # en_QUESTION: u'',
             COMMERCIAL_AT: u'',
             LEFT_SQUARE_BRACKET: u'',
             BACKSLASH: u'',
@@ -126,7 +130,8 @@ class ArabicNormalizer:
         if config.Add_SPACE_after_TEH_MARBUTA:
             line = line.replace(TEH_MARBUTA, TEH_MARBUTA+SPACE)
 
-        for ch in PUNCTUATIONS:
+        # for ch in PUNCTUATIONS:
+        for ch in self.punctuation_norm_table:
             if config.remove_punc:
                 line = line.replace(ch, SPACE)
                 continue
@@ -198,26 +203,41 @@ class ArabicNormalizer:
 if __name__ == '__main__':
 
     arabnormalizer = ArabicNormalizer()
+
     with open('../some_txt_files/33090205.txt', 'r', encoding='utf-8') as f:
         lines = f.readlines()
         cleaned = arabnormalizer.normalize_paragraph(lines)
 
-    # for line in cleaned:
-    #     print(line + '\n')
     with open('../some_txt_files/33090205_cleaned.txt', 'w', encoding='utf-8') as f:
         for line in cleaned:
             if line == '\n':
                 f.write(line)
             else:
                 f.write(line + '\n')
+
+    with open('../some_txt_files/33090205_cleaned.txt', 'r', encoding='utf-8') as f:
+        # writing delimiters like this results in a tuple of unicode delimiters
+        delimiters = EXCLAMATION, en_FULL_STOP, en_SEMICOLON, en_QUESTION, ar_FULL_STOP, ar_SEMICOLON, ar_QUESTION
+        # re.escape allows to build the pattern automatically and have the delimiters escaped nicely
+        regexPattern = '|'.join(map(re.escape, delimiters))
+        # read the text and split into sentences whenever a delimiter from delimiters above is encountered
+        text = f.read()
+        sentences = re.split(regexPattern, text)
+        for sent in sentences:
+            print(sent)
+            print('========================================')
+        print(len(sentences))
         f.close()
 
-
-
-
-
-
-
+    # # https://stackoverflow.com/a/13184791/11212687
+    # text = 'Hi there. I am ? Hiyam ؟  hELLOOOOOO!!!! bye bye.'
+    # delimiters = EXCLAMATION, en_FULL_STOP, en_SEMICOLON, en_QUESTION, ar_FULL_STOP, ar_SEMICOLON, ar_QUESTION
+    # regexPattern = '|'.join(map(re.escape, delimiters))
+    # print(regexPattern)
+    # sentences = re.split(regexPattern, text)
+    # for sent in sentences:
+    #     print(sent)
+    #     print('========================================')
 
 
 
