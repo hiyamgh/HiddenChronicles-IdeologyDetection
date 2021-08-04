@@ -50,10 +50,10 @@ def get_text_dirs():
     return newspapers_dict
 
 
-def create_archive_hdf5(TEXT_DIRS, archive):
+def create_archive_hdf5(TEXT_DIRS, archive, output_folder):
     ''' create text dirs for a certain archive '''
-
-    hf = h5py.File('{}.h5'.format(archive), 'w')
+    mkdir(output_folder)
+    hf = h5py.File(os.path.join(output_folder, '{}.h5').format(archive), 'w')
     arabnormalizer = ArabicNormalizer()
     for txt_dir in TEXT_DIRS:
         count = 0
@@ -114,4 +114,4 @@ if __name__ == '__main__':
 
     newspapers_dict = get_text_dirs()
     TEXT_DIRS_archive = newspapers_dict[args.archive]
-    create_archive_hdf5(TEXT_DIRS_archive, archive=args.archive)
+    create_archive_hdf5(TEXT_DIRS_archive, archive=args.archive, output_folder='../../input/')
