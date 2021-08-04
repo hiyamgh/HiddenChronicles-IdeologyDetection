@@ -82,7 +82,7 @@ def create_archive_hdf5(TEXT_DIRS, archive):
                 text_file = open(os.path.join(txt_dir, issuepage), encoding='utf-8')
                 string_dt = h5py.special_dtype(vlen=str)
                 # create dataset with raw data
-                groupID.create_dataset('text-raw', dtype=string_dt, data=text_file.read())
+                groupID.create_dataset('{}-raw'.format(issuepage), dtype=string_dt, data=text_file.read())
                 # create dataset with cleaned data
                 lines = text_file.readlines()
                 lines_cleaned = arabnormalizer.normalize_paragraph(lines)
@@ -92,7 +92,7 @@ def create_archive_hdf5(TEXT_DIRS, archive):
                         str_clean += line
                     else:
                         str_clean += line + '\n'
-                dset_clean = groupID.create_dataset('text-clean', dtype=string_dt, data=str_clean)
+                dset_clean = groupID.create_dataset('{}-clean'.format(issuepage), dtype=string_dt, data=str_clean)
                 # add attributes about the issue
                 dset_clean.attrs['year'] = year_str
                 dset_clean.attrs['month'] = month
