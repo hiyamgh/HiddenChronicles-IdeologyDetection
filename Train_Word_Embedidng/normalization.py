@@ -114,7 +114,8 @@ class ArabicNormalizer:
         pass
 
     def normalize_paragraph(self, txt_content):
-        ''' the paragraph is read from a file using .readlines(), therefore
+        '''
+            the paragraph is read from a file using .readlines(), therefore
             it is a list of lines. Here, we loop over each line in the
             paragraph and process it.
         '''
@@ -127,6 +128,11 @@ class ArabicNormalizer:
         return lines_cleaned
 
     def normalize_sentence(self, line):
+        '''
+            Normalize teh sentence, if we have senetences generated from .readlines()
+            :param line: the sentence
+            :return: list of tokens normalized
+        '''
         if config.Add_SPACE_after_TEH_MARBUTA:
             line = line.replace(TEH_MARBUTA, TEH_MARBUTA+SPACE)
 
