@@ -6,7 +6,6 @@ certain txt by year/month/date etc.
 import os
 import h5py
 import argparse
-from normalization import ArabicNormalizer
 
 # https://docs.h5py.org/en/stable/special.html
 
@@ -54,7 +53,6 @@ def create_archive_hdf5(TEXT_DIRS, archive, output_folder):
     ''' create text dirs for a certain archive '''
     mkdir(output_folder)
     hf = h5py.File(os.path.join(output_folder, '{}.h5').format(archive), 'w')
-    arabnormalizer = ArabicNormalizer()
     for txt_dir in TEXT_DIRS:
         count = 0
         print('processing files in {}'.format(txt_dir))
