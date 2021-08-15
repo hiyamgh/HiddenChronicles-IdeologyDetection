@@ -9,4 +9,4 @@
 #SBATCH --mail-user=hkg02@mail.aub.edu
 
 module load python/3
-python train_ind_yearly.py assafir trained_models/assafir/cbow/
+python train_ind_yearly_cbow.py assafir trained_models/assafir/cbow/
