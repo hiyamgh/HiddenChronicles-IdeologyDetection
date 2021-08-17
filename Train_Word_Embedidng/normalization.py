@@ -5,13 +5,15 @@ This code was taken and modified from the following repository: https://github.c
 import re
 import config
 from script import *
-from stopword_removing import StopwordRemover
+from nltk.corpus import stopwords
+stopwords_arabic = stopwords.words('arabic')
+# from stopword_removing import StopwordRemover
 
 
 class ArabicNormalizer:
 
     def __init__(self):
-        self.StopWordRemover = StopwordRemover()
+        # self.StopWordRemover = StopwordRemover()
         self.norm_table = {
                               ALEF_MADDA: ALEF,
                               ALEF_HAMZA_ABOVE: ALEF,
@@ -63,14 +65,14 @@ class ArabicNormalizer:
         # We will not remove full stop marks because they will help
         # identify sentences, since Word2Vec need to be trained on sentences
         self.punctuation_norm_table = {
-            # ar_COMMA: u'',
-            # ar_SEMICOLON: u'',
-            # ar_QUESTION: u'',
+            ar_COMMA: u'',
+            ar_SEMICOLON: u'',
+            ar_QUESTION: u'',
             ar_PERCENT: u'',
             ar_DECIMAL: u'',
             ar_THOUSANDS: u'',
             # ar_FULL_STOP: u'', # commented out for in order to identify sentences
-            # EXCLAMATION: u'',
+            EXCLAMATION: u'',
             en_QUOTATION: u'',
             NUMBER_SIGN: u'',
             DOLLAR_SIGN: u'',
@@ -85,11 +87,11 @@ class ArabicNormalizer:
             # en_FULL_STOP: u'', # commented out for in order to identify sentences
             SLASH: u'',
             en_COLON: u'',
-            # en_SEMICOLON: u'',
+            en_SEMICOLON: u'',
             en_LESS_THAN: u'',
             en_EQUALS_SIGN: u'',
             en_GREATER_THAN: u'',
-            # en_QUESTION: u'',
+            en_QUESTION: u'',
             COMMERCIAL_AT: u'',
             LEFT_SQUARE_BRACKET: u'',
             BACKSLASH: u'',
@@ -104,7 +106,9 @@ class ArabicNormalizer:
             Leftpointing_double_angle_quotation_mark: u'',
             MIDDLE_DOT: u'',
             Rightpointing_double_angle_quotation_mark: u'',
-            COPYRIGHT: u''
+            COPYRIGHT: u'',
+            RIGHT_TO_LEFT_MARK: u'',
+            LEFT_TO_RIGHT_MARK: u''
         }
 
     def __str__(self):
@@ -168,7 +172,7 @@ class ArabicNormalizer:
         ''' a token could be a single word, a multiword expression, or a named entity '''
         # check if token is a valid Arabic Word (from Taha Zerrouki)
         if config.remove_stopwords:
-            if self.StopWordRemover.is_stopword(token):
+            if token in stopwords_arabic:
                 return ''
         if not isArabicword(token):
             if config.remove_nonArabic_word:

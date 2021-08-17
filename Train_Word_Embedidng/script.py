@@ -33,6 +33,7 @@ SEVEN            = u'\u0037'
 EIGHT            = u'\u0038'
 NINE             = u'\u0039'
 
+
 en_COLON             = u'\u003a' #unichr(58)
 en_SEMICOLON         = u'\u003b' 
 en_LESS_THAN         = u'\u003c' #unichr(60)
@@ -47,6 +48,8 @@ RIGHT_SQUARE_BRACKET = u'\u005d'
 CIRCUMFLEX_ACCENT    = u'\u005e'
 UNDERSCORE           = u'\u005f'
 GRAVE_ACCENT         = u'\u0060'
+RIGHT_TO_LEFT_MARK   = u'\u200f'
+LEFT_TO_RIGHT_MARK   = u'\u200e'
 
 LEFT_CURLY_BRACKET   = u'\u007b'
 VERTICAL_LINE        = u'\u007c'
