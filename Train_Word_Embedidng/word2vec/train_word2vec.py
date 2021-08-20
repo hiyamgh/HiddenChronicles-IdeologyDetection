@@ -60,15 +60,15 @@ class SentenceIterable(object):
         self.year = year
 
     def __iter__(self):
-        delimiters = EXCLAMATION, en_FULL_STOP, en_SEMICOLON, en_QUESTION, ar_FULL_STOP, ar_SEMICOLON, ar_QUESTION
+        delimiters = en_FULL_STOP, ar_FULL_STOP
         # re.escape allows to build the pattern automatically and have the delimiters escaped nicely
         regexPattern = '|'.join(map(re.escape, delimiters))
         # define the Arabic Normalizer instance
         arabnormalizer = ArabicNormalizer()
 
         # sentences = []
-        for issue in hf[year].keys():
-            doc = hf[year][issue].value
+        for issue in self.hf[self.year].keys():
+            doc = self.hf[self.year][issue].value
             # lines = doc.readlines()
             lines = doc.split('\n')
             lines_cleaned = arabnormalizer.normalize_paragraph(lines)
