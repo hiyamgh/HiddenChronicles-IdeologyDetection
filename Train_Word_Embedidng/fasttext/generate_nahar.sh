@@ -10,4 +10,4 @@
 
 module load python/3
 
-python generate_data_fasttext --archive nahar
+python generate_data_fasttext.py --archive nahar
