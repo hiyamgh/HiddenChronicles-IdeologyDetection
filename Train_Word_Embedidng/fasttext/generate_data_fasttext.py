@@ -107,9 +107,12 @@ def create_files(archive, hf, year):
                 # remove one letter words
                 sentence = [s for s in sentence if len(s) > 1]
 
+                # turn the sentence back to a string
+                sentence_str = " ".join(sentence)
+
                 # FastText accepts files that are line by line. Therefore we need to
                 # collect sentence by sentence and throw it into a txt file.
-                f.write(sentence + '\n')
+                f.write(sentence_str + '\n')
         f.close()
 
 
