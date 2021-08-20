@@ -97,7 +97,7 @@ def create_files(archive, hf, year):
                 doc_cleaned += line + '\n'
         # get the sentences in the document (parts of the document separated by punctuation (mainly stop) marks)
         sentences = re.split(regexPattern, doc_cleaned)
-        with open(os.path.join(data_folder, "{}.txt".format(year)), "a") as f:
+        with open(os.path.join(data_folder, "{}.txt".format(year)), "a", encoding="utf-8") as f:
             for sentence in sentences:
                 sentence = sentence.replace('\n', '')
                 sentence = sentence.strip()
