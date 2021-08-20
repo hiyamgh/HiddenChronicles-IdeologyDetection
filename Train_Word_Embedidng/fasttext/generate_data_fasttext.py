@@ -116,6 +116,7 @@ def create_files(archive, hf, year):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
+    parser.add_argument('-a', '--archive', type=str, default='assafir', help="name of the archive to transform")
     args = parser.parse_args()
 
     print('processing {} archive'.format(args.archive))
