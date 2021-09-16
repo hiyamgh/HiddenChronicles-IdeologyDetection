@@ -22,18 +22,18 @@ def get_text_dirs():
         batches of data for each arhcive we have
     '''
     # nahar archive
-    TEXT_DIR1_nahar = '../../../../nahar/nahar-batch-1/out/'
-    TEXT_DIR2_nahar = '../../../../nahar/nahar-batch-2/out/'
-    TEXT_DIR3_nahar = '../../../../nahar/nahar-batch-3/out/'
-    TEXT_DIR4_nahar = '../../../../nahar/nahar-batch-4/out/'
+    TEXT_DIR1_nahar = '../../../nahar/nahar-batch-1/out/'
+    TEXT_DIR2_nahar = '../../../nahar/nahar-batch-2/out/'
+    TEXT_DIR3_nahar = '../../../nahar/nahar-batch-3/out/'
+    TEXT_DIR4_nahar = '../../../nahar/nahar-batch-4/out/'
 
     # assafir archive
-    TEXT_DIR1_assafir = '../../../../assafir/assafir-batch-1/out/'
-    TEXT_DIR2_assafir = '../../../../assafir/assafir-batch-2/out/'
+    TEXT_DIR1_assafir = '../../../assafir/assafir-batch-1/out/'
+    TEXT_DIR2_assafir = '../../../assafir/assafir-batch-2/out/'
 
     # hayat archive
-    TEXT_DIR1_hayat = '../../../../hayat/hayat-batch-1/out/'
-    TEXT_DIR2_hayat = '../../../../hayat/hayat-batch-2/out/'
+    TEXT_DIR1_hayat = '../../../hayat/hayat-batch-1/out/'
+    TEXT_DIR2_hayat = '../../../hayat/hayat-batch-2/out/'
 
     # txt files directory for nahar
     TEXT_DIRS_nahar = [TEXT_DIR1_nahar, TEXT_DIR2_nahar, TEXT_DIR3_nahar, TEXT_DIR4_nahar]
