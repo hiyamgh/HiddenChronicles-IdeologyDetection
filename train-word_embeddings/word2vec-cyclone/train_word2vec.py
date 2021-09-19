@@ -110,7 +110,7 @@ if __name__ == '__main__':
     print('processing {} archive'.format(args.archive))
 
     # get the location of the hdf5 file to open it
-    hf = h5py.File('../../{}.h5'.format(args.archive), 'r')
+    hf = h5py.File('../../../{}.h5'.format(args.archive), 'r')
 
     # get all years in the hdf5 file (each year is a group)
     years = list(hf.keys())
