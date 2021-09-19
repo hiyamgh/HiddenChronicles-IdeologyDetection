@@ -6,6 +6,8 @@
 #SBATCH --gres=gpu:1
 #SBATCH --gpus-per-node=1
 #SBATCH --time=04:00:00
+#SBATCH --error=job.%J.out
+#SBATCH --output=job.%J.out
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=hkg02@mail.aub.edu
 #SBATCH --array=1-576%10

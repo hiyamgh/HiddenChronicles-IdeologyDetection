@@ -38,7 +38,7 @@ from normalization import *
 def mkdir(folder):
     ''' creates a directory if it doesn't already exist '''
     if not os.path.exists(folder):
-        os.makedirs(folder)
+        os.makedirs(folder, exist_ok=True)
 
 
 class SentenceIterable(object):
