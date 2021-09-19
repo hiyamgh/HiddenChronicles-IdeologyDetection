@@ -112,4 +112,4 @@ if __name__ == '__main__':
 
     newspapers_dict = get_text_dirs()
     TEXT_DIRS_archive = newspapers_dict[args.archive]
-    create_archive_hdf5(TEXT_DIRS_archive, archive=args.archive, output_folder='../../')
+    create_archive_hdf5(TEXT_DIRS_archive, archive=args.archive, output_folder='../../../')
