@@ -8,4 +8,4 @@
 #SBATCH --mail-user=hkg02@mail.aub.edu
 
 module load Python/3.6.8-GCCcore-8.2.0
-python data2hdf5.py assafir
+python data2hdf5.py assafir > assafir2hdf5_$SLURM_JOBID.txt
