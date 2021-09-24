@@ -27,7 +27,7 @@ if __name__ == '__main__':
     archive = args.archive
     data_folder = "data/{}/".format(archive)
     # the output folder to save trained model in
-    logdir = '{}/{}/year{}-ngrams{}-size{}-window{}-mincount{}-negative{}-lr{}/'.format(args.archive,
+    logdir = '{}/{}/ngrams{}-size{}-window{}-mincount{}-negative{}-lr{}/'.format(args.archive,
                                                                              'cbow' if args.model == 'cbow' else 'SGNS',
                                                                              args.year,
                                                                              args.wordNgrams,
@@ -37,7 +37,7 @@ if __name__ == '__main__':
                                                                              args.lr)
 
     mkdir(logdir)
-    input_file = os.path.join(data_folder, '{}.txt'.format(args.year))
+    input_file = '{}.txt'.format(args.year)
     logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 
     print('\nTraining fasttext on {} archive for year {}]\n'.format(args.archive, args.year))
