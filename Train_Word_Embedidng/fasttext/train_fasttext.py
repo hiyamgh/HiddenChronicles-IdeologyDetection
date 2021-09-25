@@ -2,7 +2,6 @@ import fasttext
 import argparse
 import os, logging
 import multiprocessing as mp
-from multiprocessing import Pool, Process, Queue
 
 
 def mkdir(folder):
@@ -26,47 +25,33 @@ if __name__ == '__main__':
 
     archive = args.archive
     data_folder = "data/{}/".format(archive)
-    # the output folder to save trained model in
-    logdir = '{}/{}/ngrams{}-size{}-window{}-mincount{}-negative{}-lr{}/'.format(args.archive,
-                                                                             'cbow' if args.model == 'cbow' else 'SGNS',
-                                                                             args.year,
-                                                                             args.wordNgrams,
-                                                                             # 'cbow' if args.model == 'cbow' else 'SGNS',
-                                                                             args.dim, args.ws, args.minCount,
-                                                                             args.neg if args.model == 'skipgram' else 0,
-                                                                             args.lr)
-
-    mkdir(logdir)
     input_file = '{}.txt'.format(args.year)
-    logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
+    if os.path.exists(os.path.join(data_folder, input_file)):
+        # the output folder to save trained model in
+        logdir = '{}/{}/ngrams{}-size{}-window{}-mincount{}-negative{}-lr{}/'.format(args.archive,
+                                                                                 'cbow' if args.model == 'cbow' else 'SGNS',
+                                                                                 args.wordNgrams,
+                                                                                 # 'cbow' if args.model == 'cbow' else 'SGNS',
+                                                                                 args.dim, args.ws, args.minCount,
+                                                                                 args.neg if args.model == 'skipgram' else 0,
+                                                                                 args.lr)
 
-    print('\nTraining fasttext on {} archive for year {}]\n'.format(args.archive, args.year))
-    model = fasttext.train_unsupervised(input=os.path.join(data_folder, input_file),
-                                        wordNgrams=args.wordNgrams,
-                                        model=args.model,
-                                        lr=args.lr,
-                                        dim=args.dim,
-                                        ws=args.ws,
-                                        neg=args.neg if args.model == 'skipgram' else 0,
-                                        thread=mp.cpu_count())
+        mkdir(logdir)
+        # input_file = '{}.txt'.format(args.year)
+        logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 
-    model.save_model(os.path.join(logdir, "{}.bin".format(args.year)))
+        print('\nTraining fasttext on {} archive for year {}]\n'.format(args.archive, args.year))
+        model = fasttext.train_unsupervised(input=os.path.join(data_folder, input_file),
+                                            wordNgrams=args.wordNgrams,
+                                            model=args.model,
+                                            lr=args.lr,
+                                            dim=args.dim,
+                                            ws=args.ws,
+                                            neg=args.neg if args.model == 'skipgram' else 0,
+                                            thread=mp.cpu_count())
 
-
-    # for input_file in os.listdir(data_folder):
-    #     year = input_file.split('.')[0]
-    #     print('year is: {}\n'.format(year))
-    #     logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
-    #     model = fasttext.train_unsupervised(input=os.path.join(data_folder, input_file),
-    #                                 wordNgrams=args.wordNgrams,
-    #                                 model=args.model,
-    #                                 lr=args.lr,
-    #                                 dim=args.dim,
-    #                                 ws=args.ws,
-    #                                 neg=args.neg if args.model == 'skipgram' else 0,
-    #                                 thread=mp.cpu_count())
-    #
-    #     model.save_model(os.path.join(logdir, "{}.bin".format(year)))
-
+        model.save_model(os.path.join(logdir, "{}.bin".format(args.year)))
+    else:
+        print('year {} not found in {} archive'.format(args.year, args.archive))
 
 
