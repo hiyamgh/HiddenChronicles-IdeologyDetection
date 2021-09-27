@@ -122,7 +122,7 @@ def get_intersection_with_ocr_errors(neighs1, neighs2):
                 # get original word for comparison
                 original = nn1 if len(nn1) >= len(nn2) else nn2
                 # if there exist a word in the intersection that is less than the original word by 40% max, then add it
-                for cw in cmn:
+                for cw in cmn_sorted:
                     if abs((len(original) - len(cw))) / len(original) <= 0.4:
                         # common.add(nn1 if len(nn1) >= len(nn2) else nn2)
                         common.add(cw)
