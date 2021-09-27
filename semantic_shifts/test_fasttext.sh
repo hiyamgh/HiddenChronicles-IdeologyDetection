@@ -9,6 +9,8 @@
 #SBATCH --mail-user=hkg02@mail.aub.edu
 #SBATCH --array=1-10%10
 
+module load python/3
+
 STD_DIR1=../Train_Word_Embedidng/fasttext/data/nahar/
 STD_DIR2=../Train_Word_Embedidng/fasttext/data/assafir/
 EMB_DIR1=../Train_Word_Embedidng/fasttext/nahar/SGNS/ngrams4-size300-window5-mincount100-negative15-lr0.001/
