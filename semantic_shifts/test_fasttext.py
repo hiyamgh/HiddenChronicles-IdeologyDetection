@@ -103,6 +103,7 @@ def extract_freqs(filename, vocab):
 
 def get_intersection_with_ocr_errors(neighs1, neighs2):
     common = set()
+    found = False
     for nn1 in neighs1:
         for nn2 in neighs2:
             maxlen = max(len(nn1), len(nn2))
@@ -123,11 +124,20 @@ def get_intersection_with_ocr_errors(neighs1, neighs2):
                 original = nn1 if len(nn1) >= len(nn2) else nn2
                 # if there exist a word in the intersection that is less than the original word by 40% max, then add it
                 for cw in cmn_sorted:
-                    if abs((len(original) - len(cw))) / len(original) <= 0.4:
+                    if abs((len(nn1) - len(cw))) / len(nn1) <= 0.2 and abs((len(nn2) - len(cw))) / len(nn2) <= 0.2:
                         # common.add(nn1 if len(nn1) >= len(nn2) else nn2)
-                        common.add(cw)
-                        print('{} is subset of {}, added {}'.format(cw, original, (nn1, nn2)))
+                        # common.add(cw)
+                        # print('{} is subset of {}, added {}'.format(cw, original, (nn1, nn2)))
+                        # break
+                        common.add(nn1)
+                        common.add(nn2)
+                        print('{} is subset of {}'.format(cw, (nn1, nn2)))
+                        found = True
                         break
+
+            if found:
+                found = False
+                break
     return common
 
 
@@ -222,6 +232,13 @@ if __name__ == '__main__':
     parser.add_argument("--k", type=int, default=10000, help="k of k-NN to use")
 
     args = parser.parse_args()
+
+    print('Embedding 1: {}'.format(args.embed_a))
+    print('Embedding 2: {}'.format(args.embed_b))
+    print('data 1: {}'.format(args.data_a))
+    print('data 2: {}'.format(args.data_b))
+    print('split name 1: {}'.format(args.name_split_a))
+    print('split name 2: {}'.format(args.name_split_b))
 
     model1 = fasttext.load_model(args.embed_a)
     model2 = fasttext.load_model(args.embed_b)

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#SBATCH --job-name=nn
+#SBATCH --job-name=nnmod
 #SBATCH --account=hkg02
 #SBATCH --partition=normal
 #SBATCH --nodes=1
@@ -7,7 +7,7 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=hkg02@mail.aub.edu
-#SBATCH --array=1-10%10
+#SBATCH --array=1-5%10
 
 module load python/3
 
@@ -25,7 +25,7 @@ for ((i=START;i<=END;i++)); do
     echo $i
     val1=nahar_${i}
     val2=assafir_${i}
-    python test_fasttext.py --data_a $STD_DIR1/${i}.txt --data_b $STD_DIR2/${i}.txt --embed_a $EMB_DIR1/${i}.bin --embed_b $EMB_DIR2/${i}.bin --name_split_a nahar_${i} --name_split_b assafir_${i} --out_topk $RES_DIR/"detect_${val1}_${val2}/" --k 500
+    python test_fasttext.py --data_a $STD_DIR1/${i}.txt --data_b $STD_DIR2/${i}.txt --embed_a $EMB_DIR1/${i}.bin --embed_b $EMB_DIR2/${i}.bin --name_split_a nahar_${i} --name_split_b assafir_${i} --out_topk $RES_DIR/"detect_${val1}_${val2}/" --k 200
    fi
    USCOUNTER=$(expr $USCOUNTER + 1)
 done
