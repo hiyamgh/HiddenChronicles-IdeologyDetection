@@ -23,7 +23,7 @@ for ((i=START;i<=END;i++)); do
     echo $i
     val1=nahar_${i}
     val2=assafir_${i}
-    python test_fasttext.py --embed_a $EMB_DIR1/${i}.bin --embed_b $EMB_DIR2/${i}.bin --name_split_a nahar_${i} --name_split_b assafir_${i} --out_topk $RES_DIR/"${i}" --k 10
+    python test_fasttext.py --embed_a $EMB_DIR1/${i}.bin --embed_b $EMB_DIR2/${i}.bin --name_split_a nahar_${i} --name_split_b assafir_${i} --out_dir $RES_DIR/${i}/ --k 10
    fi
    USCOUNTER=$(expr $USCOUNTER + 1)
 done
