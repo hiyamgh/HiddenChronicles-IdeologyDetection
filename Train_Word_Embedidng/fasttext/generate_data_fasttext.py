@@ -63,7 +63,7 @@ def mkdir(folder):
         os.makedirs(folder)
 
 
-def create_files(archive, hf, year):
+def create_files(archive, hf, year, start_year=None, end_year=None):
     '''
     This method will gather all data related to a certain year in one file.
     This is because Facebook's implementation of Fasttext understands this form of input.
@@ -73,6 +73,9 @@ def create_files(archive, hf, year):
     :param archive: name of the archive
     :param hf: the hdf5 file of data per arcyhive per year per issue
     :param year: the year of interest
+    ---- if we want to have a data file for several years collated together ----
+    :param start_year: start year to get data from
+    :param end_year: end year to get data from
     :return:
     '''
     delimiters = en_FULL_STOP, ar_FULL_STOP
@@ -81,45 +84,88 @@ def create_files(archive, hf, year):
     # define the Arabic Normalizer instance
     arabnormalizer = ArabicNormalizer()
 
-    data_folder = "data/{}/".format(archive)
-    mkdir(data_folder)
-    for issue in hf[year].keys():
-        doc = hf[year][issue].value
-        # lines = doc.readlines()
-        lines = doc.split('\n')
-        lines_cleaned = arabnormalizer.normalize_paragraph(lines)
-        # store cleaned lines as a string (as if we re-stored a cleaned document back)
-        doc_cleaned = ''
-        for line in lines_cleaned:
-            if line == '\n':
-                doc_cleaned += line
-            else:
-                doc_cleaned += line + '\n'
-        # get the sentences in the document (parts of the document separated by punctuation (mainly stop) marks)
-        sentences = re.split(regexPattern, doc_cleaned)
-        with open(os.path.join(data_folder, "{}.txt".format(year)), "a", encoding="utf-8") as f:
-            for sentence in sentences:
-                sentence = sentence.replace('\n', '')
-                sentence = sentence.strip()
-                if sentence == '':
-                    continue
-                sentence = sentence.split(' ')
-                # remove one letter words
-                sentence = [s for s in sentence if len(s) > 1]
+    if year is not None and start_year is None and end_year is None:
 
-                # turn the sentence back to a string
-                sentence_str = " ".join(sentence)
+        print('started generating data files for {} archive at the yearly level...'.format(archive))
+        data_folder = "data/{}/".format(archive)
+        mkdir(data_folder)
 
-                # FastText accepts files that are line by line. Therefore we need to
-                # collect sentence by sentence and throw it into a txt file.
-                f.write(sentence_str + '\n')
-        f.close()
+        for issue in hf[year].keys():
+            doc = hf[year][issue].value
+            # lines = doc.readlines()
+            lines = doc.split('\n')
+            lines_cleaned = arabnormalizer.normalize_paragraph(lines)
+            # store cleaned lines as a string (as if we re-stored a cleaned document back)
+            doc_cleaned = ''
+            for line in lines_cleaned:
+                if line == '\n':
+                    doc_cleaned += line
+                else:
+                    doc_cleaned += line + '\n'
+            # get the sentences in the document (parts of the document separated by punctuation (mainly stop) marks)
+            sentences = re.split(regexPattern, doc_cleaned)
+            with open(os.path.join(data_folder, "{}.txt".format(year)), "a", encoding="utf-8") as f:
+                for sentence in sentences:
+                    sentence = sentence.replace('\n', '')
+                    sentence = sentence.strip()
+                    if sentence == '':
+                        continue
+                    sentence = sentence.split(' ')
+                    # remove one letter words
+                    sentence = [s for s in sentence if len(s) > 1]
+
+                    # turn the sentence back to a string
+                    sentence_str = " ".join(sentence)
+
+                    # FastText accepts files that are line by line. Therefore we need to
+                    # collect sentence by sentence and throw it into a txt file.
+                    f.write(sentence_str + '\n')
+            f.close()
+    else:
+        print('started generating data file for {} archive from year {} till year {}...'.format(archive, start_year, end_year))
+        years_range = list(range(start_year, end_year + 1))
+        data_folder = "data/{}/start_end/".format(archive)
+        mkdir(data_folder)
+        for year in years_range:
+            for issue in hf[str(year)].keys():
+                doc = hf[str(year)][issue].value
+                # lines = doc.readlines()
+                lines = doc.split('\n')
+                lines_cleaned = arabnormalizer.normalize_paragraph(lines)
+                # store cleaned lines as a string (as if we re-stored a cleaned document back)
+                doc_cleaned = ''
+                for line in lines_cleaned:
+                    if line == '\n':
+                        doc_cleaned += line
+                    else:
+                        doc_cleaned += line + '\n'
+                # get the sentences in the document (parts of the document separated by punctuation (mainly stop) marks)
+                sentences = re.split(regexPattern, doc_cleaned)
+                with open(os.path.join(data_folder, "{}-{}.txt".format(start_year, end_year)), "a", encoding="utf-8") as f:
+                    for sentence in sentences:
+                        sentence = sentence.replace('\n', '')
+                        sentence = sentence.strip()
+                        if sentence == '':
+                            continue
+                        sentence = sentence.split(' ')
+                        # remove one letter words
+                        sentence = [s for s in sentence if len(s) > 1]
+
+                        # turn the sentence back to a string
+                        sentence_str = " ".join(sentence)
+
+                        # FastText accepts files that are line by line. Therefore we need to
+                        # collect sentence by sentence and throw it into a txt file.
+                        f.write(sentence_str + '\n')
+                f.close()
 
 
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-a', '--archive', type=str, default='assafir', help="name of the archive to transform")
+    parser.add_argument('-fy', '--start_year', type=int, default=None, help='year to start from')
+    parser.add_argument('-ty', '--end_year', type=int, default=None, help='year to end file on')
     args = parser.parse_args()
 
     print('processing {} archive'.format(args.archive))
@@ -130,8 +176,11 @@ if __name__ == '__main__':
     # get all years in the hdf5 file (each year is a group)
     years = list(hf.keys())
 
-    # create a file for each year
-    for year in years:
-        create_files(args.archive, hf, year)
+    if args.start_year is None and args.end_year is None:
+        # create a file for each year
+        for year in years:
+            create_files(args.archive, hf, year)
+    else:
+        create_files(args.archive, hf, year=None, start_year=args.start_year, end_year=args.end_year)
 
 
