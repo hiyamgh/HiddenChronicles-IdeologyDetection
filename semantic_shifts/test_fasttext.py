@@ -3,42 +3,10 @@ import argparse
 import operator
 from collections import defaultdict
 from tqdm import tqdm
-import codecs
 import pickle
 from nltk.util import ngrams
-
-
-def load_and_normalize(lang, filename, vocab, wv, w2i, hamilton=False):
-    # load word embeddings, vocab file and update the global maps (vocab, wv, w2i)
-
-    modela = fasttext.load_model(filename)
-    modelb = fasttext.load_model(filename)
-
-    # get vocabulary
-
-    # # load word embeddings, vocab file
-    # if hamilton:
-    #     vocab_muse, wv_muse, w2i_muse = load_embeddings_hamilton(filename)
-    # else:
-    #     vocab_muse, wv_muse, w2i_muse = load_embeddings_from_np(filename)
-    #
-    # # normalize the word embeddings
-    # wv_muse = normalize(wv_muse)
-    #
-    # # update the global maps
-    # vocab[lang] = vocab_muse
-    # wv[lang] = wv_muse
-    # w2i[lang] = w2i_muse
-    # print('loaded and normalized %s embeddings'%filename)
-
-
-def load_all_embeddings(args):
-    vocab = {}
-    wv = {}
-    w2i = {}
-    load_and_normalize(args.name_split_a, args.embed_a, vocab, wv, w2i)
-    load_and_normalize(args.name_split_b, args.embed_b, vocab, wv, w2i)
-    return vocab, wv, w2i
+from sklearn.manifold import TSNE
+import matplotlib.pyplot as plt
 
 
 def extract_freqs(filename, vocab):
@@ -74,33 +42,6 @@ def extract_freqs(filename, vocab):
     return freq_norm, count_vocab, top_freq
 
 
-# def topK(w, space, k=10, count = None, min_freq = 0):
-#     # identify the top k neighbors of a word in a space
-#
-#     # extract the word vector for word w
-#     idx = w2i[space][w]
-#     vec = wv[space][idx, :]
-#
-#     # compute similarity of w with all words in the vocabulary
-#     sim = wv[space].dot(vec)
-#
-#     # sort similarities by descending order
-#     sort_sim = (sim.argsort())[::-1]
-#
-#     # choose topK
-#     if count:
-#         # consider only the neighbors whose raw frequency is greater than min_freq
-#         best = []
-#         for i in sort_sim:
-#             if i != idx and count[vocab[space][i]] > min_freq:
-#                 best.append(i)
-#                 if len(best) == k:
-#                     break
-#     else:
-#         best = sort_sim[:(k + 1)]
-#
-#     return [vocab[space][i] for i in best if i != idx]
-
 def word_grams(word, min=1, max=4):
     s = []
     for n in range(min, max):
@@ -114,20 +55,22 @@ def get_intersection_with_ocr_errors_ngram(neighs1, neighs2):
     for nn1 in neighs1:
         for nn2 in neighs2:
             overlaps = []
-            for n in range(4):
-                if len(nn1) < n and len(nn2) < n:
+            # print('nn1: {} / nn2: {}'.format(nn1, nn2))
+            for n in range(1, 5):
+                if len(nn1) >= n and len(nn2) >= n:
+                    # get the ngrams of each
                     ngrams_nn1 = set(list(ngrams(nn1, n)))
-                    ngrams_nn2 = set(list(ngrams(nn1, n)))
+                    ngrams_nn2 = set(list(ngrams(nn2, n)))
+
                     # now calculate n-gram overlap:
                     inter = ngrams_nn1.intersection(ngrams_nn2)
                     un = ngrams_nn1.union(ngrams_nn2)
                     if len(inter) != 0 and len(un) != 0:
-                        ngram_overlap = len(inter) / len(un.difference(inter))
+                        ngram_overlap = len(inter) / len(un)
                         overlaps.append(ngram_overlap)
-            if any(overlaps) >= 0.8:
-                # get the 'n':
-                grams = [i for i in range(len(overlaps)) if overlaps[i] >= 0.8]
-                print('{} and {} are the same words: {}-grams >= 0.8'.format(nn1, nn2, grams))
+            results = [i for i in range(len(overlaps)) if overlaps[i] >= 0.8]
+            if len(results) >= 1:
+                print('{} and {} are the same words: {}-grams >= 0.8'.format(nn1, nn2, results))
                 common.add(nn1)
                 common.add(nn2)
                 break
@@ -180,6 +123,7 @@ def NN_scores():
 
     # compute nearest neighbors overlap for all the common words
     nn_scores = []
+    len_scores_old = 0
     pbar = tqdm(total=len(vocab[val1]))
     for i, w in enumerate(vocab[val1]):
         # if w not in s_words and w in freq1 and w in freq2 and count1[w] > MIN_COUNT and count2[w] > MIN_COUNT:
@@ -194,6 +138,11 @@ def NN_scores():
             common = get_intersection_with_ocr_errors_ngram(neighs1=neighbors_bef, neighs2=neighbors_aft)
             nn_scores.append((len(common), w))
 
+        if len(nn_scores) >= len_scores_old + 100:
+            with open('nn_scores_{}_{}_{}.pkl'.format(val1, val2, len(nn_scores)), 'wb') as f:
+                pickle.dump(sorted(nn_scores), f)
+            len_scores_old = len(nn_scores)
+
         if i % 10 == 0:
             pbar.update(10)
     pbar.close()
@@ -207,34 +156,6 @@ def NN_scores():
     with open('nn_scores_{}_{}.pkl'.format(val1, val2), 'wb') as f:
         pickle.dump(nn_scores_sorted, f)
     return nn_scores_sorted
-
-
-# def topK(w, space, k=10, count = None, min_freq = 0):
-#     # identify the top k neighbors of a word in a space
-#
-#     # extract the word vector for word w
-#     idx = w2i[space][w]
-#     vec = wv[space][idx, :]
-#
-#     # compute similarity of w with all words in the vocabulary
-#     sim = wv[space].dot(vec)
-#
-#     # sort similarities by descending order
-#     sort_sim = (sim.argsort())[::-1]
-#
-#     # choose topK
-#     if count:
-#         # consider only the neighbors whose raw frequency is greater than min_freq
-#         best = []
-#         for i in sort_sim:
-#             if i != idx and count[vocab[space][i]] > min_freq:
-#                 best.append(i)
-#                 if len(best) == k:
-#                     break
-#     else:
-#         best = sort_sim[:(k + 1)]
-#
-#     return [vocab[space][i] for i in best if i != idx]
 
 
 if __name__ == '__main__':
@@ -285,8 +206,5 @@ if __name__ == '__main__':
     vocab = {}
     vocab[val1] = model1.words
     vocab[val2] = model2.words
-
-    # freq_norm_val1, count_vocab_val1, top_freq_val1 = extract_freqs(args.data_a, vocab[val1])
-    # freq_norm_val2, count_vocab_val2, top_freq_val2 = extract_freqs(args.data_b, vocab[val2])
 
     NN_scores()
