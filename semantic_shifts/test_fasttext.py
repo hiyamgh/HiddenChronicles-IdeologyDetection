@@ -5,7 +5,7 @@ from collections import defaultdict
 from tqdm import tqdm
 import codecs
 import pickle
-
+from nltk.util import ngrams
 
 
 def load_and_normalize(lang, filename, vocab, wv, w2i, hamilton=False):
@@ -101,6 +101,39 @@ def extract_freqs(filename, vocab):
 #
 #     return [vocab[space][i] for i in best if i != idx]
 
+def word_grams(word, min=1, max=4):
+    s = []
+    for n in range(min, max):
+        for ngram in ngrams(word, n):
+            s.append(' '.join(str(i) for i in ngram))
+    return s
+
+
+def get_intersection_with_ocr_errors_ngram(neighs1, neighs2):
+    common = set()
+    for nn1 in neighs1:
+        for nn2 in neighs2:
+            overlaps = []
+            for n in range(4):
+                if len(nn1) < n and len(nn2) < n:
+                    ngrams_nn1 = set(list(ngrams(nn1, n)))
+                    ngrams_nn2 = set(list(ngrams(nn1, n)))
+                    # now calculate n-gram overlap:
+                    inter = ngrams_nn1.intersection(ngrams_nn2)
+                    un = ngrams_nn1.union(ngrams_nn2)
+                    ngram_overlap = len(inter) / len(un.difference(inter))
+                    overlaps.append(ngram_overlap)
+            if any(overlaps) >= 0.8:
+                # get the 'n':
+                grams = [i for i in range(len(overlaps)) if overlaps[i] >= 0.8]
+                print('{} and {} are the same words: {}-grams >= 0.8'.format(nn1, nn2, grams))
+                common.add(nn1)
+                common.add(nn2)
+                break
+
+    return common
+
+
 def get_intersection_with_ocr_errors(neighs1, neighs2):
     common = set()
     found = False
@@ -156,7 +189,8 @@ def NN_scores():
         if w in vocab[val1] and w in vocab[val2]:
             neighbors_bef = set(out[1] for out in model1.get_nearest_neighbors(w, args.k))
             neighbors_aft = set(out[1] for out in model2.get_nearest_neighbors(w, args.k))
-            common = get_intersection_with_ocr_errors(neighs1=neighbors_bef, neighs2=neighbors_aft)
+            # common = get_intersection_with_ocr_errors(neighs1=neighbors_bef, neighs2=neighbors_aft)
+            common = get_intersection_with_ocr_errors_ngram(neighs1=neighbors_bef, neighs2=neighbors_aft)
             nn_scores.append((len(common), w))
 
         if i % 10 == 0:
