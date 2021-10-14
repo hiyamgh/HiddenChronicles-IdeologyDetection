@@ -40,7 +40,7 @@ if __name__ == '__main__':
 
     else:
         data_folder = "data/{}/start_end/".format(archive)
-        input_file = '{}_{}.txt'.format(args.start_year, args.end_year)
+        input_file = '{}-{}.txt'.format(args.start_year, args.end_year)
         logdir = '{}/{}_{}/{}/ngrams{}-size{}-window{}-mincount{}-negative{}-lr{}/'.format(args.archive, args.start_year, args.end_year,
                                                                                            'cbow' if args.model == 'cbow' else 'SGNS',
                                                                                            args.wordNgrams,
