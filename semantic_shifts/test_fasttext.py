@@ -121,8 +121,9 @@ def get_intersection_with_ocr_errors_ngram(neighs1, neighs2):
                     # now calculate n-gram overlap:
                     inter = ngrams_nn1.intersection(ngrams_nn2)
                     un = ngrams_nn1.union(ngrams_nn2)
-                    ngram_overlap = len(inter) / len(un.difference(inter))
-                    overlaps.append(ngram_overlap)
+                    if len(inter) != 0 and len(un) != 0:
+                        ngram_overlap = len(inter) / len(un.difference(inter))
+                        overlaps.append(ngram_overlap)
             if any(overlaps) >= 0.8:
                 # get the 'n':
                 grams = [i for i in range(len(overlaps)) if overlaps[i] >= 0.8]

@@ -2,6 +2,8 @@
 #SBATCH --job-name=nnnaas
 #SBATCH --account=hkg02
 #SBATCH --partition=gpu
+#SBATCH --time=0-06:00:00
+#SBATCH --gres=gpu:v100d32q:1
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=1
