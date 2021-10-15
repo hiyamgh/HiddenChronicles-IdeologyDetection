@@ -128,3 +128,5 @@ if __name__ == '__main__':
     with open(args.words) as file:
         lines = file.readlines()
         words = [line.rstrip() for line in lines]
+
+    tsne_plot(val1, val2)
