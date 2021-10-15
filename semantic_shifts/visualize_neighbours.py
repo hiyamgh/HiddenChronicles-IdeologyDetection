@@ -20,8 +20,8 @@ def tsne_plot(val1, val2):
     # run through all the words of interest
     for int_word in words:
         # ensure the word is in both spaces
-        neighbors_a = set([out[1] for out in model1.get_nearest_neighbors(int_word, args.k)])
-        neighbors_b = set([out[1] for out in model2.get_nearest_neighbors(int_word, args.k)])
+        neighbors_a = set([out[1] for out in model1.get_nearest_neighbors(int_word, args.k)][70:])
+        neighbors_b = set([out[1] for out in model2.get_nearest_neighbors(int_word, args.k)][70:])
 
         total_neighbors = neighbors_a.union(neighbors_b)
         intersection_neighbors = get_intersection_with_ocr_errors_ngram(neighbors_a, neighbors_b)
@@ -55,15 +55,17 @@ def tsne_plot(val1, val2):
             if val == val1:
                 for word in sorted(total_neighbors):
                     # if word in neighbors_a:
-                    X.append(model1.get_word_vector(word))
-                    wname.append(bidialg.get_display(arabic_reshaper.reshape(word)))
-                    colors.append(neighbor2color[word])
+                    if word not in intersection_neighbors:
+                        X.append(model1.get_word_vector(word))
+                        wname.append(bidialg.get_display(arabic_reshaper.reshape(word)))
+                        colors.append(neighbor2color[word])
             else:
                 for word in sorted(total_neighbors):
                     # if word in neighbors_b:
-                    X.append(model2.get_word_vector(word))
-                    wname.append(bidialg.get_display(arabic_reshaper.reshape(word)))
-                    colors.append(neighbor2color[word])
+                    if word not in intersection_neighbors:
+                        X.append(model2.get_word_vector(word))
+                        wname.append(bidialg.get_display(arabic_reshaper.reshape(word)))
+                        colors.append(neighbor2color[word])
 
             X = np.array(X, dtype=np.float)
             # perform tsne
@@ -82,7 +84,7 @@ def tsne_plot(val1, val2):
                 os.makedirs(args.out_topk)
             fig = matplotlib.pyplot.gcf()
             fig.set_size_inches(18.5, 10.5)
-            plt.savefig(args.out_topk + "sp%s_w%s" % (val, int_word), bbox_inches='tight')
+            plt.savefig(os.path.join(args.out_topk, "sp%s_w%s" % (val, int_word)), bbox_inches='tight')
             plt.close()
 
 
@@ -104,7 +106,7 @@ if __name__ == '__main__':
     parser.add_argument("--name_split_b", default='assafir_2006', help="short name for split b")
     parser.add_argument("--words", default="words_1975_1990.txt", help="path to words file")
     parser.add_argument("--out_topk",
-                        default='/tmp/result',
+                        default='/tmp/result/',
                         help="prefix for the output files for topk and latex table")
     parser.add_argument("--freq_thr", type=float, default=0.00001, help="frequency threshold")
     parser.add_argument("--min_count", type=int, default=200, help="min appearances of a word")
