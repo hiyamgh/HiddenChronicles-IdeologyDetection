@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 #SBATCH --job-name=viznaas
 #SBATCH --account=hkg02
-#SBATCH --partition=normal
+#SBATCH --partition=gpu
+#SBATCH --time=0-06:00:00
+#SBATCH --gres=gpu:v100d32q:1
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=1
@@ -10,7 +12,7 @@
 
 module load python/3
 
-code=1985_2000
+code=1975_1990
 
 STD_DIR1=../Train_Word_Embedidng/fasttext/data/nahar/start_end/
 STD_DIR2=../Train_Word_Embedidng/fasttext/data/assafir/start_end/
