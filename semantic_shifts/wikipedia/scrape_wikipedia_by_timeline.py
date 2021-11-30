@@ -1,5 +1,4 @@
 import requests
-import wptools
 
 session = requests.Session()
 
@@ -11,8 +10,6 @@ params = {
     "prop": "links",
     "pllimit": "max"
 }
-
-page = wptools.page('1982 Lebanon War')
 
 response = session.get(url=url, params=params)
 data = response.json()
@@ -44,3 +41,8 @@ while "continue" in data:
             page_titles.append(link["title"])
 
 print("%d titles found." % len(page_titles))
+
+# import re
+# my_str = "hey th~!<||||||>ere"
+# my_new_string = my_str.translate({ord('|'): ''})
+# print(my_new_string)
