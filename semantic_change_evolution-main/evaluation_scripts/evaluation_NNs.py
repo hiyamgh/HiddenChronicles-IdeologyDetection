@@ -109,3 +109,8 @@ def get_results(model_type, model_name, TEST_ON): #{model,baseline}, {r,f,rf}, T
         print('TEST_ON:', TEST_ON, 'Cosine, mu-rank, prec@k:', '\t', murank, '\t',  p5, '\t', p10, '\t', p50)
         results = [murank, p5, p10, p50]
     return results
+
+
+if __name__ == '__main__':
+    get_results(model_type='model', model_name='rf', TEST_ON=7)
+
