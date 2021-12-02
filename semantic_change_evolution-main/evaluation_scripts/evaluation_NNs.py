@@ -4,12 +4,17 @@ import numpy as np
 import pickle
 from evaluator import get_murank, get_pk
 from sklearn.metrics.pairwise import cosine_similarity
+import os
 
 
 def data(model_name, TEST_ON): #model_name:{r,f,rf}; TEST_ON: 1-13    
-    data_folder = '../data/'
-    ts = pickle.load(open(data_folder+'vectors.p', 'rb'))
-    test_idx = pickle.load(open(data_folder+'test_idx.p', 'rb'))
+    data_folder = '../data_proj/'
+    ts = pickle.load(open(data_folder+'vectors.pkl', 'rb'))
+    test_idx = pickle.load(open(data_folder+'test_idx.pkl', 'rb'))
+
+    # data_folder = '../data/'
+    # ts = pickle.load(open(data_folder + 'vectors.p', 'rb'))
+    # test_idx = pickle.load(open(data_folder + 'test_idx.p', 'rb'))
 
     X = ts[test_idx, 0:TEST_ON, :]
     if model_name=='r':
@@ -108,9 +113,43 @@ def get_results(model_type, model_name, TEST_ON): #{model,baseline}, {r,f,rf}, T
     
         print('TEST_ON:', TEST_ON, 'Cosine, mu-rank, prec@k:', '\t', murank, '\t',  p5, '\t', p10, '\t', p50)
         results = [murank, p5, p10, p50]
-    return results
+    return results, all_errors
+
+
+def generate_cosine_heatmap(data, name):
+    import seaborn as sns
+    sns.set()
+    import matplotlib.pyplot as plt
+    if name != 'legend':
+        # if name == 'sigmoid_future':
+        #     data = np.concatenate((np.ones(data.shape[0]).reshape((-1, 1)), data),
+        #                           axis=1)  # dummy input for pseudo-perfect prediction at timestep 0
+        ax = sns.heatmap(data, vmin=-0.1, vmax=1.0, yticklabels=False, cmap="YlGnBu", cbar=False)
+    else:
+        ax = sns.heatmap(data, vmin=-0.1, vmax=1.0, yticklabels=False, cmap="YlGnBu", cbar=True)
+    ax.tick_params(labelsize=16)
+
+    folder = '../img/'
+    if not os.path.exists(folder):
+        os.mkdir(folder)
+
+    figure = ax.get_figure()
+    figure.savefig(folder + name + '2.png', dpi=400, bbox_inches='tight')
+    figure.clear()
+    ax.clear()
+    # plt.clf()
+    plt.show()
 
 
 if __name__ == '__main__':
-    get_results(model_type='model', model_name='rf', TEST_ON=7)
-
+    _, all_errors = get_results(model_type='model', model_name='rf', TEST_ON=4)
+    # print(all_errors.shape)
+    # all_errors_res = all_errors.T
+    # # save result of all errors into a pkl file for plotting
+    # with open(os.path.join('../data_proj/', 'all_errors.pkl'), 'wb') as f:
+    #     pickle.dump(all_errors_res, f)
+    #
+    # with open(os.path.join('../data_proj/', 'imp_idx.pkl'), 'rb') as f:
+    #     imp_idx = pickle.load(f)
+    #
+    # print(imp_idx)

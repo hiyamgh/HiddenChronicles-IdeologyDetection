@@ -26,12 +26,12 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 
 def data():
-    TEST_ON=7
-    data_folder = '../data/'
+    TEST_ON=4
+    data_folder = '../data_proj/'
 
-    ts = pickle.load(open(data_folder+'vectors.p', 'rb'))
-    train_idx = pickle.load(open(data_folder+'train_idx.p', 'rb'))
-    test_idx = pickle.load(open(data_folder+'test_idx.p', 'rb'))
+    ts = pickle.load(open(data_folder+'vectors.pkl', 'rb'))
+    train_idx = pickle.load(open(data_folder+'train_idx.pkl', 'rb'))
+    test_idx = pickle.load(open(data_folder+'test_idx.pkl', 'rb'))
 
     trainX = ts[train_idx, 0:TEST_ON, :]
     trainY = ts[train_idx, :, :] 
@@ -42,7 +42,7 @@ def data():
 
 
 def create_lstm_model(trainX, trainY, testX, testY):
-    TEST_ON=7
+    TEST_ON=4
 
     trainY_past = trainY[:, 0:TEST_ON, :]
     testY_past = testY[:, 0:TEST_ON, :]    
@@ -109,7 +109,7 @@ def create_lstm_model(trainX, trainY, testX, testY):
 
 
 if __name__ == '__main__':
-    TEST_ON = 7
+    TEST_ON = 4
 
     trainX, trainY, testX, testY = data()
     create_lstm_model(trainX, trainY, testX, testY)
