@@ -109,7 +109,7 @@ def get_politicians_cleaned(path, df_name):
 if __name__ == '__main__':
     path = 'wikipedia/datasets_updated/'
     name = 'political_parties_ar.csv'
-    save_dir = 'keywords/'
+    save_dir = 'wikipedia/keywords/'
     mkdir(save_dir)
     political_parties = get_political_parties_cleaned(path=path, df_name=name)
     print('political parties')
