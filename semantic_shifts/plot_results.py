@@ -3,7 +3,7 @@ import argparse
 import matplotlib.pyplot as plt
 import fasttext
 import numpy as np
-import os
+import os, pickle
 
 
 def mkdir(folder):
@@ -56,7 +56,17 @@ def tsne_plot(val1, val2):
     # visualize the top-k neighbors of each interesting word in both spaces
 
     # run through all the words of interest
-    for int_word in args.words.strip().split(","):
+    words_file = args.words
+    if words_file.endswith('.txt'):
+        with open(words_file, 'r') as f:
+            words = f.readlines()
+    elif words_file.endswith('.pkl'):
+        with open(words_file, 'rb') as f:
+            words = pickle.load(f)
+    else:
+        words = words_file.strip().split(",")
+
+    for int_word in words:
         # ensure the word is in both spaces
         if int_word in vocab[val1] and int_word in vocab[val2]:
             # identify the top-k neighbors
@@ -85,9 +95,15 @@ def tsne_plot(val1, val2):
                 X, wname, colors = [], [], []
                 # X.append(wv[val][w2i[val][int_word]]) # as if wv[val][index of word] i.e. get the vector of the word
                 if val == val1:
-                    X.append(model1.get_word_vector(int_word))
+                    if ' ' in int_word:
+                        X.append(model1.get_sentence_vector(int_word))
+                    else:
+                        X.append(model1.get_word_vector(int_word))
                 else:
-                    X.append(model2.get_word_vector(int_word))
+                    if ' ' in int_word:
+                        X.append(model2.get_sentence_vector(int_word))
+                    else:
+                        X.append(model2.get_word_vector(int_word))
                 wname.append(int_word)
                 colors.append('green')
                 for word in sorted(total_neighbors):
