@@ -61,7 +61,7 @@ def tsne_plot(val1, val2):
         with open(words_file, 'r') as f:
             words = f.readlines()
     elif words_file.endswith('.pkl'):
-        with open(words_file, 'rb') as f:
+        with open(words_file, 'rb', encoding='utf-8') as f:
             words = pickle.load(f)
     else:
         words = words_file.strip().split(",")

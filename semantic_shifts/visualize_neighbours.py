@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 from test_fasttext import get_intersection_with_ocr_errors_ngram
 from bidi import algorithm as bidialg
 import arabic_reshaper
+import pickle
 
 
 def tsne_plot(val1, val2):
@@ -56,14 +57,20 @@ def tsne_plot(val1, val2):
                 for word in sorted(total_neighbors):
                     # if word in neighbors_a:
                     if word not in intersection_neighbors:
-                        X.append(model1.get_word_vector(word))
+                        if ' ' in word:
+                            X.append(model1.get_sentence_vector(word))
+                        else:
+                            X.append(model1.get_word_vector(word))
                         wname.append(bidialg.get_display(arabic_reshaper.reshape(word)))
                         colors.append(neighbor2color[word])
             else:
                 for word in sorted(total_neighbors):
                     # if word in neighbors_b:
                     if word not in intersection_neighbors:
-                        X.append(model2.get_word_vector(word))
+                        if ' ' in word:
+                            X.append(model2.get_sentence_vector(word))
+                        else:
+                            X.append(model2.get_word_vector(word))
                         wname.append(bidialg.get_display(arabic_reshaper.reshape(word)))
                         colors.append(neighbor2color[word])
 
@@ -127,8 +134,19 @@ if __name__ == '__main__':
 
     val1, val2 = args.name_split_a, args.name_split_b
 
-    with open(args.words) as file:
-        lines = file.readlines()
-        words = [line.rstrip() for line in lines]
+    # the keywords
+    words_file = args.words
+    if words_file.endswith('.txt'):
+        with open(words_file, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+            words = [line.rstrip() for line in lines]
+
+    elif words_file.endswith('.pkl'):
+        with open(words_file, 'rb') as f:
+            words = pickle.load(f)
+            words = [w.strip() for w in words]
+
+    else:
+        words = words_file.strip().split(",")
 
     tsne_plot(val1, val2)
