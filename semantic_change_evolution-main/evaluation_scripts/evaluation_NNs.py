@@ -8,7 +8,7 @@ import os
 
 
 def data(model_name, TEST_ON): #model_name:{r,f,rf}; TEST_ON: 1-13    
-    data_folder = '../data_proj/'
+    data_folder = '../data_final_proj/'
     ts = pickle.load(open(data_folder+'vectors.pkl', 'rb'))
     test_idx = pickle.load(open(data_folder+'test_idx.pkl', 'rb'))
 
@@ -23,7 +23,7 @@ def data(model_name, TEST_ON): #model_name:{r,f,rf}; TEST_ON: 1-13
          Y = ts[test_idx, TEST_ON:, :]
     elif model_name=='rf':
         Y =  ts[test_idx, :, :]
-    folder = '../results/results_seq2seq_'+model_name+'/'
+    folder = '../results_final/results_seq2seq_'+model_name+'/'
     model = pickle.load(open(folder+str(TEST_ON)+'model2.p', 'rb'))
     return X, Y, model
 
@@ -117,17 +117,25 @@ def get_results(model_type, model_name, TEST_ON): #{model,baseline}, {r,f,rf}, T
 
 
 def generate_cosine_heatmap(data, name):
+    from bidi import algorithm as bidialg
+    import arabic_reshaper
     import seaborn as sns
     sns.set()
     import matplotlib.pyplot as plt
+    with open('../data_final_proj/keywords_testing.txt', 'r', encoding='utf-8') as f:
+        yticks = f.readlines()
+    yticks = [bidialg.get_display(arabic_reshaper.reshape(y[:-1])) for y in yticks]
+
     if name != 'legend':
         # if name == 'sigmoid_future':
         #     data = np.concatenate((np.ones(data.shape[0]).reshape((-1, 1)), data),
         #                           axis=1)  # dummy input for pseudo-perfect prediction at timestep 0
-        ax = sns.heatmap(data, vmin=-0.1, vmax=1.0, yticklabels=False, cmap="YlGnBu", cbar=False)
+        ax = sns.heatmap(data, vmin=-0.1, vmax=1.0, yticklabels=yticks, cmap="YlGnBu", cbar=True)
     else:
-        ax = sns.heatmap(data, vmin=-0.1, vmax=1.0, yticklabels=False, cmap="YlGnBu", cbar=True)
-    ax.tick_params(labelsize=16)
+        ax = sns.heatmap(data, vmin=-0.1, vmax=1.0, yticklabels=yticks, cmap="YlGnBu", cbar=True)
+
+    ax.tick_params(labelsize=8)
+    # ax.set_yticks(yticks)
 
     folder = '../img/'
     if not os.path.exists(folder):
@@ -143,6 +151,8 @@ def generate_cosine_heatmap(data, name):
 
 if __name__ == '__main__':
     _, all_errors = get_results(model_type='model', model_name='rf', TEST_ON=4)
+    words_cosine_sims = np.array(all_errors).T
+    generate_cosine_heatmap(words_cosine_sims, 'keywords_testing')
     # print(all_errors.shape)
     # all_errors_res = all_errors.T
     # # save result of all errors into a pkl file for plotting

@@ -49,6 +49,9 @@ def get_vectors_vocab(start_year, end_year, models_path, common_vocab_path, save
     with open(os.path.join(common_vocab_path, 'common_vocab.pkl'), 'rb') as f:
         common_vocab = pickle.load(f)
 
+    with open(os.path.join(common_vocab_path, 'keywords_testing.pkl'), 'rb') as f:
+        testing_vocab = pickle.load(f)
+
     all_models = []
     all_years = list(range(start_year, end_year + 1))
 
@@ -59,13 +62,23 @@ def get_vectors_vocab(start_year, end_year, models_path, common_vocab_path, save
 
     # initialize the array (list of lists) for storing vectors
     # for each word, we wills tore its 10 representations (once per year)
-    vectors = [[] for _ in range(len(common_vocab))]
+    vectors = [[] for _ in range(len(common_vocab) + len(testing_vocab))]
 
+    train_idx, test_idx = [], []
     count = 0
     for w in common_vocab:
         for i in range(len(all_years)):
-            vectors[count].append(all_models[i].get_word_vector(w))
+            vectors[count].append(all_models[i].get_word_vector(w) if ' ' not in w else all_models[i].get_sentence_vector(w))
+        train_idx.append(count)
         count += 1
+        # train_idx.append(count)
+
+    for w in testing_vocab:
+        for i in range(len(all_years)):
+            vectors[count].append(all_models[i].get_word_vector(w) if ' ' not in w else all_models[i].get_sentence_vector(w))
+        test_idx.append(count)
+        count += 1
+        # test_idx.append(count)
 
     vectors = np.array(vectors)
     print('shape of all vectors: {}'.format(vectors.shape))
@@ -74,6 +87,12 @@ def get_vectors_vocab(start_year, end_year, models_path, common_vocab_path, save
     mkdir(save_path)
     with open(os.path.join(save_path, 'vectors.pkl'), 'wb') as f:
         pickle.dump(vectors, f)
+
+    mkdir(save_path)
+    with open(os.path.join(save_path, 'train_idx.pkl'), 'wb') as f:
+        pickle.dump(train_idx, f)
+    with open(os.path.join(save_path, 'test_idx.pkl'), 'wb') as f:
+        pickle.dump(test_idx, f)
 
 
 def write_common_vocab(common_vocab_path, save_path):
@@ -86,6 +105,26 @@ def write_common_vocab(common_vocab_path, save_path):
         for w in common_vocab:
             f.write('{}\n'.format(w))
     f.close()
+
+
+def generate_keywords_for_testing(save_path):
+    with open(os.path.join(save_path, 'ideologies.pkl'), 'rb') as f:
+        ideologies = pickle.load(f)
+    with open(os.path.join(save_path, 'political_parties.pkl'), 'rb') as f:
+        political_parties = pickle.load(f)
+    with open(os.path.join(save_path, 'politicians.pkl'), 'rb') as f:
+        politicians = pickle.load(f)
+
+    all_keywords = ideologies + political_parties + politicians
+    print(len(all_keywords))
+
+    with open('../data_final_proj/keywords_testing.txt', 'w', encoding='utf-8') as f:
+        for w in all_keywords:
+            f.write(w + '\n')
+    f.close()
+
+    with open('../data_final_proj/keywords_testing.pkl', 'wb') as f:
+        pickle.dump(all_keywords, f)
 
 
 def create_train_test_indices(save_path):
@@ -135,17 +174,23 @@ def create_train_test_indices(save_path):
 
 
 if __name__ == '__main__':
-    models_path = 'E:/fasttext_embeddings/ngrams4-size100-window3-mincount10-negative5-lr0.001/'
-    save_path = '../data_proj/'
-    start_year, end_year = 2000, 2009
-    # # create and store common vocab
-    # get_common_vocab(start_year=start_year, end_year=end_year, models_path=models_path, save_path=save_path)
-    # # create and store vectors
-    # get_vectors_vocab(start_year=start_year, end_year=end_year, models_path=models_path, common_vocab_path=save_path, save_path=save_path)
+    models_path = 'E:/fasttext_embeddings/ngrams4-size300-window5-mincount100-negative15-lr0.001/ngrams4-size300-window5-mincount100-negative15-lr0.001/'
+    save_path = '../data_final_proj/'
+    start_year, end_year = 1975, 1982
+    # create and store common vocab
+    get_common_vocab(start_year=start_year, end_year=end_year, models_path=models_path, save_path=save_path)
+    # generate keywords for testing
+    generate_keywords_for_testing(save_path='../../semantic_shifts/wikipedia/keywords/')
+    # create and store vectors
+    get_vectors_vocab(start_year=start_year, end_year=end_year, models_path=models_path, common_vocab_path=save_path, save_path=save_path)
+
     # # write common vocab to a txt file
     # write_common_vocab(common_vocab_path=save_path, save_path=save_path)
-    # create and save train/test indices
-    create_train_test_indices(save_path=save_path)
+    # ../semantic_shifts/wikipedia/keywords/
+    # generate_keywords_for_testing(save_path='../../semantic_shifts/wikipedia/keywords/')
+
+    # # create and save train/test indices
+    # create_train_test_indices(save_path=save_path)
 
 
 
