@@ -91,7 +91,8 @@ def tsne_plot(val1, val2):
                 os.makedirs(args.out_topk)
             fig = matplotlib.pyplot.gcf()
             fig.set_size_inches(18.5, 10.5)
-            plt.savefig(os.path.join(args.out_topk, "sp%s_w%s" % (val, int_word)), bbox_inches='tight')
+            int_word_formatted = int_word.replace('.', '')
+            plt.savefig(os.path.join(args.out_topk, "sp%s_w%s" % (val, int_word_formatted)), bbox_inches='tight')
             plt.close()
 
 
