@@ -2,9 +2,6 @@
 # -*- coding: utf-8 -*-
 seed_value= 0
 import os, random, pickle
-# os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-# os.environ["CUDA_VISIBLE_DEVICES"] = ""
-# os.environ['PYTHONHASHSEED']=str(seed_value)
 random.seed(seed_value)
 import numpy as np
 np.random.seed(seed_value)
@@ -17,17 +14,16 @@ K.set_session(sess)
 
 from keras.models import Model
 from keras.layers import LSTM, TimeDistributed, Dense, Dropout, RepeatVector, Input
-# from hyperopt import tpe, STATUS_OK, Trials
-# from hyperas import optim
 from sklearn.metrics.pairwise import cosine_similarity
-
+import time
 
 '''Code for the seq2seq_rf model. '''
+embedding_dim = 300
 
 
 def data():
     TEST_ON=4
-    data_folder = '../data_proj/'
+    data_folder = '../data_final_proj/'
 
     ts = pickle.load(open(data_folder+'vectors.pkl', 'rb'))
     train_idx = pickle.load(open(data_folder+'train_idx.pkl', 'rb'))
@@ -49,7 +45,7 @@ def create_lstm_model(trainX, trainY, testX, testY):
     trainY_future = trainY[:, TEST_ON:, :]
     testY_future = testY[:, TEST_ON:, :]
     
-    inputs = Input(shape=(trainX.shape[1],100))
+    inputs = Input(shape=(trainX.shape[1], embedding_dim))
     x = LSTM(128, return_sequences=True)(inputs)
     x = TimeDistributed(Dropout(0.1))(x)
     x = LSTM(64, go_backwards=True)(x)
@@ -62,28 +58,32 @@ def create_lstm_model(trainX, trainY, testX, testY):
     y_past = TimeDistributed(Dropout(0.1))(y_past)
     y_past = LSTM(128, go_backwards=False, return_sequences=True)(y_past)
     y_past = TimeDistributed(Dropout(0.1))(y_past)
-    y_past = TimeDistributed(Dense(100))(y_past)
+    y_past = TimeDistributed(Dense(embedding_dim))(y_past)
     
     y_future = LSTM(64, return_sequences=True)(y_future)
     y_future = TimeDistributed(Dropout(0.1))(y_future)
     y_future = LSTM(128, go_backwards=False, return_sequences=True)(y_future)
     y_future = TimeDistributed(Dropout(0.1))(y_future)
-    y_future = TimeDistributed(Dense(100))(y_future)
+    y_future = TimeDistributed(Dense(embedding_dim))(y_future)
     
     model = Model(inputs=inputs, outputs=[y_past, y_future])
     
     val_start = int(0.75*len(trainX))
     model.compile(loss="mean_squared_error",  optimizer="adam")
 
-    result = model.fit(trainX[0:val_start], [trainY_past[0:val_start], trainY_future[0:val_start]],
-              batch_size=32,
-              epochs=30,
+    t1 = time.time()
+    model.fit(trainX[0:val_start], [trainY_past[0:val_start], trainY_future[0:val_start]],
+              batch_size=64,
+              epochs=5,
               verbose=1)
+    t2 = time.time()
+
+    print('time taken to train: {}'.format((t2-t1)/60))
 
     # Hiyam: added this here
-    folder = '../results/results_seq2seq_rf'
+    folder = '../results_final/results_seq2seq_rf2/'
     if not os.path.exists(folder):
-        os.mkdir(folder)
+        os.makedirs(folder)
     pickle.dump(model, open(folder + '/' + str(TEST_ON) + 'model2.p', "wb"))
 
     valX = trainX[val_start:len(trainX)]
