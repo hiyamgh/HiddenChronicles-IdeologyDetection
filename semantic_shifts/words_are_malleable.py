@@ -6,6 +6,8 @@ from numpy.linalg import norm
 import pickle
 import argparse
 from nltk.corpus import stopwords
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 # since we have fasttext embeddings, we don't need to get the
@@ -461,8 +463,8 @@ if __name__ == '__main__':
 
     # neighbors approach
     keywords_path = args.words_file
-    k = args.k
-    t = args.t
+    k = int(args.k)
+    t = int(args.t)
     save_dir = args.save_dir
 
     # for combined approach

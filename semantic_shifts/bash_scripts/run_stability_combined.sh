@@ -9,7 +9,7 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=hkg02@mail.aub.edu
-#SBATCH --array=1-900%3
+#SBATCH --array=1-9%3
 
 module load python/3
 
