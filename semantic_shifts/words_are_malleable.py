@@ -265,8 +265,9 @@ def get_stability_combined(model1, model2, mat_name, words_path=None, lmbda=0.5,
 
     for i in range(1, t + 1):
         print('t={}'.format(i))
-        ll = len(words)
-        for w in common_vocab[-ll:]:
+        # ll = len(words)
+        # for w in common_vocab[-ll:]:
+        for w in common_vocab:
             nnsims1 = model1.get_nearest_neighbors(w, k)
             nnsims2 = model2.get_nearest_neighbors(w, k)
 
