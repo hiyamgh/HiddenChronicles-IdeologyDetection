@@ -58,8 +58,7 @@ def get_stability_linear_mapping_one_word(model1, model2, mat_name, dir_name_mat
     return sim01, sim10
 
 
-def get_stability_linear_mapping_all_words(model1, model2, subwords, num_steps, mat_name, save_dir,
-                         words_path, file_name):
+def learn_stability_matrices(model1, model2, subwords, num_steps, mat_name):
     """
     Get the stability by applying a transformation matrix that maps word w in embedding space 1
     to word w in embedding space 2. Transformation matrix is learned through gradient descent optimization
@@ -182,6 +181,11 @@ def get_stability_linear_mapping_all_words(model1, model2, subwords, num_steps, 
         plt.savefig(os.path.join(dir_name_losses, mat_name + '.png'))
         plt.close()
 
+    # if the matrices exist, return since they will be loaded in the combined method
+    if os.path.exists(os.path.join(dir_name_matrices, mat_name + '.npy')):
+        print('matrices found in {}'.format(os.path.join(dir_name_matrices, mat_name + '.npy')))
+        return
+
     # get the transformation matrix and its inverse
     R, R_inv, losses = get_transformation_matrices()
     print('got transformation matrices ...')
@@ -192,40 +196,41 @@ def get_stability_linear_mapping_all_words(model1, model2, subwords, num_steps, 
     # save the transformation matrices
     save_matrices(R=R, R_inv=R_inv)
     print('saved transformation matrices ...')
+    return
 
-    stabilities = {} # dictionary mapping words to their stability values
-    with open(words_path, 'r', encoding='utf-8') as f:
-        words = f.readlines()
-    words = [w[:-1] for w in words if '\n' in w]  # remove '\n'
-
-    # load teh transformation matrices
-    R, R_inv = load_linear_mapping_matrices(dir_name=dir_name_matrices, mat_name=mat_name)
-
-    # loop over each word and get its stability
-    for w in words:
-        stabilities[w] = []
-
-        w0 = model1.get_word_vector(w) if ' ' not in w else model1.get_sentence_vector(w)
-        w1 = model2.get_word_vector(w) if ' ' not in w else model2.get_sentence_vector(w)
-
-        # the stability of a word is basically the stability of the vector to its mapped
-        # vector after applying the mapping back and forth
-        sim01 = get_cosine_sim(R_inv.dot(R.dot(w0)), w0)
-        sim10 = get_cosine_sim(R_inv.dot(R.dot(w1)), w1)
-
-        stability = (sim01 + sim10) / 2
-
-        print('stability of the word {}: {}, sim01={}, sim10={}'.format(w, stability, sim01, sim10))
-
-        stabilities[w].append(stability)
-        stabilities[w].append(sim01)
-        stabilities[w].append(sim10)
-
-    mkdir(save_dir)
-    with open(os.path.join(save_dir, '{}.pkl'.format(file_name)), 'wb') as handle:
-        pickle.dump(stabilities, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-    return stabilities
+    # stabilities = {} # dictionary mapping words to their stability values
+    # with open(words_path, 'r', encoding='utf-8') as f:
+    #     words = f.readlines()
+    # words = [w[:-1] for w in words if '\n' in w]  # remove '\n'
+    #
+    # # load the transformation matrices
+    # R, R_inv = load_linear_mapping_matrices(dir_name=dir_name_matrices, mat_name=mat_name)
+    #
+    # # loop over each word and get its stability
+    # for w in words:
+    #     stabilities[w] = []
+    #
+    #     w0 = model1.get_word_vector(w) if ' ' not in w else model1.get_sentence_vector(w)
+    #     w1 = model2.get_word_vector(w) if ' ' not in w else model2.get_sentence_vector(w)
+    #
+    #     # the stability of a word is basically the stability of the vector to its mapped
+    #     # vector after applying the mapping back and forth
+    #     sim01 = get_cosine_sim(R_inv.dot(R.dot(w0)), w0)
+    #     sim10 = get_cosine_sim(R_inv.dot(R.dot(w1)), w1)
+    #
+    #     stability = (sim01 + sim10) / 2
+    #
+    #     print('stability of the word {}: {}, sim01={}, sim10={}'.format(w, stability, sim01, sim10))
+    #
+    #     stabilities[w].append(stability)
+    #     stabilities[w].append(sim01)
+    #     stabilities[w].append(sim10)
+    #
+    # mkdir(save_dir)
+    # with open(os.path.join(save_dir, '{}.pkl'.format(file_name)), 'wb') as handle:
+    #     pickle.dump(stabilities, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    #
+    # return stabilities
 
 
 def get_stability_combined(model1, model2, mat_name, words_path=None, lmbda=0.5, k=50, t=5, save_dir='results/',
@@ -260,7 +265,8 @@ def get_stability_combined(model1, model2, mat_name, words_path=None, lmbda=0.5,
 
     for i in range(1, t + 1):
         print('t={}'.format(i))
-        for w in common_vocab:
+        ll = len(words)
+        for w in common_vocab[-ll:]:
             nnsims1 = model1.get_nearest_neighbors(w, k)
             nnsims2 = model2.get_nearest_neighbors(w, k)
 
@@ -271,8 +277,10 @@ def get_stability_combined(model1, model2, mat_name, words_path=None, lmbda=0.5,
             ranks1, ranks2 = [], []
 
             for wp in inter:
-                ranks1.append(nn2.index(wp)) # index of wp in nn2
-                ranks2.append(nn1.index(wp)) # index of wp in nn1
+                if wp in nn2:
+                    ranks1.append(nn2.index(wp)) # index of wp in nn2
+                if wp in ranks2:
+                    ranks2.append(nn1.index(wp)) # index of wp in nn1
 
                 if wp not in stabilities:
                     stabilities[wp] = np.ones_like(np.arange(t + 1, dtype=float))
@@ -359,7 +367,7 @@ def get_stability_neighbors(model1, model2, words_path=None, k=50, t=5, save_dir
 
     for i in range(1, t+1):
         print('t={}'.format(i))
-        ll = len(words)
+        # ll = len(words)
         for w in common_vocab:
             nnsims1 = model1.get_nearest_neighbors(w, k)
             nnsims2 = model2.get_nearest_neighbors(w, k)
@@ -372,10 +380,10 @@ def get_stability_neighbors(model1, model2, words_path=None, k=50, t=5, save_dir
             for wp in nn2:
                 # wp = re.sub('\n', '', wp)
 
-                # w_v = model1.get_word_vector(w) if ' ' not in w else model1.get_sentence_vector(w)
-                # wp_v = model1.get_word_vector(wp) if ' ' not in wp else model1.get_sentence_vector(wp)
-                w_v = model1.get_word_vector(w)
-                wp_v = model1.get_word_vector(wp)
+                w_v = model1.get_word_vector(w) if ' ' not in w else model1.get_sentence_vector(w)
+                wp_v = model1.get_word_vector(wp) if ' ' not in wp else model1.get_sentence_vector(wp)
+                # w_v = model1.get_word_vector(w)
+                # wp_v = model1.get_word_vector(wp)
 
                 if wp not in stabilities:
                     stabilities[wp] = np.ones_like(np.arange(t+1, dtype=float))
@@ -385,10 +393,10 @@ def get_stability_neighbors(model1, model2, words_path=None, k=50, t=5, save_dir
 
             for wp in nn1:
                 # wp = re.sub('\n', '', wp)
-                # w_v = model2.get_word_vector(w) if ' ' not in w else model2.get_sentence_vector(w)
-                # wp_v = model2.get_word_vector(wp) if ' ' not in wp else model2.get_sentence_vector(wp)
-                w_v = model2.get_word_vector(w)
-                wp_v = model2.get_word_vector(wp)
+                w_v = model2.get_word_vector(w) if ' ' not in w else model2.get_sentence_vector(w)
+                wp_v = model2.get_word_vector(wp) if ' ' not in wp else model2.get_sentence_vector(wp)
+                # w_v = model2.get_word_vector(w)
+                # wp_v = model2.get_word_vector(wp)
 
                 if wp not in stabilities:
                     stabilities[wp] = np.ones_like(np.arange(t+1, dtype=float))
@@ -430,7 +438,7 @@ if __name__ == '__main__':
 
     # neighbor and combined approach (words_file is needed by linear approach as well)
     parser.add_argument("--words_file", default="input/keywords.txt", help="list of words interested in getting their stability values")
-    parser.add_argument("--k", default=300, help="number of nearest neighbors to consider per word - for neighbours and combined approach")
+    parser.add_argument("--k", default=100, help="number of nearest neighbors to consider per word - for neighbours and combined approach")
     parser.add_argument("--t", default=5, help="number of iterations to consider - for the neighbours and combined approach")
     parser.add_argument("--save_dir", default="results/", help="directory to save stabilities dictionary")
 
@@ -465,7 +473,7 @@ if __name__ == '__main__':
 
     # create saving directories for combined, neighbors, and linear mapping approaches
     save_dir_combined_neighbor = os.path.join(save_dir, '{}_{}/t{}k{}lmbda{}/'.format(model1_name, model2_name, t, k, lmbda))
-    save_dir_linear = os.path.join(save_dir, "{}_{}/linear/".format(model1_name, model2_name))
+    save_dir_linear = os.path.join(save_dir, "{}_{}/linear_numsteps{}/".format(model1_name, model2_name, num_steps))
 
     # sub-directories for saving the transformation matrices
     dir_name_matrices = os.path.join(save_dir_linear, 'matrices/')
@@ -483,15 +491,16 @@ if __name__ == '__main__':
 
     method = args.method
 
-    # if method == 'combined' or method == 'linear':
-    #     get_stability_linear_mapping_all_words(model1=model1, model2=model2, subwords=stopwords_list,
-    #                                            num_steps=num_steps,
-    #                                            mat_name=mat_name,
-    #                                            save_dir=save_dir_linear,
-    #                                            words_path=keywords_path,
-    #                                            file_name=stabilities_linear)
+    if method == 'combined' or method == 'linear':
+        learn_stability_matrices(model1=model1, model2=model2, subwords=stopwords_list,
+                                               num_steps=num_steps,
+                                               mat_name=mat_name)
 
     if method == "combined":
+        # first learn the stability matrices because they'll be used inside the combined algorithm
+        learn_stability_matrices(model1=model1, model2=model2, subwords=stopwords_list,
+                                 num_steps=num_steps, mat_name=mat_name)
+        # run the combined algorithm
         get_stability_combined(model1=model1, model2=model2, mat_name=mat_name, words_path=keywords_path,
                                lmbda=lmbda, k=k, t=t, save_dir=save_dir_combined_neighbor,
                                file_name=stabilities_combined)
