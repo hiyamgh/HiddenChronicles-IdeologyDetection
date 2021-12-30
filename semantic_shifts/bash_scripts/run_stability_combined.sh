@@ -27,7 +27,7 @@ for t in ${iterations[@]}; do
     for k in ${neighs[@]}; do
         for y in ${years[@]}; do
             if [ $USCOUNTER -eq $SLURM_ARRAY_TASK_ID ]; then
-                python words_are_malleable.py --path1 $EMB_DIR1 --path2=$EMB_DIR2 --model1 ${y}.bin --model2 ${y}.bin --model1_name ${arch1}_${y} --model2_name ${arch2}_${y} --k ${k} --t ${t}
+                python words_are_malleable.py --path1 $EMB_DIR1 --path2=$EMB_DIR2 --model1 ${y}.bin --model2 ${y}.bin --model1_name ${arch1}_${y} --model2_name ${arch2}_${y} --k ${k} --t ${t} --method=combined
             fi
             USCOUNTER=$(expr $USCOUNTER + 1)
         done
