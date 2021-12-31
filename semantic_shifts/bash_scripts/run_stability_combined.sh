@@ -9,11 +9,11 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=hkg02@mail.aub.edu
-#SBATCH --array=1-9%3
+#SBATCH --array=1-9%5
 
 module load python/3
 
-iterations=(5)
+iterations=(1)
 neighs=(100 200 300)
 years=(1982 2006 2007)
 EMB_DIR1=/scratch/7613491_hkg02/political_discourse_mining_hiyam/Train_Word_Embedidng/fasttext/nahar/SGNS/ngrams4-size300-window5-mincount100-negative15-lr0.001/

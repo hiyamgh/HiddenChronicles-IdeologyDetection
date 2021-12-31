@@ -235,9 +235,9 @@ def learn_stability_matrices(model1, model2, subwords, num_steps, mat_name):
     # return stabilities
 
 
-def get_stability_combined(model1, model2, mat_name, words_path=None, lmbda=0.5, k=50, t=5, save_dir='results/',
+def get_stability_combined(model1, model2, mat_name, words_path=None, k=50, t=5, save_dir='results/',
                            file_name='stabilities_combined'):
-    print('Calculating stability values (combined) - k={}, t={}, lmbda={}'.format(k, t, lmbda))
+    print('Calculating stability values (combined) - k={}, t={}'.format(k, t))
     # get the intersection of the vocabularies of all models
     # note that this method can be applied to get the stability
     # of words from more than 2 models
@@ -298,19 +298,29 @@ def get_stability_combined(model1, model2, mat_name, words_path=None, lmbda=0.5,
 
             st_neig = (Count_neig12 + Count_neig21) / (2 * sum([i for i in range(1, k+1)])) # this is 2 * (n)(n+1)
             st_lin = np.mean([s_lin12, s_lin21])
-            # final stability
-            st = (lmbda * st_neig) + (lmbda * st_lin)
+
+            # calculate value of lambda
+            if nn1 == nn2:
+                # when the nearest neighbours of w are exactly the same,
+                # and have the same order in embedding 1 and embedding 2
+                lmbda = 1.0
+            elif Count_neig12 == 0 and Count_neig12 == 0:
+                # when the nearest neighbours in embedding 1 are completely
+                # not found in embedding 2, and vice versa would be also true
+                lmbda = 0
+            else:
+                # some neighbours of w in embedding 1 are found in embedding 2,
+                # and vice versa would be true
+                lmbda = 0.5
+
+            # final stability is a weighted summation of the linear and count based stabilities
+            st = (lmbda * st_neig) + ((1 - lmbda) * st_lin)
             stabilities[w][i] = st
             print('st_neigh: {}, st_lin: {}, st: {}'.format(st_neig, st_lin, st))
+
             # min-max normalize st to fall in the 0-1 range
             # do so by min-max normalizing st taking values 0:i
             stabilities[w] = (stabilities[w] - stabilities[w].min()) / (stabilities[w].max() - stabilities[w].min())
-
-            # print('w: {}'.format(w))
-            # print('sim 1: {}, sim2: {}, st: {}, normalized st: {}'.format(sim1, sim2, st, stabilities[w][i]))
-            # print('oov1/nn1={}'.format(count_oov1 / len(nn1)))
-            # print('oov2/nn2={}'.format(count_oov2 / len(nn2)))
-            # print('===============================================================')
 
     # save the stabilities dictionary for loading it later on
     mkdir(save_dir)
@@ -445,12 +455,10 @@ if __name__ == '__main__':
     parser.add_argument("--t", default=5, help="number of iterations to consider - for the neighbours and combined approach")
     parser.add_argument("--save_dir", default="results/", help="directory to save stabilities dictionary")
 
-    # combined approach
-    parser.add_argument("--lmbda", default=0.5, help="lamba value to weight stability between neighbor and linear - used only in combined approach")
-
     # linear approach
     parser.add_argument("--num_steps", default=70000, help="number of training steps for gradient descent optimization")
     parser.add_argument("--mat_name", default="trans", help="prefix name for the transformation matrices to be saved - linear mapping approach")
+
     # name of the method to be used
     parser.add_argument("--method", default="combined", help="method to calculate stability - either combined/neighbors/linear")
     args = parser.parse_args()
@@ -467,25 +475,17 @@ if __name__ == '__main__':
     t = int(args.t)
     save_dir = args.save_dir
 
-    # for combined approach
-    lmbda = args.lmbda
-
     stopwords_list = stopwords.words('arabic') # stopwords for linear mapping approach
     num_steps = args.num_steps # number of training steps for gradient descent
     mat_name = args.mat_name  # matrix name of the transformation matrix
 
     # create saving directories for combined, neighbors, and linear mapping approaches
-    save_dir_combined_neighbor = os.path.join(save_dir, '{}_{}/t{}k{}lmbda{}/'.format(model1_name, model2_name, t, k, lmbda))
+    save_dir_combined_neighbor = os.path.join(save_dir, '{}_{}/t{}k{}/'.format(model1_name, model2_name, t, k))
     save_dir_linear = os.path.join(save_dir, "{}_{}/linear_numsteps{}/".format(model1_name, model2_name, num_steps))
 
     # sub-directories for saving the transformation matrices
     dir_name_matrices = os.path.join(save_dir_linear, 'matrices/')
     dir_name_losses = os.path.join(save_dir_linear, 'loss_plots/')
-
-    # file names for saving stabilities
-    stabilities_combined = 'stabilities_combined'
-    stabilities_neighbor = 'stabilities_neighbor'
-    stabilities_linear = 'stabilities_linear'
 
     mkdir(save_dir_linear)  # create directory if does not already exist
     mkdir(save_dir_combined_neighbor)  # create directory if does not already exist
@@ -505,10 +505,10 @@ if __name__ == '__main__':
                                  num_steps=num_steps, mat_name=mat_name)
         # run the combined algorithm
         get_stability_combined(model1=model1, model2=model2, mat_name=mat_name, words_path=keywords_path,
-                               lmbda=lmbda, k=k, t=t, save_dir=save_dir_combined_neighbor,
-                               file_name=stabilities_combined)
+                               k=k, t=t, save_dir=save_dir_combined_neighbor,
+                               file_name='stabilities_combined')
 
     if method == "neighbor":
         get_stability_neighbors(model1=model1, model2=model2, words_path=keywords_path,
                                 k=k, t=t, save_dir=save_dir_combined_neighbor,
-                                file_name=stabilities_neighbor)
+                                file_name='stabilities_neighbor')
