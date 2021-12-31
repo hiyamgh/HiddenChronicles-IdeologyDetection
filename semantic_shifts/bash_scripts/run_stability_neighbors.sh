@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#SBATCH --job-name=stb-comb
+#SBATCH --job-name=stb-nei
 #SBATCH --account=hkg02
 #SBATCH --partition=gpu
 #SBATCH --time=0-06:00:00
@@ -9,7 +9,7 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=hkg02@mail.aub.edu
-#SBATCH --array=1-9%2
+#SBATCH --array=1-9%1
 
 module load python/3
 
@@ -27,7 +27,7 @@ for t in ${iterations[@]}; do
     for k in ${neighs[@]}; do
         for y in ${years[@]}; do
             if [ $USCOUNTER -eq $SLURM_ARRAY_TASK_ID ]; then
-                python words_are_malleable.py --path1 $EMB_DIR1 --path2=$EMB_DIR2 --model1 ${y}.bin --model2 ${y}.bin --model1_name ${arch1}_${y} --model2_name ${arch2}_${y} --k ${k} --t ${t} --words_file ${keywords_file} --method=combined
+                python words_are_malleable.py --path1 $EMB_DIR1 --path2=$EMB_DIR2 --model1 ${y}.bin --model2 ${y}.bin --model1_name ${arch1}_${y} --model2_name ${arch2}_${y} --k ${k} --t ${t} --words_file ${keywords_file} --method=neighbor
             fi
             USCOUNTER=$(expr $USCOUNTER + 1)
         done

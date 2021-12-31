@@ -253,7 +253,8 @@ def get_stability_combined(model1, model2, mat_name, words_path=None, k=50, t=5,
     # word to its stability values at range: 0: t-1
     stabilities = {}
     for w in common_vocab:
-        stabilities[w] = np.ones_like(np.arange(t + 1, dtype=float))
+        # stabilities[w] = np.ones_like(np.arange(t + 1, dtype=float))
+        stabilities[w] = 1.0
 
     if words_path is not None:
         with open(words_path, 'r', encoding='utf-8') as f:
@@ -261,15 +262,16 @@ def get_stability_combined(model1, model2, mat_name, words_path=None, k=50, t=5,
         words = [w[:-1] for w in words if '\n' in w]  # remove '\n'
         for w in words:
             if w not in stabilities:  # if its not in stabilities its not in common_words
-                stabilities[w] = np.ones_like(np.arange(t + 1, dtype=float))
+                # stabilities[w] = np.ones_like(np.arange(t + 1, dtype=float))
+                stabilities[w] = 1.0
                 common_vocab.append(w)
         print('added keywords into common vocab')
 
-    for i in range(1, t + 1):
-        print('t={}'.format(i))
+    for _ in range(t):
+        # print('t={}'.format(i))
         # ll = len(words)
-        # for w in common_vocab[-ll:]:
         for w in common_vocab:
+        # for w in common_vocab:
             nnsims1 = model1.get_nearest_neighbors(w, k)
             nnsims2 = model2.get_nearest_neighbors(w, k)
 
@@ -288,8 +290,11 @@ def get_stability_combined(model1, model2, mat_name, words_path=None, k=50, t=5,
                 if wp not in stabilities:
                     stabilities[wp] = np.ones_like(np.arange(t + 1, dtype=float))
 
-            Count_neig12 = (len(nn1) * len(inter)) - sum([ranks1[z]/stabilities[w][i] for z in range(len(ranks1))])
-            Count_neig21 = (len(nn2) * len(inter)) - sum([ranks2[z]/stabilities[w][i] for z in range(len(ranks2))])
+            # Count_neig12 = (len(nn1) * len(inter)) - sum([ranks1[z]/stabilities[w][i] for z in range(len(ranks1))])
+            # Count_neig21 = (len(nn2) * len(inter)) - sum([ranks2[z]/stabilities[w][i] for z in range(len(ranks2))])
+
+            Count_neig12 = (len(nn1) * len(inter)) - sum([ranks1[z] / stabilities[w] for z in range(len(ranks1))])
+            Count_neig21 = (len(nn2) * len(inter)) - sum([ranks2[z] / stabilities[w] for z in range(len(ranks2))])
 
             s_lin12, s_lin21 = get_stability_linear_mapping_one_word(model1, model2,
                                                                      mat_name=mat_name,
@@ -315,12 +320,13 @@ def get_stability_combined(model1, model2, mat_name, words_path=None, k=50, t=5,
 
             # final stability is a weighted summation of the linear and count based stabilities
             st = (lmbda * st_neig) + ((1 - lmbda) * st_lin)
-            stabilities[w][i] = st
+            # stabilities[w][i] = st
+            stabilities[w] = st
             print('st_neigh: {}, st_lin: {}, st: {}'.format(st_neig, st_lin, st))
 
             # min-max normalize st to fall in the 0-1 range
             # do so by min-max normalizing st taking values 0:i
-            stabilities[w] = (stabilities[w] - stabilities[w].min()) / (stabilities[w].max() - stabilities[w].min())
+            # stabilities[w] = (stabilities[w] - stabilities[w].min()) / (stabilities[w].max() - stabilities[w].min())
 
     # save the stabilities dictionary for loading it later on
     mkdir(save_dir)
@@ -363,7 +369,8 @@ def get_stability_neighbors(model1, model2, words_path=None, k=50, t=5, save_dir
     # word to its stability values at range: 0: t-1
     stabilities = {}
     for w in common_vocab:
-        stabilities[w] = np.ones_like(np.arange(t + 1, dtype=float))
+        # stabilities[w] = np.ones_like(np.arange(t + 1, dtype=float))
+        stabilities[w] = 1.0
 
     # if there are some set of words that we are interested in
     # and these words are OOV, we can also get their neighbors
@@ -374,12 +381,13 @@ def get_stability_neighbors(model1, model2, words_path=None, k=50, t=5, save_dir
         words = [w[:-1] for w in words if '\n' in w] # remove '\n'
         for w in words:
             if w not in stabilities: # if its not in stabilities its not in common_words
-                stabilities[w] = np.ones_like(np.arange(t + 1, dtype=float))
+                # stabilities[w] = np.ones_like(np.arange(t + 1, dtype=float))
+                stabilities[w] = 1.0
                 common_vocab.append(w)
         print('added keywords into common vocab')
 
-    for i in range(1, t+1):
-        print('t={}'.format(i))
+    for _ in range(t):
+        # print('t={}'.format(i))
         # ll = len(words)
         for w in common_vocab:
             nnsims1 = model1.get_nearest_neighbors(w, k)
@@ -399,9 +407,11 @@ def get_stability_neighbors(model1, model2, words_path=None, k=50, t=5, save_dir
                 # wp_v = model1.get_word_vector(wp)
 
                 if wp not in stabilities:
-                    stabilities[wp] = np.ones_like(np.arange(t+1, dtype=float))
+                    # stabilities[wp] = np.ones_like(np.arange(t+1, dtype=float))
+                    stabilities[wp] = 1.0
                     count_oov2 += 1
-                sim2 += get_cosine_sim(w_v, wp_v) * stabilities[wp][i-1]
+                # sim2 += get_cosine_sim(w_v, wp_v) * stabilities[wp][i-1]
+                sim2 += get_cosine_sim(w_v, wp_v) * stabilities[wp]
             sim2 /= len(nn2)
 
             for wp in nn1:
@@ -414,19 +424,22 @@ def get_stability_neighbors(model1, model2, words_path=None, k=50, t=5, save_dir
                 if wp not in stabilities:
                     stabilities[wp] = np.ones_like(np.arange(t+1, dtype=float))
                     count_oov1 += 1
-                sim1 += get_cosine_sim(w_v, wp_v) * stabilities[wp][i-1]
+                # sim1 += get_cosine_sim(w_v, wp_v) * stabilities[wp][i-1]
+                sim1 += get_cosine_sim(w_v, wp_v) * stabilities[wp]
             sim1 /= len(nn1)
 
             # calculate stability as the average of both similarities
             st = np.mean([sim1, sim2])
-            stabilities[w][i] = st
+            # stabilities[w][i] = st
+            stabilities[w] = st
 
             # min-max normalize st to fall in the 0-1 range
             # do so by min-max normalizing st taking values 0:i
-            stabilities[w] = (stabilities[w] - stabilities[w].min()) / (stabilities[w].max() - stabilities[w].min())
+            # stabilities[w] = (stabilities[w] - stabilities[w].min()) / (stabilities[w].max() - stabilities[w].min())
 
             # print('w: {}'.format(w))
-            print('{}: sim 1: {}, sim2: {}, st: {}, normalized st: {}'.format(w, sim1, sim2, st, stabilities[w][i]))
+            # print('{}: sim 1: {}, sim2: {}, st: {}, normalized st: {}'.format(w, sim1, sim2, st, stabilities[w][i]))
+            print('{}: sim 1: {}, sim2: {}, st: {}'.format(w, sim1, sim2, st))
             # print('oov1/nn1={}'.format(count_oov1 / len(nn1)))
             # print('oov2/nn2={}'.format(count_oov2 / len(nn2)))
             # print('===============================================================')
@@ -444,15 +457,15 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--path1', default='E:/fasttext_embeddings/ngrams4-size300-window5-mincount100-negative15-lr0.001/ngrams4-size300-window5-mincount100-negative15-lr0.001/', help='path to trained models files for first embedding')
     parser.add_argument('--path2', default='E:/fasttext_embeddings/assafir/', help='path to trained models files for secnd embedding')
-    parser.add_argument("--model1", default='2007.bin', help="model 1 file name")
-    parser.add_argument("--model2", default='2007.bin', help="model 2 file name")
+    parser.add_argument("--model1", default='2006.bin', help="model 1 file name")
+    parser.add_argument("--model2", default='2006.bin', help="model 2 file name")
     parser.add_argument("--model1_name", default="nahar_07", help="string to name model 1 - used for saving results")
     parser.add_argument("--model2_name", default="assafir_07", help="string to name model 2 - used for saving results")
 
     # neighbor and combined approach (words_file is needed by linear approach as well)
-    parser.add_argument("--words_file", default="input/keywords.txt", help="list of words interested in getting their stability values")
+    parser.add_argument("--words_file", default="../input/keywords.txt", help="list of words interested in getting their stability values")
     parser.add_argument("--k", default=100, help="number of nearest neighbors to consider per word - for neighbours and combined approach")
-    parser.add_argument("--t", default=5, help="number of iterations to consider - for the neighbours and combined approach")
+    parser.add_argument("--t", default=1, help="number of iterations to consider - for the neighbours and combined approach")
     parser.add_argument("--save_dir", default="results/", help="directory to save stabilities dictionary")
 
     # linear approach
