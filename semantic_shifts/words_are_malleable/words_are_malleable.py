@@ -288,7 +288,8 @@ def get_stability_combined(model1, model2, mat_name, words_path=None, k=50, t=5,
                     ranks2.append(nn1.index(wp)) # index of wp in nn1
 
                 if wp not in stabilities:
-                    stabilities[wp] = np.ones_like(np.arange(t + 1, dtype=float))
+                    # stabilities[wp] = np.ones_like(np.arange(t + 1, dtype=float))
+                    stabilities[wp] = 1.0
 
             # Count_neig12 = (len(nn1) * len(inter)) - sum([ranks1[z]/stabilities[w][i] for z in range(len(ranks1))])
             # Count_neig21 = (len(nn2) * len(inter)) - sum([ranks2[z]/stabilities[w][i] for z in range(len(ranks2))])
@@ -422,7 +423,8 @@ def get_stability_neighbors(model1, model2, words_path=None, k=50, t=5, save_dir
                 # wp_v = model2.get_word_vector(wp)
 
                 if wp not in stabilities:
-                    stabilities[wp] = np.ones_like(np.arange(t+1, dtype=float))
+                    # stabilities[wp] = np.ones_like(np.arange(t+1, dtype=float))
+                    stabilities[wp] = 1.0
                     count_oov1 += 1
                 # sim1 += get_cosine_sim(w_v, wp_v) * stabilities[wp][i-1]
                 sim1 += get_cosine_sim(w_v, wp_v) * stabilities[wp]
