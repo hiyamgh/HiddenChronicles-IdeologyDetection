@@ -200,39 +200,105 @@ def learn_stability_matrices(model1, model2, subwords, num_steps, mat_name):
     print('saved transformation matrices ...')
     return
 
-    # stabilities = {} # dictionary mapping words to their stability values
-    # with open(words_path, 'r', encoding='utf-8') as f:
-    #     words = f.readlines()
-    # words = [w[:-1] for w in words if '\n' in w]  # remove '\n'
-    #
-    # # load the transformation matrices
-    # R, R_inv = load_linear_mapping_matrices(dir_name=dir_name_matrices, mat_name=mat_name)
-    #
-    # # loop over each word and get its stability
-    # for w in words:
-    #     stabilities[w] = []
-    #
-    #     w0 = model1.get_word_vector(w) if ' ' not in w else model1.get_sentence_vector(w)
-    #     w1 = model2.get_word_vector(w) if ' ' not in w else model2.get_sentence_vector(w)
-    #
-    #     # the stability of a word is basically the stability of the vector to its mapped
-    #     # vector after applying the mapping back and forth
-    #     sim01 = get_cosine_sim(R_inv.dot(R.dot(w0)), w0)
-    #     sim10 = get_cosine_sim(R_inv.dot(R.dot(w1)), w1)
-    #
-    #     stability = (sim01 + sim10) / 2
-    #
-    #     print('stability of the word {}: {}, sim01={}, sim10={}'.format(w, stability, sim01, sim10))
-    #
-    #     stabilities[w].append(stability)
-    #     stabilities[w].append(sim01)
-    #     stabilities[w].append(sim10)
-    #
-    # mkdir(save_dir)
-    # with open(os.path.join(save_dir, '{}.pkl'.format(file_name)), 'wb') as handle:
-    #     pickle.dump(stabilities, handle, protocol=pickle.HIGHEST_PROTOCOL)
-    #
-    # return stabilities
+
+def get_stability_linear_mapping(model1, model2, mat_name, words_path,
+                                 save_dir='results/', file_name='stabilities_linear'):
+    print('Calculating stability values (linear)')
+    # get the intersection of the vocabularies of all models
+    # note that this method can be applied to get the stability
+    # of words from more than 2 models
+    all_vocab = []
+    all_vocab.append(model1.words)
+    all_vocab.append(model2.words)
+
+    # get the intersection of all vocabulary
+    common_vocab = list(set.intersection(*map(set, all_vocab)))
+    print('len of common vocab: {}'.format(len(common_vocab)))
+
+    # initialize the 'graph', in this case it'll be a dictionary mapping a vocabulary
+    # word to its stability values at range: 0: t-1
+    stabilities = {}
+    for w in common_vocab:
+        # stabilities[w] = np.ones_like(np.arange(t + 1, dtype=float))
+        stabilities[w] = 1.0
+
+    if words_path is not None:
+        with open(words_path, 'r', encoding='utf-8') as f:
+            words = f.readlines()
+        words = [w[:-1] for w in words if '\n' in w]  # remove '\n'
+        for w in words:
+            if w not in stabilities:  # if its not in stabilities its not in common_words
+                # stabilities[w] = np.ones_like(np.arange(t + 1, dtype=float))
+                stabilities[w] = 1.0
+                common_vocab.append(w)
+        print('added keywords into common vocab')
+
+    for w in common_vocab:
+        s_lin12, s_lin21 = get_stability_linear_mapping_one_word(model1, model2,
+                                                                 mat_name=mat_name,
+                                                                 dir_name_matrices=dir_name_matrices,
+                                                                 w=w)
+        stability = (s_lin12 + s_lin21) / 2
+        stabilities[w] = stability
+
+    # save the stabilities dictionary for loading it later on
+    mkdir(save_dir)
+    with open(os.path.join(save_dir, '{}.pkl'.format(file_name)), 'wb') as handle:
+        pickle.dump(stabilities, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+    return stabilities
+
+
+def get_stability_combined_one_word(w, model1, model2, mat_name, dir_name_matrices, k=50):
+    """ gets the combined stability value of a certain word w """
+    nnsims1 = model1.get_nearest_neighbors(w, k)
+    nnsims2 = model2.get_nearest_neighbors(w, k)
+
+    nn1 = [n[1] for n in nnsims1]  # get only the neighbour, not the similarity
+    nn2 = [n[1] for n in nnsims2]  # get only the neighbour, not the similarity
+
+    inter = set.intersection(*map(set, [nn1, nn2]))
+    ranks1, ranks2 = [], []
+
+    for wp in inter:
+        if wp in nn2:
+            ranks1.append(nn2.index(wp))  # index of wp in nn2
+        if wp in nn1:
+            ranks2.append(nn1.index(wp))  # index of wp in nn1
+
+    # Count_neig12 = (len(nn1) * len(inter)) - sum([ranks1[z]/stabilities[w][i] for z in range(len(ranks1))])
+    # Count_neig21 = (len(nn2) * len(inter)) - sum([ranks2[z]/stabilities[w][i] for z in range(len(ranks2))])
+
+    Count_neig12 = (len(nn1) * len(inter)) - sum([ranks1[z] / 1.0 for z in range(len(ranks1))])
+    Count_neig21 = (len(nn2) * len(inter)) - sum([ranks2[z] / 1.0 for z in range(len(ranks2))])
+
+    s_lin12, s_lin21 = get_stability_linear_mapping_one_word(model1, model2,
+                                                             mat_name=mat_name,
+                                                             dir_name_matrices=dir_name_matrices,
+                                                             w=w)
+
+    st_neig = (Count_neig12 + Count_neig21) / (2 * sum([i for i in range(1, k + 1)]))  # this is 2 * (n)(n+1)
+    st_lin = np.mean([s_lin12, s_lin21])
+
+    # calculate value of lambda
+    if nn1 == nn2:
+        # when the nearest neighbours of w are exactly the same,
+        # and have the same order in embedding 1 and embedding 2
+        lmbda = 1.0
+    elif Count_neig12 == 0 and Count_neig12 == 0:
+        # when the nearest neighbours in embedding 1 are completely
+        # not found in embedding 2, and vice versa would be also true
+        lmbda = 0
+    else:
+        # some neighbours of w in embedding 1 are found in embedding 2,
+        # and vice versa would be true
+        lmbda = 0.5
+
+    # final stability is a weighted summation of the linear and count based stabilities
+    st = (lmbda * st_neig) + ((1 - lmbda) * st_lin)
+    # stabilities[w][i] = st
+    # print('st_neigh: {}, st_lin: {}, st: {}'.format(st_neig, st_lin, st))
+    return st
 
 
 def get_stability_combined(model1, model2, mat_name, words_path=None, k=50, t=5, save_dir='results/',
@@ -459,8 +525,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--path1', default='E:/fasttext_embeddings/ngrams4-size300-window5-mincount100-negative15-lr0.001/ngrams4-size300-window5-mincount100-negative15-lr0.001/', help='path to trained models files for first embedding')
     parser.add_argument('--path2', default='E:/fasttext_embeddings/assafir/', help='path to trained models files for secnd embedding')
-    parser.add_argument("--model1", default='2006.bin', help="model 1 file name")
-    parser.add_argument("--model2", default='2006.bin', help="model 2 file name")
+    parser.add_argument("--model1", default='2007.bin', help="model 1 file name")
+    parser.add_argument("--model2", default='2007.bin', help="model 2 file name")
     parser.add_argument("--model1_name", default="nahar_07", help="string to name model 1 - used for saving results")
     parser.add_argument("--model2_name", default="assafir_07", help="string to name model 2 - used for saving results")
 
@@ -497,6 +563,7 @@ if __name__ == '__main__':
     # create saving directories for combined, neighbors, and linear mapping approaches
     save_dir_combined_neighbor = os.path.join(save_dir, '{}_{}/t{}k{}/'.format(model1_name, model2_name, t, k))
     save_dir_linear = os.path.join(save_dir, "{}_{}/linear_numsteps{}/".format(model1_name, model2_name, num_steps))
+    save_dir_linear_stabilities = os.path.join(save_dir, '{}_{}/'.format(model1_name, model2_name))
 
     # sub-directories for saving the transformation matrices
     dir_name_matrices = os.path.join(save_dir_linear, 'matrices/')
@@ -513,6 +580,10 @@ if __name__ == '__main__':
         learn_stability_matrices(model1=model1, model2=model2, subwords=stopwords_list,
                                                num_steps=num_steps,
                                                mat_name=mat_name)
+        get_stability_linear_mapping(model1=model1, model2=model2, mat_name=mat_name,
+                                     words_path=keywords_path,
+                                     save_dir=save_dir_linear_stabilities,
+                                     file_name='stabilities_linear')
 
     if method == "combined":
         # first learn the stability matrices because they'll be used inside the combined algorithm
