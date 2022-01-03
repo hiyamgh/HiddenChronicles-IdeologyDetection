@@ -1,6 +1,5 @@
 import pickle
 import os
-import matplotlib.pyplot as plt
 from itertools import cycle
 from bidi import algorithm as bidialg
 import arabic_reshaper
@@ -8,6 +7,8 @@ from words_are_malleable import get_stability_combined_one_word
 import fasttext
 from scipy import stats
 import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 
 def mkdir(folder):
@@ -61,6 +62,37 @@ def jaccard_similarity(listoflists):
     inter = set.intersection(*map(set, listoflists))
     un = set().union(*listoflists)
     return float(len(inter) / len(un))
+
+
+def generate_stability_heatmap(words, stability_dicts_combined, stability_dicts_neighbor,
+                               stability_dicts_linear,
+                               years, save_dir, fig_name):
+    yticks = [bidialg.get_display(arabic_reshaper.reshape(w)) for w in words]
+    fig, ax = plt.subplots(nrows=1, ncols=3)
+    for i in range(3):
+        data = []
+        for w in words:
+            stab_vals = []
+            if i == 0:
+                for j in range(len(years)):
+                    stab_vals.append(stability_dicts_combined[j][w])
+                data.append(stab_vals)
+            elif i == 1:
+                for j in range(len(years)):
+                    stab_vals.append(stability_dicts_neighbor[j][w])
+                data.append(stab_vals)
+            else:
+                for j in range(len(years)):
+                    stab_vals.append(stability_dicts_linear[j][w])
+                data.append(stab_vals)
+        data = np.array(data)
+        sns.heatmap(data, vmin=-0.1, vmax=1.0, yticklabels=yticks, cmap="YlGnBu", cbar=False if i < 2 else True,
+                    ax=ax[i])
+        ax[i].set_xlabel("Combined" if i == 0 else "Neighbor-based" if i == 1 else "Linear-Mapping")
+        ax[i].set_xticklabels(years, rotation=90)
+    plt.tight_layout()
+    plt.savefig(os.path.join(save_dir, fig_name + '_stabilities_heatmap.png'))
+    plt.close()
 
 
 def plot_jaccard_similarity_tails(stability_dicts_combined, stability_dicts_neighbor, stability_dicts_linear, n_sizes,
@@ -197,8 +229,11 @@ def get_ranks(stability_combined, stability_neighbors, stability_linear):
 # for these ?
 
 def get_contrastive_viewpoint_summary(w, n, k, model1, model2, mat_name, dir_name_matrices,
-                                      viewpoint=1, thresh=0.6):
-    """ get a contrastive viewpoint summary of a word of length n """
+                                      save_dir, file_name, viewpoint=1, thresh=0.6):
+    """ get a contrastive viewpoint summary of a word of length n. For a certain
+        word, we get its top k nearest neighbors. Then for each nearest neighbor, we add it
+        into the summary if its stability is less than a certain threshold.
+    """
     summary = []
     count = 0
     if viewpoint == 1:
@@ -208,14 +243,21 @@ def get_contrastive_viewpoint_summary(w, n, k, model1, model2, mat_name, dir_nam
     for nn in nns:
         if count == n:
             break
-        st = get_stability_combined_one_word(w=nn, model1=model1, model2=model2,mat_name=mat_name,
+        st = get_stability_combined_one_word(w=nn, model1=model1, model2=model2, mat_name=mat_name,
                                         dir_name_matrices=dir_name_matrices)
 
         if st <= thresh:
             summary.append((st, nn))
             count += 1
-    for s in summary:
-        print(s)
+    mkdir(save_dir)
+    with open(os.path.join(save_dir, '{}_{}.txt'.format(file_name, 1)), encoding='utf-8') as f:
+        f.writelines('w: {} - viewpoint {}'.format(w, viewpoint))
+        for i, s in enumerate(summary):
+            if i%5 != 0 or i == 0:
+                f.write(s + ", ")
+            else:
+                f.write(s + "\n")
+    f.close()
 
 
 def perform_paired_t_test(ranks_comb, ranks_neigh):
@@ -233,21 +275,39 @@ def perform_paired_t_test(ranks_comb, ranks_neigh):
 if __name__ == '__main__':
     # path1 = 'E:/fasttext_embeddings/ngrams4-size300-window5-mincount100-negative15-lr0.001/ngrams4-size300-window5-mincount100-negative15-lr0.001/'
     # path2 = 'E:/fasttext_embeddings/assafir/'
-    # model1 = fasttext.load_model(os.path.join(path1, '2007.bin'))
-    # model2 = fasttext.load_model(os.path.join(path2, '2007.bin'))
+    # model1 = fasttext.load_model(os.path.join(path1, '2006.bin'))
+    # model2 = fasttext.load_model(os.path.join(path2, '2006.bin'))
+
     with open('../input/keywords.txt', 'r', encoding='utf-8') as f:
         words = f.readlines()
     dir_name_matrices = 'E:/fasttext_embeddings/results/nahar_2007_assafir_2007/linear_numsteps70000/matrices/'
     words = [w[:-1] for w in words if '\n' in w]
     print(words)
 
+    # for w in words:
+    #     get_contrastive_viewpoint_summary(w, n=25, k=100, model1=model1, model2=model2,
+    #                                       mat_name='trans', dir_name_matrices=dir_name_matrices,
+    #                                       viewpoint=1, thresh=0.6)
+    #     get_contrastive_viewpoint_summary(w, n=25, k=100, model1=model1, model2=model2,
+    #                                       mat_name='trans', dir_name_matrices=dir_name_matrices,
+    #                                       viewpoint=2, thresh=0.6)
+    #     print('///////////////////////////////////////////////////////////////////')
+
     fig_name_prefixes = [
+        'nahar_2000_assafir_2000',
+        'nahar_2001_assafir_2001',
+        'nahar_2002_assafir_2002',
+
         'nahar_2006_assafir_2006',
         'nahar_2007_assafir_2007',
         'nahar_2008_assafir_2008'
     ]
     fig_name_general_prefix = 'nahar_assafir'
     paths = [
+        'E:/fasttext_embeddings/results/nahar_2000_assafir_2000/t1k100/',
+        'E:/fasttext_embeddings/results/nahar_2001_assafir_2001/t1k100/',
+        'E:/fasttext_embeddings/results/nahar_2002_assafir_2002/t1k100/',
+
         'E:/fasttext_embeddings/results/nahar_2006_assafir_2006/t1k100/',
         'E:/fasttext_embeddings/results/nahar_2007_assafir_2007/t1k100/',
         'E:/fasttext_embeddings/results/nahar_2008_assafir_2008/t1k100/',
@@ -296,20 +356,22 @@ if __name__ == '__main__':
         ranks_comb, ranks_neigh, ranks_lin = get_ranks(stability_combined=stabilities_comb,
                                                        stability_neighbors=stabilities_neigh,
                                                        stability_linear=stabilities_lin)
+        # paired two tail t-test
         perform_paired_t_test(ranks_comb, ranks_neigh)
+
+        # delta of the ranks between neighbors and linear vs. combination
         plot_delta_ranks_words(ranks_comb, ranks_neigh, ranks_lin, words,
                                save_dir=results_dir, fig_name=fig_name_prefixes[i])
 
+    # heatmap of stability values for each word of interest
+    generate_stability_heatmap(words, stability_dicts_combined, stability_dicts_neighbor,
+                               stability_dicts_linear,
+                               years=[2000, 2001, 2002, 2006, 2007, 2008],
+                               save_dir=results_dir, fig_name=fig_name_general_prefix)
+
+    # jaccard similarity between the tails of the stability dictionaries across years
     plot_jaccard_similarity_tails(stability_dicts_combined,
                                   stability_dicts_neighbor,
                                   stability_dicts_linear,
                                   n_sizes=list(range(10000, 110000, 10000)),
                                   save_dir=results_dir, fig_name=fig_name_general_prefix)
-    # print('')
-
-    # for w in words:
-    #     print('{}:'.format(w))
-    #     get_contrastive_viewpoint_summary(w, n=25, k=100, model1=model1, model2=model2,
-    #                                       mat_name='trans', dir_name_matrices=dir_name_matrices,
-    #                                       viewpoint=1, thresh=0.6)
-    #     print('========================================================================')
