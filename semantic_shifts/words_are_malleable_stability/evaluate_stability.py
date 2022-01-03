@@ -10,6 +10,11 @@ from scipy import stats
 import numpy as np
 
 
+def mkdir(folder):
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+
+
 def filter_stability_neighbors(stability_neigh, stability_comb):
     """ filter out the unwanted neighbors of words from the neighbors-based approach i.e.
         keep only the words in the common vocabulary
@@ -58,12 +63,13 @@ def jaccard_similarity(listoflists):
     return float(len(inter) / len(un))
 
 
-def plot_jaccard_similarity_tails(stability_dicts_combined, stability_dicts_neighbor, n_sizes):
+def plot_jaccard_similarity_tails(stability_dicts_combined, stability_dicts_neighbor, stability_dicts_linear, n_sizes,
+                                  save_dir, fig_name):
     """ get the jaccard similarity between the tails of the different stability
         approaches for different sizes of n. Ideally, because words in tails should be stable,
         they must be present in the tails of any corpus used.
     """
-    jaccard_sims_comb, jaccard_sims_neigh = [], []
+    jaccard_sims_comb, jaccard_sims_neigh, jaccard_sims_lin = [], [], []
     for n in n_sizes:
         # get the jaccard similarity over the "combined"-based dictionaries
         all_tails = []
@@ -81,53 +87,73 @@ def plot_jaccard_similarity_tails(stability_dicts_combined, stability_dicts_neig
         jaccard = jaccard_similarity(all_tails)
         jaccard_sims_neigh.append(jaccard)
 
-    lines = ["--", "-."]
+        # get the jaccard similarity over the "linear"-based dictionaries
+        all_tails = []
+        for stab_dict in stability_dicts_linear:
+            _, tails = get_heads_tails(stab_dict, n, verbose=False)
+            all_tails.append(tails)
+        jaccard = jaccard_similarity(all_tails)
+        jaccard_sims_lin.append(jaccard)
+
+    lines = ["--", "-.", ":"]
     linecycler = cycle(lines)
     plt.figure()
     for i in range(len(lines)):
         if i == 0:
             plt.plot(list(n_sizes), jaccard_sims_comb, next(linecycler), label="Combination")
-        else:
+        elif i == 1:
             plt.plot(list(n_sizes), jaccard_sims_neigh, next(linecycler), label="Neighbors-based")
+        else:
+            plt.plot(list(n_sizes), jaccard_sims_lin, next(linecycler), label="Linear-Mapping")
     plt.legend()
     plt.xlabel('tail sizes')
     plt.ylabel('jaccard similarity')
-    plt.xlim([0, n_sizes[-1]])
-    plt.ylim([0, max(max(jaccard_sims_comb), max(jaccard_sims_neigh))])
-    plt.savefig('jaccard-similarities.png')
+    plt.xlim([n_sizes[0], n_sizes[-1]])
+    plt.ylim([0, max(max(jaccard_sims_comb), max(jaccard_sims_neigh), max(jaccard_sims_lin))])
+    mkdir(save_dir)
+    plt.savefig(os.path.join(save_dir, fig_name + '_jaccard_similarities.png'))
     plt.close()
 
 
-def plot_delta_ranks_words(ranks_comb, ranks_neigh, words):
-    deltas = []
+def plot_delta_ranks_words(ranks_comb, ranks_neigh, ranks_lin, words,
+                           save_dir, fig_name):
+    deltas_neigh, deltas_lin = [], []
     words_decoded = []
     for w in words:
-        dr = ranks_neigh[w] - ranks_comb[w] # get the delta rank
-        deltas.append(dr) # add to list
-        words_decoded.append(bidialg.get_display(arabic_reshaper.reshape(w)))
-    plt.bar(words_decoded, deltas)
+        drneigh = ranks_neigh[w] - ranks_comb[w] # get the delta rank
+        drlin = ranks_lin[w] - ranks_comb[w]     # get the delta rank
+        deltas_neigh.append(drneigh) # add to list
+        deltas_lin.append(drlin)     # add to list
+        words_decoded.append(bidialg.get_display(arabic_reshaper.reshape(w))) # decode arabic word to make it appear in matplotlib
+    plt.bar(words_decoded, deltas_neigh, label='Combination vs. Neighbor-based')
+    plt.bar(words_decoded, deltas_lin, label='Combination vs. Linear Mapping', bottom=deltas_neigh)
     plt.xticks(rotation=90)
     plt.ylabel(r'$\Delta$' + 'rank')
+    plt.legend()
     fig = plt.gcf()
     fig.set_size_inches(12, 6)
     fig.tight_layout()
-    plt.savefig('delta-ranks.png')
+    mkdir(save_dir)
+    plt.savefig(os.path.join(save_dir, fig_name + '_delta_ranks.png'))
     plt.close()
 
 
-def get_ranks(stability_combined, stability_neighbors):
+def get_ranks(stability_combined, stability_neighbors, stability_linear):
     # sort the stabilities dictionary by increasing order of stabilities (items at the beginning
     # have low stability - items at the end have high stability)
     stability_combined = {k: v for k, v in sorted(stability_combined.items(), key=lambda item: item[1])}
     stability_neighbors = {k: v for k, v in sorted(stability_neighbors.items(), key=lambda item: item[1])}
+    stability_linear = {k: v for k, v in sorted(stability_linear.items(), key=lambda item: item[1])}
 
     values_combined = list(stability_combined.values())
     values_neighbor = list(stability_neighbors.values())
+    values_linear = list(stability_linear.values())
 
-    ranks_combined, ranks_neigh = [], []
+    ranks_combined, ranks_neigh, ranks_lin = [], [], []
 
     ranks_combined.append(1) # for the first value, its rank is 1
     ranks_neigh.append(1) # for the first value, its rank is 1
+    ranks_lin.append(1)
 
     # get the rankings per value for the combined
     rank = 1
@@ -149,10 +175,21 @@ def get_ranks(stability_combined, stability_neighbors):
             ranks_neigh.append(rank)
     print(len(ranks_neigh) == len(values_neighbor))
 
+    # get the rankings per value for the linear
+    rank = 1
+    for i in range(1, len(values_linear[1:]) + 1):
+        if round(values_linear[i], 8) == round(values_linear[i - 1], 8):
+            ranks_lin.append(rank)
+        else:
+            rank += 1
+            ranks_lin.append(rank)
+    print(len(ranks_lin) == len(values_linear))
+
     ranks_combined = dict(zip(list(stability_combined.keys()), ranks_combined))
     ranks_neigh = dict(zip(list(stability_neighbors.keys()), ranks_neigh))
+    ranks_lin = dict(zip(list(stability_linear.keys()), ranks_lin))
 
-    return ranks_combined, ranks_neigh
+    return ranks_combined, ranks_neigh, ranks_lin
 
 
 # cannot decide yet on summary because our words are oov and nearest
@@ -203,37 +240,30 @@ if __name__ == '__main__':
     dir_name_matrices = 'E:/fasttext_embeddings/results/nahar_2007_assafir_2007/linear_numsteps70000/matrices/'
     words = [w[:-1] for w in words if '\n' in w]
     print(words)
-    # for w in words:
-    #     print('{}:'.format(w))
-    #     get_contrastive_viewpoint_summary(w, n=25, k=100, model1=model1, model2=model2,
-    #                                       mat_name='trans', dir_name_matrices=dir_name_matrices,
-    #                                       viewpoint=1, thresh=0.6)
-    #     print('========================================================================')
 
-
+    fig_name_prefixes = [
+        'nahar_2006_assafir_2006',
+        'nahar_2007_assafir_2007',
+        'nahar_2008_assafir_2008'
+    ]
+    fig_name_general_prefix = 'nahar_assafir'
     paths = [
-             # 'E:/fasttext_embeddings/results/nahar_1982_assafir_1982/t1k100/',
-             # 'E:/fasttext_embeddings/results/nahar_1982_assafir_1982/t1k200/',
-             # 'E:/fasttext_embeddings/results/nahar_1982_assafir_1982/t1k300/',
-            # 'E:/fasttext_embeddings/results/nahar_1982_assafir_1982/linear_numsteps70000/matrices/',
-
-             # 'E:/fasttext_embeddings/results/nahar_2006_assafir_2006/t1k100/',
-             # 'E:/fasttext_embeddings/results/nahar_2006_assafir_2006/t1k200/',
-             # 'E:/fasttext_embeddings/results/nahar_2006_assafir_2006/t1k300/',
-             # 'E:/fasttext_embeddings/results/nahar_2006_assafir_2006/linear_numsteps70000/matrices/',
-             #
-             'E:/fasttext_embeddings/results/nahar_2007_assafir_2007/t1k100/',
-             # 'E:/fasttext_embeddings/results/nahar_2007_assafir_2007/t1k200/',
-             # 'E:/fasttext_embeddings/results/nahar_2007_assafir_2007/t1k300/',
-             # 'E:/fasttext_embeddings/results/nahar_2007_assafir_2007/linear_numsteps70000/matrices/',
-             ]
+        'E:/fasttext_embeddings/results/nahar_2006_assafir_2006/t1k100/',
+        'E:/fasttext_embeddings/results/nahar_2007_assafir_2007/t1k100/',
+        'E:/fasttext_embeddings/results/nahar_2008_assafir_2008/t1k100/',
+    ]
 
     stability_dicts_combined = []
     stability_dicts_neighbor = []
-    for path in paths:
+    stability_dicts_linear = []
+    results_dir = 'output/'
+
+    for i, path in enumerate(paths):
         dict_combined = os.path.join(path, 'stabilities_combined.pkl')
         dict_neighbor = os.path.join(path, 'stabilities_neighbor.pkl')
+        dict_linear = os.path.join(path[:-7], 'stabilities_linear.pkl')
         print('path: {}'.format(path))
+
         if os.path.exists(dict_combined):
             print('combined:')
             # load pickle file of stabilities
@@ -243,6 +273,7 @@ if __name__ == '__main__':
                 # get_stability_words(stabilities, words)
                 # get_heads_tails(stabilities, n=50)
             print('================================================================')
+
         if os.path.exists(dict_neighbor):
             print('neighbor:')
             # load pickle file of stabilities
@@ -254,9 +285,31 @@ if __name__ == '__main__':
                 # get_heads_tails(stabilities, n=50)
             print('================================================================')
 
-        ranks_comb, ranks_neigh = get_ranks(stability_combined=stabilities_comb, stability_neighbors=stabilities_neigh)
+        if os.path.exists(dict_linear):
+            print('linear:')
+            # load pickle file of stabilities
+            with open(dict_neighbor, 'rb') as handle:
+                stabilities_lin = pickle.load(handle)
+                stability_dicts_linear.append(stabilities_lin)
+            print('================================================================')
+
+        ranks_comb, ranks_neigh, ranks_lin = get_ranks(stability_combined=stabilities_comb,
+                                                       stability_neighbors=stabilities_neigh,
+                                                       stability_linear=stabilities_lin)
         perform_paired_t_test(ranks_comb, ranks_neigh)
-        plot_delta_ranks_words(ranks_comb, ranks_neigh, words)
-        break
-    # plot_jaccard_similarity_tails(stability_dicts_combined, stability_dicts_neighbor, n_sizes=list(range(0, 110000, 10000)))
+        plot_delta_ranks_words(ranks_comb, ranks_neigh, ranks_lin, words,
+                               save_dir=results_dir, fig_name=fig_name_prefixes[i])
+
+    plot_jaccard_similarity_tails(stability_dicts_combined,
+                                  stability_dicts_neighbor,
+                                  stability_dicts_linear,
+                                  n_sizes=list(range(10000, 110000, 10000)),
+                                  save_dir=results_dir, fig_name=fig_name_general_prefix)
     # print('')
+
+    # for w in words:
+    #     print('{}:'.format(w))
+    #     get_contrastive_viewpoint_summary(w, n=25, k=100, model1=model1, model2=model2,
+    #                                       mat_name='trans', dir_name_matrices=dir_name_matrices,
+    #                                       viewpoint=1, thresh=0.6)
+    #     print('========================================================================')
