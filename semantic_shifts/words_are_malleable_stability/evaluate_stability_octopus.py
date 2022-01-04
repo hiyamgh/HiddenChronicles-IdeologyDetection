@@ -9,8 +9,8 @@ from scipy import stats
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-import pandas as pd
 import csv
+import pandas as pd
 
 
 def mkdir(folder):
@@ -242,7 +242,7 @@ def get_ranks(stability_combined, stability_neighbors, stability_linear):
     # get the rankings per value for the combined
     rank = 1
     for i in range(1, len(values_combined[1:]) + 1):
-        if round(values_combined[i], 5) == round(values_combined[i - 1], 5):
+        if round(values_combined[i], 8) == round(values_combined[i - 1], 8):
             ranks_combined.append(rank)
         else:
             rank += 1
@@ -359,12 +359,12 @@ def perform_paired_t_test(ranks_comb, ranks_neigh, ranks_lin, save_dir, file_nam
 
 
 if __name__ == '__main__':
-    path1 = 'E:/fasttext_embeddings/ngrams4-size300-window5-mincount100-negative15-lr0.001/ngrams4-size300-window5-mincount100-negative15-lr0.001/'
-    path2 = 'E:/fasttext_embeddings/assafir/'
+    path1 = '/scratch/7613491_hkg02/political_discourse_mining_hiyam/Train_Word_Embedidng/fasttext/nahar/SGNS/ngrams4-size300-window5-mincount100-negative15-lr0.001/'
+    path2 = '/scratch/7613491_hkg02/political_discourse_mining_hiyam/Train_Word_Embedidng/fasttext/assafir/SGNS/ngrams4-size300-window5-mincount100-negative15-lr0.001/'
 
-    with open('../input/keywords.txt', 'r', encoding='utf-8') as f:
+    with open('input/keywords.txt', 'r', encoding='utf-8') as f:
         words = f.readlines()
-    dir_name_matrices = 'E:/fasttext_embeddings/results/nahar_2007_assafir_2007/linear_numsteps70000/matrices/'
+
     words = [w[:-1] for w in words if '\n' in w]
     print(words)
 
@@ -385,15 +385,27 @@ if __name__ == '__main__':
 
     main_path = '/scratch/7613491_hkg02/political_discourse_mining_hiyam/semantic_shifts_modified/results/'
     paths = [
-        'E:/fasttext_embeddings/results/nahar_2000_assafir_2000/t1k100/',
-        'E:/fasttext_embeddings/results/nahar_2001_assafir_2001/t1k100/',
-        'E:/fasttext_embeddings/results/nahar_2002_assafir_2002/t1k100/',
-        'E:/fasttext_embeddings/results/nahar_2003_assafir_2003/t1k100/',
-        'E:/fasttext_embeddings/results/nahar_2004_assafir_2004/t1k100/',
-        'E:/fasttext_embeddings/results/nahar_2005_assafir_2005/t1k100/',
-        'E:/fasttext_embeddings/results/nahar_2006_assafir_2006/t1k100/',
-        'E:/fasttext_embeddings/results/nahar_2007_assafir_2007/t1k100/',
-        'E:/fasttext_embeddings/results/nahar_2008_assafir_2008/t1k100/',
+        main_path + 'nahar_2000_assafir_2000/t1k100/',
+        main_path + 'nahar_2001_assafir_2001/t1k100/',
+        main_path + 'nahar_2002_assafir_2002/t1k100/',
+        main_path + 'nahar_2003_assafir_2003/t1k100/',
+        main_path + 'nahar_2004_assafir_2004/t1k100/',
+        main_path + 'nahar_2005_assafir_2005/t1k100/',
+        main_path + 'nahar_2006_assafir_2006/t1k100/',
+        main_path + 'nahar_2007_assafir_2007/t1k100/',
+        main_path + 'nahar_2008_assafir_2008/t1k100/',
+    ]
+
+    dir_name_matrices_paths = [
+        main_path + 'nahar_2000_assafir_2000/linear_numsteps70000/matrices/',
+        main_path + 'nahar_2001_assafir_2001/linear_numsteps70000/matrices/',
+        main_path + 'nahar_2002_assafir_2002/linear_numsteps70000/matrices/',
+        main_path + 'nahar_2003_assafir_2003/linear_numsteps70000/matrices/',
+        main_path + 'nahar_2004_assafir_2004/linear_numsteps70000/matrices/',
+        main_path + 'nahar_2005_assafir_2005/linear_numsteps70000/matrices/',
+        main_path + 'nahar_2006_assafir_2006/linear_numsteps70000/matrices/',
+        main_path + 'nahar_2007_assafir_2007/linear_numsteps70000/matrices/',
+        main_path + 'nahar_2008_assafir_2008/linear_numsteps70000/matrices/',
     ]
 
     stability_dicts_combined = []
@@ -413,8 +425,6 @@ if __name__ == '__main__':
             with open(dict_combined, 'rb') as handle:
                 stabilities_comb = pickle.load(handle)
                 stability_dicts_combined.append(stabilities_comb)
-                # get_stability_words(stabilities, words)
-                # get_heads_tails(stabilities, n=50)
             print('================================================================')
 
         if os.path.exists(dict_neighbor):
@@ -424,8 +434,6 @@ if __name__ == '__main__':
                 stabilities_neigh = pickle.load(handle)
                 stabilities_neigh = filter_stability_neighbors(stabilities_neigh, stabilities_comb)
                 stability_dicts_neighbor.append(stabilities_neigh)
-                # get_stability_words(stabilities, words)
-                # get_heads_tails(stabilities, n=50)
             print('================================================================')
 
         if os.path.exists(dict_linear):
@@ -437,50 +445,50 @@ if __name__ == '__main__':
                 stability_dicts_linear.append(stabilities_lin)
             print('================================================================')
 
-        # model1 = fasttext.load_model(os.path.join(path1, '{}.bin'.format(years[i])))
-        # model2 = fasttext.load_model(os.path.join(path2, '{}.bin'.format(years[i])))
+        model1 = fasttext.load_model(os.path.join(path1, '{}.bin'.format(years[i])))
+        model2 = fasttext.load_model(os.path.join(path2, '{}.bin'.format(years[i])))
+
+        for w in words:
+            # viewpoint 1
+            get_contrastive_viewpoint_summary(w, n=25, k=100, model1=model1, model2=model2,
+                                              mat_name='trans', dir_name_matrices=dir_name_matrices_paths[i],
+                                              save_dir=results_dir+'summaries/{}/'.format(fig_name_general_prefix + str(years[i])),
+                                              file_name='{}'.format(w),
+                                              viewpoint=1, thresh=0.6)
+            # viewpoint 2
+            get_contrastive_viewpoint_summary(w, n=25, k=100, model1=model1, model2=model2,
+                                              mat_name='trans', dir_name_matrices=dir_name_matrices_paths[i],
+                                              save_dir=results_dir + 'summaries/{}/'.format(fig_name_general_prefix + str(years[i])),
+                                              file_name='{}'.format(w),
+                                              viewpoint=2, thresh=0.6)
+            print('///////////////////////////////////////////////////////////////////')
+
+        # ranks_comb, ranks_neigh, ranks_lin = get_ranks(stability_combined=stabilities_comb,
+        #                                                stability_neighbors=stabilities_neigh,
+        #                                                stability_linear=stabilities_lin)
+        # # paired two tail t-test
+        # perform_paired_t_test(ranks_comb, ranks_neigh, ranks_lin, save_dir=results_dir + 'significance/',
+        #                       file_name=fig_name_general_prefix + str(years[i]))
         #
-        # for w in words:
-        #     # viewpoint 1
-        #     get_contrastive_viewpoint_summary(w, n=25, k=100, model1=model1, model2=model2,
-        #                                       mat_name='trans', dir_name_matrices=dir_name_matrices,
-        #                                       save_dir=results_dir+'summaries/{}/'.format(fig_name_general_prefix),
-        #                                       file_name='{}'.format(w),
-        #                                       viewpoint=1, thresh=0.6)
-        #     # viewpoint 2
-        #     get_contrastive_viewpoint_summary(w, n=25, k=100, model1=model1, model2=model2,
-        #                                       mat_name='trans', dir_name_matrices=dir_name_matrices,
-        #                                       save_dir=results_dir + 'summaries/{}/'.format(fig_name_general_prefix),
-        #                                       file_name='{}'.format(w),
-        #                                       viewpoint=1, thresh=0.6)
-        #     print('///////////////////////////////////////////////////////////////////')
+        # # delta of the ranks between neighbors and linear vs. combination
+        # plot_delta_ranks_words(ranks_comb, ranks_neigh, ranks_lin, words,
+        #                        save_dir=results_dir, fig_name=fig_name_prefixes[i])
+        #
+        # save_heads_tails_all(stabilities_comb=stabilities_comb, stabilities_neigh=stabilities_neigh,
+        #                      stabilities_lin=stabilities_lin, n=25, verbose=False,
+        #                      save_heads_tails=True,
+        #                      save_dir=results_dir + 'heads_tails/',
+        #                      file_name=fig_name_general_prefix + str(years[i]))
 
-        ranks_comb, ranks_neigh, ranks_lin = get_ranks(stability_combined=stabilities_comb,
-                                                       stability_neighbors=stabilities_neigh,
-                                                       stability_linear=stabilities_lin)
-        # paired two tail t-test
-        perform_paired_t_test(ranks_comb, ranks_neigh, ranks_lin, save_dir=results_dir + 'significance/',
-                              file_name=fig_name_general_prefix + str(years[i]))
-
-        # delta of the ranks between neighbors and linear vs. combination
-        plot_delta_ranks_words(ranks_comb, ranks_neigh, ranks_lin, words,
-                               save_dir=results_dir, fig_name=fig_name_prefixes[i])
-
-        save_heads_tails_all(stabilities_comb=stabilities_comb, stabilities_neigh=stabilities_neigh,
-                             stabilities_lin=stabilities_lin, n=50, verbose=False,
-                             save_heads_tails=True,
-                             save_dir=results_dir + 'heads_tails/',
-                             file_name=fig_name_general_prefix + str(years[i]))
-
-    # heatmap of stability values for each word of interest
-    generate_stability_heatmap(words, stability_dicts_combined, stability_dicts_neighbor,
-                               stability_dicts_linear,
-                               years=years,
-                               save_dir=results_dir, fig_name=fig_name_general_prefix)
-
-    # jaccard similarity between the tails of the stability dictionaries across years
-    plot_jaccard_similarity_tails(stability_dicts_combined,
-                                  stability_dicts_neighbor,
-                                  stability_dicts_linear,
-                                  n_sizes=list(range(10000, 110000, 10000)),
-                                  save_dir=results_dir, fig_name=fig_name_general_prefix)
+    # # heatmap of stability values for each word of interest
+    # generate_stability_heatmap(words, stability_dicts_combined, stability_dicts_neighbor,
+    #                            stability_dicts_linear,
+    #                            years=years,
+    #                            save_dir=results_dir, fig_name=fig_name_general_prefix)
+    #
+    # # jaccard similarity between the tails of the stability dictionaries across years
+    # plot_jaccard_similarity_tails(stability_dicts_combined,
+    #                               stability_dicts_neighbor,
+    #                               stability_dicts_linear,
+    #                               n_sizes=list(range(10000, 110000, 10000)),
+    #                               save_dir=results_dir, fig_name=fig_name_general_prefix)
