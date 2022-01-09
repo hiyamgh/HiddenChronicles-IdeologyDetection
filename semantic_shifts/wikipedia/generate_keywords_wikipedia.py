@@ -110,6 +110,18 @@ if __name__ == '__main__':
     path = 'wikipedia/datasets_updated/'
     name = 'political_parties_ar.csv'
     save_dir = 'wikipedia/keywords/'
+
+    dirs = [
+        'datasets_updated/1982-1984/1983_United_States_embassy_bombing_in_Beirut/',
+        'datasets_updated/1982-1984/1982_Lebanon_War/',
+        'datasets_updated/1982-1984/Bachir_Gemayel_Assasination/',
+        'datasets_updated/1982-1984/May_17_Agreement/',
+        'datasets_updated/1982-1984/Mountain_War_(Lebanon)/',
+        'datasets_updated/1982-1984/Palestinian_insurgency_in_South_Lebanon/',
+        'datasets_updated/1982-1984/Sabra_and_Shatila_massacre/',
+        'datasets_updated/1982-1984/Seige_of_Beirut/',
+    ]
+
     mkdir(save_dir)
     political_parties = get_political_parties_cleaned(path=path, df_name=name)
     print('political parties')
