@@ -179,30 +179,51 @@ def clean_politician(p):
     return ''
 
 
+def clean_location_name(l):
+    l = str(l)
+    if l != l:  # if pp is nan
+        return ''
+    elif l.strip() == '-1':
+        return ''
+    elif l.strip() == '1-':
+        return ''
+    elif l.strip == '-':
+        return ''
+
+    l = re.sub('\(مترجمه\)', '', l)
+    l = re.sub('\(لبنان\)', '', l)
+    l = re.sub('\(توضيح\)', '', l)
+
+    l = re.sub('\n', '', l)
+    if l.strip() != '':
+        return l
+    return ''
+
+
 if __name__ == '__main__':
     path = 'wikipedia/datasets_updated/'
     name = 'political_parties_ar.csv'
     save_dir = 'keywords/'
     cleaned_dirs = [
-        'datasets_cleaned/1982-1984/1983_United_States_embassy_bombing_in_Beirut/',
+        # 'datasets_cleaned/1982-1984/1983_United_States_embassy_bombing_in_Beirut/',
         'datasets_cleaned/1982-1984/1982_Lebanon_War/',
-        'datasets_cleaned/1982-1984/Bachir_Gemayel_Assasination/',
-        'datasets_cleaned/1982-1984/May_17_Agreement/',
-        'datasets_cleaned/1982-1984/Mountain_War_(Lebanon)/',
-        'datasets_cleaned/1982-1984/Palestinian_insurgency_in_South_Lebanon/',
-        'datasets_cleaned/1982-1984/Sabra_and_Shatila_massacre/',
-        'datasets_cleaned/1982-1984/Seige_of_Beirut/',
+        # 'datasets_cleaned/1982-1984/Bachir_Gemayel_Assasination/',
+        # 'datasets_cleaned/1982-1984/May_17_Agreement/',
+        # 'datasets_cleaned/1982-1984/Mountain_War_(Lebanon)/',
+        # 'datasets_cleaned/1982-1984/Palestinian_insurgency_in_South_Lebanon/',
+        # 'datasets_cleaned/1982-1984/Sabra_and_Shatila_massacre/',
+        # 'datasets_cleaned/1982-1984/Seige_of_Beirut/',
     ]
 
     dirs = [
-        'datasets_updated/1982-1984/1983_United_States_embassy_bombing_in_Beirut/',
+        # 'datasets_updated/1982-1984/1983_United_States_embassy_bombing_in_Beirut/',
         'datasets_updated/1982-1984/1982_Lebanon_War/',
-        'datasets_updated/1982-1984/Bachir_Gemayel_Assasination/',
-        'datasets_updated/1982-1984/May_17_Agreement/',
-        'datasets_updated/1982-1984/Mountain_War_(Lebanon)/',
-        'datasets_updated/1982-1984/Palestinian_insurgency_in_South_Lebanon/',
-        'datasets_updated/1982-1984/Sabra_and_Shatila_massacre/',
-        'datasets_updated/1982-1984/Seige_of_Beirut/',
+        # 'datasets_updated/1982-1984/Bachir_Gemayel_Assasination/',
+        # 'datasets_updated/1982-1984/May_17_Agreement/',
+        # 'datasets_updated/1982-1984/Mountain_War_(Lebanon)/',
+        # 'datasets_updated/1982-1984/Palestinian_insurgency_in_South_Lebanon/',
+        # 'datasets_updated/1982-1984/Sabra_and_Shatila_massacre/',
+        # 'datasets_updated/1982-1984/Seige_of_Beirut/',
     ]
     dfnames = [
         'political_parties',
@@ -220,9 +241,32 @@ if __name__ == '__main__':
                     df_en = pd.read_csv(os.path.join(dirc, dfname + '_en.csv'))
                     df_ar = pd.read_csv(os.path.join(dirc, dfname + '_ar.csv'))
 
+                    # check if the datasets are of same length
+                    if len(df_en) != len(df_ar):
+                        df_en = df_en.drop(df_en.index[df_en['Name'].str.strip() == '-']).reset_index(drop=True)
+
+                    # drop duplicates
+                    df_ar = df_ar.drop(df_en.index[df_en.duplicated(subset=['Name'])]).reset_index(drop=True)
+                    df_en = df_en.drop(df_en.index[df_en.duplicated(subset=['Name'])]).reset_index(drop=True)
+
+                    # re-impute missing arabic names
+                    en_names = list(df_en['Name'])
+                    ar_names = []
+                    for j, ar_name in enumerate(df_ar['الاسم']):
+                        if ar_name == '-1':
+                            name_from_user = input('please write in arabic the following location name: {}'.format(en_names[j]))
+                            ar_names.append(name_from_user)
+                        else:
+                            ar_names.append(ar_name)
+                    for n in ar_names:
+                        print(n)
+                    df_ar['الاسم'] = ar_names
+                    df_ar['الاسم'] = df_ar['الاسم'].apply(lambda x: clean_location_name(x))
+
                     mkdir(cleaned_dirs[i])
                     df_en.to_csv(os.path.join(cleaned_dirs[i], dfname + '_en.csv'), index=False)
                     df_ar.to_csv(os.path.join(cleaned_dirs[i], dfname + '_ar.csv'), index=False, encoding='utf-8-sig')
+
                 else:
                     df = pd.read_csv(os.path.join(dirc, dfname + '.csv'))
                     mkdir(cleaned_dirs[i])
