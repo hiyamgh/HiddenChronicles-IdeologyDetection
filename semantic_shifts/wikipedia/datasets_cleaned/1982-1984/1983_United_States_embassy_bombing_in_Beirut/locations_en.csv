@@ -1,4 +1,4 @@
 Name,Subdivision type,Subdivision name
-['Beirut'],Country,Lebanon
-['Iran'],-,-
-Tyre,Country,"Flag,Lebanon"
+Beirut,Country,Lebanon
+Iran,-,-
+Tyre,Country,"Lebanon,Flag"

@@ -1,18 +1,18 @@
 Name,Subdivision type,Subdivision name
--,Country,"Lebanon,flagcountry"
-['Beirut'],Country,Lebanon
+-,Country,"flagcountry,Lebanon"
+Beirut,Country,Lebanon
 -,Country,Lebanon
-Bikfaya,Country,"Lebanon,flagcountry"
+Bikfaya,Country,"flagcountry,Lebanon"
 Bsharri,Country,LBN
 -,Country,United States
 Damour,Country,LBN
-Ehden,Country,"Lebanon,flagcountry"
-['Israel'],-,-
+Ehden,Country,"flagcountry,Lebanon"
+Israel,-,-
 Keserwan District,Country,"Flag,Lebanon"
-['Lebanon'],-,-
-"ar,قضاء المتن,lang",Country,"Flag,Lebanon"
+Lebanon,-,-
+Matn District,Country,"Flag,Lebanon"
 Nahariyya,Country,ISR
 Safra,Country,"Flag,Lebanon"
-['the United States'],-,-
-['Beirut'],Country,Lebanon
-['Zahlé'],Country,"Flag,Lebanon"
+the United States,-,-
+Beirut,Country,Lebanon
+Zahlé,Country,"Flag,Lebanon"

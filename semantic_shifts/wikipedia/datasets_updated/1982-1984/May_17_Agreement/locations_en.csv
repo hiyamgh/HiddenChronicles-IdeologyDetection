@@ -1,8 +1,8 @@
 Name,Subdivision type,Subdivision name
-['Damascus'],Country,Syria
-['Egypt'],-,-
-Golan Heights,Status,"Internationally recognized as Syrian terri,ry occupied by Israel; n,group,see Status of the Golan Heights.,note,The United States recognized Israeli sovereignty over the Golan in March 2019. The US is the first country to recognize the Golan as Israeli territory,while the rest of the international community still considers it Syrian territory occupied by Israel."
-['Israel'],-,-
-['Lebanon'],-,-
-['Syria'],-,-
-['the United States'],-,-
+Damascus,Country,Syria
+Egypt,-,-
+Golan Heights,Status,"see Status of the Golan Heights.,group,The United States recognized Israeli sovereignty over the Golan in March 2019. The US is the first country to recognize the Golan as Israeli territory,while the rest of the international community still considers it Syrian territory occupied by Israel.,Internationally recognized as Syrian terri,ry occupied by Israel; n,note"
+Israel,-,-
+Lebanon,-,-
+Syria,-,-
+the United States,-,-

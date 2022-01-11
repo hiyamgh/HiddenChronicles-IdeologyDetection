@@ -1,54 +1,54 @@
 Name,Subdivision type,Subdivision name
-['Aabey'],Country,"Lebanon,Flag"
+Aabey,Country,"Flag,Lebanon"
 -,Country,"Lebanon,flagcountry"
-['Aley'],Country,"Lebanon,Flag"
-['عاليه'],Country,"Lebanon,Flag"
+Aley,Country,"Flag,Lebanon"
+Aley District,Country,"Flag,Lebanon"
 Aitat,Country,Lebanon
 Baabda,Country,"Lebanon,flagcountry"
-Boutchay District,Country,"Lebanon,Flag"
-['Beirut'],Country,Lebanon
+Boutchay District,Country,"Flag,Lebanon"
+Beirut,Country,Lebanon
 Beit ed-Dine,Country,"Lebanon,flagcountry"
-['Bhamdoun'],Country,Lebanon
-['Bsous'],Country,"Lebanon,Flag"
+Bhamdoun,Country,Lebanon
+Bsous,Country,"Flag,Lebanon"
 Byblos,Country,Lebanon
-['Choueifat'],Country,"Lebanon,Flag"
-Chouf District,Country,"Lebanon,Flag"
-['Cyprus'],-,-
-['Damascus'],Country,Syria
+Choueifat,Country,"Flag,Lebanon"
+Chouf District,Country,"Flag,Lebanon"
+Cyprus,-,-
+Damascus,Country,Syria
 Damour,Country,LBN
 Deir el Qamar,Country,"Lebanon,flagcountry"
 Dhour El Choueir,Country,"Lebanon,flagcountry"
 Dora,Country,"Lebanon,flagcountry"
-['Beirut'],Country,Lebanon
+Beirut,Country,Lebanon
 Falougha - Khalwat Falougha,Country,Lebanon
-['France'],-,-
-['Grand Beyrouth'],Country,"Lebanon,Flag"
+France,-,-
+Grand Beyrouth,Country,"Flag,Lebanon"
 Hadath,Country,Lebanon
 Hadath,Country,Lebanon
 Halat,Country,Lebanon
 Hammana,Country,"Lebanon,flagcountry"
-['Israel'],-,-
-['Jordan'],-,-
+Israel,-,-
+Jordan,-,-
 Kfar Silwan,Country,Lebanon
-['Kaifun'],Country,"Lebanon,Flag"
-Keserwan District,Country,"Lebanon,Flag"
-['Kfarshima'],Country,"Lebanon,Flag"
-['Lebanon'],-,-
-"lang,قضاء المتن,ar",Country,"Lebanon,Flag"
-['Mount Lebanon Emirate'],-,-
+Kaifun,Country,"Flag,Lebanon"
+Keserwan District,Country,"Flag,Lebanon"
+Kfarshima,Country,"Flag,Lebanon"
+Lebanon,-,-
+Matn District,Country,"Flag,Lebanon"
+Mount Lebanon Emirate,-,-
 Ras el-Matn,Country,"Lebanon,flagcountry"
 Ras el-Matn,Country,"Lebanon,flagcountry"
 Salima,Country,Lebanon
-['Saudi Arabia'],-,-
+Saudi Arabia,-,-
 "Sawfar , Sursock Grand Casino",Country,Lebanon
-['Sidon'],Country,Lebanon
-Sinn al-Fīl,Country,"Lebanon,flagcountry"
+Sidon,Country,Lebanon
+Sin el Fil,Country,"Lebanon,flagcountry"
 Souk El Gharb,Country,"Lebanon,flagcountry"
-['Switzerland'],-,-
-['Syria'],-,-
-['Tripoli'],Country,-
-Tyre,Country,"Lebanon,Flag"
-['the United States'],-,-
-['Beirut'],Country,Lebanon
+Switzerland,-,-
+Syria,-,-
+Tripoli,Country,-
+Tyre,Country,"Flag,Lebanon"
+the United States,-,-
+Beirut,Country,Lebanon
 Yarze,Country,"Lebanon,flagcountry"
 Zouk Mikael,Country,"Lebanon,flagcountry"

@@ -1,12 +1,12 @@
 Name,Subdivision type,Subdivision name
 Abu Shusha,Geopolitical entity,Mandatory Palestine
 Bayt Daras,Geopolitical entity,Mandatory Palestine
-['Beirut'],Country,Lebanon
-['Iraq'],-,-
-['Israel'],-,-
-['Lebanon'],-,-
+Beirut,Country,Lebanon
+Iraq,-,-
+Israel,-,-
+Lebanon,-,-
 Nahariyya,Country,ISR
 Saliha,Geopolitical entity,Mandatory Palestine
-['Singapore'],-,-
+Singapore,-,-
 Tantura,Geopolitical entity,Mandatory Palestine
-['Beirut'],Country,Lebanon
+Beirut,Country,Lebanon

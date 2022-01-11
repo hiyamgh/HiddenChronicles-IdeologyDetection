@@ -1,37 +1,37 @@
 Name,Subdivision type,Subdivision name
-['Algeria'],-,-
-['Palestine'],-,-
-['Iraq'],-,-
-['Beirut'],Country,Lebanon
-['Damascus'],Country,Syria
-['Egypt'],-,-
+Algeria,-,-
+Palestine,-,-
+Iraq,-,-
+Beirut,Country,Lebanon
+Damascus,Country,Syria
+Egypt,-,-
 -,-,-
-['France'],-,-
-['Greece'],-,-
-['Iraq'],-,-
-['Israel'],-,-
-['Jordan'],-,-
-['Egypt'],-,-
-['Iraq'],-,-
-['Kuwait'],-,-
-['Lebanon'],-,-
-['Libya'],-,-
+France,-,-
+Greece,-,-
+Iraq,-,-
+Israel,-,-
+Jordan,-,-
+Egypt,-,-
+Iraq,-,-
+Kuwait,-,-
+Lebanon,-,-
+Libya,-,-
 -,Sovereign state,UK United Kingdom
-['Morocco'],-,-
-['North Korea'],-,-
-['Palestinian National Authority'],-,-
-['Saudi Arabia'],-,-
+Morocco,-,-
+North Korea,-,-
+Palestinian National Authority,-,-
+Saudi Arabia,-,-
 Syrian Republic,-,-
-['Sidon'],Country,Lebanon
-['the Soviet Union'],-,-
-['Sudan'],-,-
-['Syria'],-,-
-['Tripoli'],Country,-
+Sidon,Country,Lebanon
+the Soviet Union,-,-
+Sudan,-,-
+Syria,-,-
+Tripoli,Country,-
 Tunis,Country,Tunisia
-['Tunisia'],-,-
+Tunisia,-,-
 Tyre,Country,"Flag,Lebanon"
-['UAE'],-,-
-['United Arab Republic'],-,-
-['United Kingdom'],-,-
-['the United States'],-,-
+UAE,-,-
+United Arab Republic,-,-
+United Kingdom,-,-
+the United States,-,-
 Republic of Yemen,-,-
