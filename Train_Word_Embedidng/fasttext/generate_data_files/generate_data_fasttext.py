@@ -164,6 +164,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-a', '--archive', type=str, default='assafir', help="name of the archive to transform")
+    parser.add_argument('-y', '--year', default=None, help="year of interest")
     parser.add_argument('-fy', '--start_year', type=int, default=None, help='year to start from')
     parser.add_argument('-ty', '--end_year', type=int, default=None, help='year to end file on')
     args = parser.parse_args()
@@ -177,9 +178,12 @@ if __name__ == '__main__':
     years = list(hf.keys())
 
     if args.start_year is None and args.end_year is None:
-        # create a file for each year
-        for year in years:
-            create_files(args.archive, hf, year)
+        if args.year is None:
+            # create a file for each year
+            for year in years:
+                create_files(args.archive, hf, year)
+        else:
+            create_files(args.archive, hf, args.year)
     else:
         create_files(args.archive, hf, year=None, start_year=args.start_year, end_year=args.end_year)
 
