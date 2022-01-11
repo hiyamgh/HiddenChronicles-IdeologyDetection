@@ -350,7 +350,7 @@ def get_stability_combined(model1, model2, mat_name, words_path=None, k=50, t=5,
             for wp in inter:
                 if wp in nn2:
                     ranks1.append(nn2.index(wp)) # index of wp in nn2
-                if wp in ranks2:
+                if wp in nn1:
                     ranks2.append(nn1.index(wp)) # index of wp in nn1
 
                 if wp not in stabilities:
@@ -534,10 +534,10 @@ if __name__ == '__main__':
     parser.add_argument("--words_file", default="../input/keywords.txt", help="list of words interested in getting their stability values")
     parser.add_argument("--k", default=100, help="number of nearest neighbors to consider per word - for neighbours and combined approach")
     parser.add_argument("--t", default=1, help="number of iterations to consider - for the neighbours and combined approach")
-    parser.add_argument("--save_dir", default="results/", help="directory to save stabilities dictionary")
+    parser.add_argument("--save_dir", default="results_diachronic/", help="directory to save stabilities dictionary")
 
     # linear approach
-    parser.add_argument("--num_steps", default=70000, help="number of training steps for gradient descent optimization")
+    parser.add_argument("--num_steps", default=80000, help="number of training steps for gradient descent optimization")
     parser.add_argument("--mat_name", default="trans", help="prefix name for the transformation matrices to be saved - linear mapping approach")
 
     # name of the method to be used

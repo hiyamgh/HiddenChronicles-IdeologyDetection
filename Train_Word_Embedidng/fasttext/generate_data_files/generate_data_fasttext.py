@@ -52,8 +52,6 @@ ____1995:
 
 import h5py, os, re
 import argparse
-import sys
-sys.path.append('../..')
 from normalization import *
 
 
