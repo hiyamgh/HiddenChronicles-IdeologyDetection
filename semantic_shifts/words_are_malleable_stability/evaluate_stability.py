@@ -113,34 +113,49 @@ def jaccard_similarity(listoflists):
     un = set().union(*listoflists)
     return float(len(inter) / len(un))
 
+# ax[0].set_xlabel("Combined" if i == 0 else "Neighbor-based" if i == 1 else "Linear-Mapping")
+
 
 def generate_stability_heatmap(words, stability_dicts_combined, stability_dicts_neighbor,
                                stability_dicts_linear,
                                years, save_dir, fig_name):
     yticks = [bidialg.get_display(arabic_reshaper.reshape(w)) for w in words]
+    numxticks = len(stability_dicts_combined)
     fig, ax = plt.subplots(nrows=1, ncols=3)
-    for i in range(3):
-        data = []
-        for w in words:
-            stab_vals = []
-            if i == 0:
-                for j in range(len(years)):
-                    stab_vals.append(stability_dicts_combined[j][w])
-                data.append(stab_vals)
-            elif i == 1:
-                for j in range(len(years)):
-                    stab_vals.append(stability_dicts_neighbor[j][w])
-                data.append(stab_vals)
-            else:
-                for j in range(len(years)):
-                    stab_vals.append(stability_dicts_linear[j][w])
-                data.append(stab_vals)
-        data = np.array(data)
-        sns.heatmap(data, vmin=-0.1, vmax=1.0, yticklabels=yticks, cmap="YlGnBu", cbar=False if i < 2 else True,
-                    ax=ax[i])
-        ax[i].set_xlabel("Combined" if i == 0 else "Neighbor-based" if i == 1 else "Linear-Mapping")
-        ax[i].set_xticklabels(years, rotation=90)
+    data_comb, data_neigh, data_lin = [], [], []
+    for w in words:
+        stab_vals_comb, stab_vals_neigh, stab_vals_lin = [], [], []
+        for j in range(len(years)):
+            stab_vals_comb.append(stability_dicts_combined[j][w])
+            stab_vals_neigh.append(stability_dicts_neighbor[j][w])
+            stab_vals_lin.append(stability_dicts_linear[j][w])
+        data_comb.append(stab_vals_comb)
+        data_neigh.append(stab_vals_neigh)
+        data_lin.append(stab_vals_lin)
+
+    data_comb = np.array(data_comb)
+    sns.heatmap(data_comb, vmin=-0.1, vmax=1.0, yticklabels=yticks, cmap="YlGnBu", cbar=False, ax=ax[0])
+    ax[0].set_xlabel("Combined")
+    ax[0].set_xticks(list(range(numxticks)))
+    ax[0].set_xticklabels(years, rotation=90)
+
+    data_neigh = np.array(data_neigh)
+    sns.heatmap(data_neigh, vmin=-0.1, vmax=1.0, yticklabels=yticks, cmap="YlGnBu", cbar=False, ax=ax[1])
+    ax[1].set_xlabel("Neighbor-based")
+    ax[1].set_xticks(list(range(numxticks)))
+    ax[1].set_xticklabels(years, rotation=90)
+
+    data_lin = np.array(data_lin)
+    sns.heatmap(data_lin, vmin=-0.1, vmax=1.0, yticklabels=yticks, cmap="YlGnBu", cbar=False, ax=ax[2])
+    ax[2].set_xticks(list(range(numxticks)))
+    ax[2].set_xlabel("Linear-Mapping")
+    ax[2].set_xticklabels(years, rotation=90)
+
+    mkdir(save_dir)
     plt.tight_layout()
+    fig = plt.gcf()
+    fig.set_size_inches(20, 10)
+    fig.tight_layout()
     plt.savefig(os.path.join(save_dir, fig_name + '_stabilities_heatmap.png'))
     plt.close()
 
@@ -192,7 +207,7 @@ def plot_jaccard_similarity_tails(stability_dicts_combined, stability_dicts_neig
     plt.ylabel('jaccard similarity')
     plt.xlim([n_sizes[0], n_sizes[-1]])
     # plt.ylim([0, max(max(jaccard_sims_comb), max(jaccard_sims_neigh), max(jaccard_sims_lin))])
-    plt.ylim([0, 1])
+    plt.ylim([0, 0.1])
     mkdir(save_dir)
     plt.savefig(os.path.join(save_dir, fig_name + '_jaccard_similarities.png'))
     plt.close()
@@ -358,48 +373,41 @@ def perform_paired_t_test(ranks_comb, ranks_neigh, ranks_lin, save_dir, file_nam
     df.to_csv(os.path.join(save_dir, file_name + '.csv'), index=False)
 
 
+def read_keywords(file_path):
+    with open(file_path, 'r', encoding='utf-8') as f:
+        words = f.readlines()
+    words = [w[:-1] for w in words if '\n' in w]
+    return words
+
+
 if __name__ == '__main__':
     path1 = 'E:/fasttext_embeddings/ngrams4-size300-window5-mincount100-negative15-lr0.001/ngrams4-size300-window5-mincount100-negative15-lr0.001/'
-    path2 = 'E:/fasttext_embeddings/assafir/'
+    # path2 = 'E:/fasttext_embeddings/assafir/'
+    path2 = path1
 
-    with open('../input/keywords.txt', 'r', encoding='utf-8') as f:
-        words = f.readlines()
     dir_name_matrices = 'E:/fasttext_embeddings/results/nahar_2007_assafir_2007/linear_numsteps70000/matrices/'
-    words = [w[:-1] for w in words if '\n' in w]
-    print(words)
 
-    # years = [2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008]
-    years = [2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008]
+    ethnicities = read_keywords('from_DrFatima_cleaned/ethnicities.txt')
+    ideologies = read_keywords('from_DrFatima_cleaned/ideologies.txt')
+    political_parties = read_keywords('from_DrFatima_cleaned/political_parties.txt')
+    politicians = read_keywords('from_DrFatima_cleaned/politicians.txt')
+    israeli_leaders = read_keywords('from_DrFatima_cleaned/israeli_leaders.txt')
+
+    years = list(range(1983, 2009))
+    yearsforfigs = ['{}-{}'.format(y-1, y) for y in years]
     fig_name_prefixes = [
-        'nahar_2000_assafir_2000',
-        'nahar_2001_assafir_2001',
-        'nahar_2002_assafir_2002',
-        'nahar_2003_assafir_2003',
-        'nahar_2004_assafir_2004',
-        'nahar_2005_assafir_2005',
-        'nahar_2006_assafir_2006',
-        'nahar_2007_assafir_2007',
-        'nahar_2008_assafir_2008'
+        'nahar_{}_{}'.format(y - 1, y) for y in years
     ]
-    fig_name_general_prefix = 'nahar_assafir'
+    fig_name_general_prefix = 'nahar'
 
-    main_path = '/scratch/7613491_hkg02/political_discourse_mining_hiyam/semantic_shifts_modified/results/'
     paths = [
-        'E:/fasttext_embeddings/results/nahar_2000_assafir_2000/t1k100/',
-        'E:/fasttext_embeddings/results/nahar_2001_assafir_2001/t1k100/',
-        'E:/fasttext_embeddings/results/nahar_2002_assafir_2002/t1k100/',
-        'E:/fasttext_embeddings/results/nahar_2003_assafir_2003/t1k100/',
-        'E:/fasttext_embeddings/results/nahar_2004_assafir_2004/t1k100/',
-        'E:/fasttext_embeddings/results/nahar_2005_assafir_2005/t1k100/',
-        'E:/fasttext_embeddings/results/nahar_2006_assafir_2006/t1k100/',
-        'E:/fasttext_embeddings/results/nahar_2007_assafir_2007/t1k100/',
-        'E:/fasttext_embeddings/results/nahar_2008_assafir_2008/t1k100/',
+        'E:/fasttext_embeddings/results_diachronic/nahar_{}_nahar_{}/t1k100/'.format(y - 1, y) for y in years
     ]
 
     stability_dicts_combined = []
     stability_dicts_neighbor = []
     stability_dicts_linear = []
-    results_dir = 'output/'
+    results_dir = 'output_diachronic/'
 
     for i, path in enumerate(paths):
         dict_combined = os.path.join(path, 'stabilities_combined.pkl')
@@ -431,7 +439,7 @@ if __name__ == '__main__':
         if os.path.exists(dict_linear):
             print('linear:')
             # load pickle file of stabilities
-            with open(dict_neighbor, 'rb') as handle:
+            with open(dict_linear, 'rb') as handle:
                 stabilities_lin = pickle.load(handle)
                 stabilities_lin = filter_stability_neighbors(stabilities_lin, stabilities_comb)
                 stability_dicts_linear.append(stabilities_lin)
@@ -460,11 +468,19 @@ if __name__ == '__main__':
                                                        stability_linear=stabilities_lin)
         # paired two tail t-test
         perform_paired_t_test(ranks_comb, ranks_neigh, ranks_lin, save_dir=results_dir + 'significance/',
-                              file_name=fig_name_general_prefix + str(years[i]))
+                              file_name=fig_name_general_prefix + '-' + str(yearsforfigs[i]))
 
         # delta of the ranks between neighbors and linear vs. combination
-        plot_delta_ranks_words(ranks_comb, ranks_neigh, ranks_lin, words,
-                               save_dir=results_dir, fig_name=fig_name_prefixes[i])
+        plot_delta_ranks_words(ranks_comb, ranks_neigh, ranks_lin, ethnicities,
+                               save_dir=results_dir + 'delta_ranks/', fig_name=fig_name_prefixes[i] + '_ethnicities')
+        plot_delta_ranks_words(ranks_comb, ranks_neigh, ranks_lin, ideologies,
+                               save_dir=results_dir + 'delta_ranks/', fig_name=fig_name_prefixes[i] + '_ideologies')
+        plot_delta_ranks_words(ranks_comb, ranks_neigh, ranks_lin, political_parties,
+                               save_dir=results_dir + 'delta_ranks/', fig_name=fig_name_prefixes[i] + '_political_parties')
+        plot_delta_ranks_words(ranks_comb, ranks_neigh, ranks_lin, politicians,
+                               save_dir=results_dir + 'delta_ranks/', fig_name=fig_name_prefixes[i] + '_politicians')
+        # plot_delta_ranks_words(ranks_comb, ranks_neigh, ranks_lin, israeli_leaders,
+        #                        save_dir=results_dir + 'delta_ranks/', fig_name=fig_name_prefixes[i] + '_israeli_leaders')
 
         save_heads_tails_all(stabilities_comb=stabilities_comb, stabilities_neigh=stabilities_neigh,
                              stabilities_lin=stabilities_lin, n=50, verbose=False,
@@ -473,10 +489,29 @@ if __name__ == '__main__':
                              file_name=fig_name_general_prefix + str(years[i]))
 
     # heatmap of stability values for each word of interest
-    generate_stability_heatmap(words, stability_dicts_combined, stability_dicts_neighbor,
+    generate_stability_heatmap(ethnicities, stability_dicts_combined, stability_dicts_neighbor,
                                stability_dicts_linear,
-                               years=years,
-                               save_dir=results_dir, fig_name=fig_name_general_prefix)
+                               years=yearsforfigs,
+                               save_dir=results_dir + 'heatmap/', fig_name=fig_name_general_prefix + '_ethnicities')
+
+    generate_stability_heatmap(ideologies, stability_dicts_combined, stability_dicts_neighbor,
+                               stability_dicts_linear,
+                               years=yearsforfigs,
+                               save_dir=results_dir + 'heatmap/', fig_name=fig_name_general_prefix + '_ideologies')
+
+    generate_stability_heatmap(political_parties, stability_dicts_combined, stability_dicts_neighbor,
+                               stability_dicts_linear,
+                               years=yearsforfigs,
+                               save_dir=results_dir + 'heatmap/', fig_name=fig_name_general_prefix + '_political_parties')
+
+    generate_stability_heatmap(politicians, stability_dicts_combined, stability_dicts_neighbor,
+                               stability_dicts_linear,
+                               years=yearsforfigs,
+                               save_dir=results_dir + 'heatmap/', fig_name=fig_name_general_prefix + '_politicians')
+    # generate_stability_heatmap(israeli_leaders, stability_dicts_combined, stability_dicts_neighbor,
+    #                            stability_dicts_linear,
+    #                            years=yearsforfigs,
+    #                            save_dir=results_dir + 'heatmap/', fig_name=fig_name_general_prefix + '_israeli_leaders')
 
     # jaccard similarity between the tails of the stability dictionaries across years
     plot_jaccard_similarity_tails(stability_dicts_combined,
