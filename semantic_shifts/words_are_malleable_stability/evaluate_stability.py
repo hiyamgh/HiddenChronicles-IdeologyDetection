@@ -296,37 +296,60 @@ def get_ranks(stability_combined, stability_neighbors, stability_linear):
 # for these ?
 
 def get_contrastive_viewpoint_summary(w, n, k, model1, model2, mat_name, dir_name_matrices,
-                                      save_dir, file_name, viewpoint=1, viewpoint_name='1', words_category='ethnicities',
+                                      save_dir, file_name, viewpoint1_name='1982', viewpoint2_name='1983',
                                       thresh=0.6):
     """ get a contrastive viewpoint summary of a word of length n. For a certain
         word, we get its top k nearest neighbors. Then for each nearest neighbor, we add it
         into the summary if its stability is less than a certain threshold.
     """
-    summary = []
+    summary1, summary2 = [], []
+
+    nns1 = [n[1] for n in model1.get_nearest_neighbors(w, k)]
+    nns2 = [n[1] for n in model2.get_nearest_neighbors(w, k)]
+
     count = 0
-    if viewpoint == 1:
-        nns = [n[1] for n in model1.get_nearest_neighbors(w, k)]
-    else:
-        nns = [n[1] for n in model2.get_nearest_neighbors(w, k)]
-    for nn in nns:
+    for nn in nns1:
         if count == n:
             break
         st = get_stability_combined_one_word(w=nn, model1=model1, model2=model2, mat_name=mat_name,
                                              dir_name_matrices=dir_name_matrices)
 
         if st <= thresh:
-            summary.append((st, nn))
+            summary1.append((st, nn))
             count += 1
+    count = 0
+    for nn in nns2:
+        if count == n:
+            break
+        st = get_stability_combined_one_word(w=nn, model1=model1, model2=model2, mat_name=mat_name,
+                                             dir_name_matrices=dir_name_matrices)
+
+        if st <= thresh:
+            summary2.append((st, nn))
+            count += 1
+
     mkdir(save_dir)
-    with open(os.path.join(save_dir, '{}_{}_{}.txt'.format(file_name, words_category, str(viewpoint))), 'a', encoding='utf-8') as f:
-        f.writelines('w: {} - viewpoint {}'.format(w, viewpoint_name))
-        for i, s in enumerate(summary):
+    with open(os.path.join(save_dir, '{}.txt'.format(file_name)), 'a', encoding='utf-8') as f:
+        f.write('w: {}\n'.format(w))
+        f.write('viewpoint {}\n'.format(viewpoint1_name))
+        for i, s in enumerate(summary1):
             if i % 10 != 0 or i == 0:
                 f.write(s[1] + ", ")
             else:
                 f.write(s[1] + "\n")
-        f.writelines('-------------------------------------------------------------------------------------------')
         f.writelines('\n')
+        f.writelines('\n')
+        f.writelines('-------------------------------------------------------------------------------------------\n')
+        f.write('w: {}\n'.format(w))
+        f.write('viewpoint {}\n'.format(viewpoint2_name))
+        for i, s in enumerate(summary2):
+            if i % 10 != 0 or i == 0:
+                f.write(s[1] + ", ")
+            else:
+                f.write(s[1] + "\n")
+        f.writelines('\n')
+        f.writelines('\n')
+        f.writelines('========================================================================================================================================')
         f.writelines('\n')
     f.close()
 
@@ -385,11 +408,9 @@ def read_keywords(file_path):
 
 
 if __name__ == '__main__':
-    path1 = 'E:/fasttext_embeddings/ngrams4-size300-window5-mincount100-negative15-lr0.001/ngrams4-size300-window5-mincount100-negative15-lr0.001/'
+    path1 = 'D:/fasttext_embeddings/ngrams4-size300-window5-mincount100-negative15-lr0.001/ngrams4-size300-window5-mincount100-negative15-lr0.001/'
     # path2 = 'E:/fasttext_embeddings/assafir/'
     path2 = path1
-
-    dir_name_matrices = 'E:/fasttext_embeddings/results/nahar_2007_assafir_2007/linear_numsteps70000/matrices/'
 
     ethnicities = read_keywords('from_DrFatima_cleaned/ethnicities.txt')
     ideologies = read_keywords('from_DrFatima_cleaned/ideologies.txt')
@@ -449,45 +470,31 @@ if __name__ == '__main__':
                 stability_dicts_linear.append(stabilities_lin)
             print('================================================================')
 
-        model1 = fasttext.load_model(os.path.join(path1, '{}.bin'.format(years[i])))
+        model1 = fasttext.load_model(os.path.join(path1, '{}.bin'.format(years[i-1])))
         model2 = fasttext.load_model(os.path.join(path2, '{}.bin'.format(years[i])))
 
+        dir_name_matrices = 'D:/fasttext_embeddings/results_diachronic/nahar_{}_nahar_{}/linear_numsteps80000/matrices/'.format(str(years[i]-1), str(years[i]))
+
         for w in politicians:
-            # viewpoint 1
-            get_contrastive_viewpoint_summary(w, n=25, k=100, model1=model1, model2=model2,
+            get_contrastive_viewpoint_summary(w, n=50, k=100, model1=model1, model2=model2,
                                               mat_name='trans', dir_name_matrices=dir_name_matrices,
-                                              save_dir=results_dir+'summaries/{}/'.format(fig_name_general_prefix),
-                                              file_name='{}'.format(w),
-                                              viewpoint=1,
-                                              viewpoint_name='{}'.format(years[i] - 1),
-                                              words_category='politicians',
+                                              save_dir=results_dir + 'summaries/',
+                                              file_name='politicians',
+                                              viewpoint1_name='{}'.format(years[i] - 1),
+                                              viewpoint2_name='{}'.format(years[i]),
                                               thresh=0.6)
-            # viewpoint 2
-            get_contrastive_viewpoint_summary(w, n=25, k=100, model1=model1, model2=model2,
-                                              mat_name='trans', dir_name_matrices=dir_name_matrices,
-                                              save_dir=results_dir + 'summaries/{}/'.format(fig_name_general_prefix),
-                                              file_name='{}'.format(w),
-                                              viewpoint_name='{}'.format(years[i]),
-                                              viewpoint=2, thresh=0.6)
+
             print('///////////////////////////////////////////////////////////////////')
 
         for w in political_parties:
-            # viewpoint 1
-            get_contrastive_viewpoint_summary(w, n=25, k=100, model1=model1, model2=model2,
+            get_contrastive_viewpoint_summary(w, n=50, k=100, model1=model1, model2=model2,
                                               mat_name='trans', dir_name_matrices=dir_name_matrices,
-                                              save_dir=results_dir+'summaries/{}/'.format(fig_name_general_prefix),
-                                              file_name='{}'.format(w),
-                                              viewpoint=1,
-                                              viewpoint_name='{}'.format(years[i] - 1),
+                                              save_dir=results_dir + 'summaries/',
+                                              file_name='political_parties',
+                                              viewpoint1_name='{}'.format(years[i] - 1),
+                                              viewpoint2_name='{}'.format(years[i]),
                                               thresh=0.6)
-            # viewpoint 2
-            get_contrastive_viewpoint_summary(w, n=25, k=100, model1=model1, model2=model2,
-                                              mat_name='trans', dir_name_matrices=dir_name_matrices,
-                                              save_dir=results_dir + 'summaries/{}/'.format(fig_name_general_prefix),
-                                              file_name='{}'.format(w),
-                                              viewpoint=2,
-                                              viewpoint_name='{}'.format(years[i]),
-                                              thresh=0.6)
+
             print('///////////////////////////////////////////////////////////////////')
 
         ranks_comb, ranks_neigh, ranks_lin = get_ranks(stability_combined=stabilities_comb,
