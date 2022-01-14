@@ -296,7 +296,8 @@ def get_ranks(stability_combined, stability_neighbors, stability_linear):
 # for these ?
 
 def get_contrastive_viewpoint_summary(w, n, k, model1, model2, mat_name, dir_name_matrices,
-                                      save_dir, file_name, viewpoint=1, thresh=0.6):
+                                      save_dir, file_name, viewpoint=1, viewpoint_name='1', words_category='ethnicities',
+                                      thresh=0.6):
     """ get a contrastive viewpoint summary of a word of length n. For a certain
         word, we get its top k nearest neighbors. Then for each nearest neighbor, we add it
         into the summary if its stability is less than a certain threshold.
@@ -317,13 +318,16 @@ def get_contrastive_viewpoint_summary(w, n, k, model1, model2, mat_name, dir_nam
             summary.append((st, nn))
             count += 1
     mkdir(save_dir)
-    with open(os.path.join(save_dir, '{}_{}.txt'.format(file_name, viewpoint)), 'w', encoding='utf-8') as f:
-        f.writelines('w: {} - viewpoint {}'.format(w, viewpoint))
+    with open(os.path.join(save_dir, '{}_{}_{}.txt'.format(file_name, words_category, str(viewpoint))), 'a', encoding='utf-8') as f:
+        f.writelines('w: {} - viewpoint {}'.format(w, viewpoint_name))
         for i, s in enumerate(summary):
-            if i % 5 != 0 or i == 0:
+            if i % 10 != 0 or i == 0:
                 f.write(s[1] + ", ")
             else:
                 f.write(s[1] + "\n")
+        f.writelines('-------------------------------------------------------------------------------------------')
+        f.writelines('\n')
+        f.writelines('\n')
     f.close()
 
 
@@ -445,23 +449,46 @@ if __name__ == '__main__':
                 stability_dicts_linear.append(stabilities_lin)
             print('================================================================')
 
-        # model1 = fasttext.load_model(os.path.join(path1, '{}.bin'.format(years[i])))
-        # model2 = fasttext.load_model(os.path.join(path2, '{}.bin'.format(years[i])))
-        #
-        # for w in words:
-        #     # viewpoint 1
-        #     get_contrastive_viewpoint_summary(w, n=25, k=100, model1=model1, model2=model2,
-        #                                       mat_name='trans', dir_name_matrices=dir_name_matrices,
-        #                                       save_dir=results_dir+'summaries/{}/'.format(fig_name_general_prefix),
-        #                                       file_name='{}'.format(w),
-        #                                       viewpoint=1, thresh=0.6)
-        #     # viewpoint 2
-        #     get_contrastive_viewpoint_summary(w, n=25, k=100, model1=model1, model2=model2,
-        #                                       mat_name='trans', dir_name_matrices=dir_name_matrices,
-        #                                       save_dir=results_dir + 'summaries/{}/'.format(fig_name_general_prefix),
-        #                                       file_name='{}'.format(w),
-        #                                       viewpoint=1, thresh=0.6)
-        #     print('///////////////////////////////////////////////////////////////////')
+        model1 = fasttext.load_model(os.path.join(path1, '{}.bin'.format(years[i])))
+        model2 = fasttext.load_model(os.path.join(path2, '{}.bin'.format(years[i])))
+
+        for w in politicians:
+            # viewpoint 1
+            get_contrastive_viewpoint_summary(w, n=25, k=100, model1=model1, model2=model2,
+                                              mat_name='trans', dir_name_matrices=dir_name_matrices,
+                                              save_dir=results_dir+'summaries/{}/'.format(fig_name_general_prefix),
+                                              file_name='{}'.format(w),
+                                              viewpoint=1,
+                                              viewpoint_name='{}'.format(years[i] - 1),
+                                              words_category='politicians',
+                                              thresh=0.6)
+            # viewpoint 2
+            get_contrastive_viewpoint_summary(w, n=25, k=100, model1=model1, model2=model2,
+                                              mat_name='trans', dir_name_matrices=dir_name_matrices,
+                                              save_dir=results_dir + 'summaries/{}/'.format(fig_name_general_prefix),
+                                              file_name='{}'.format(w),
+                                              viewpoint_name='{}'.format(years[i]),
+                                              viewpoint=2, thresh=0.6)
+            print('///////////////////////////////////////////////////////////////////')
+
+        for w in political_parties:
+            # viewpoint 1
+            get_contrastive_viewpoint_summary(w, n=25, k=100, model1=model1, model2=model2,
+                                              mat_name='trans', dir_name_matrices=dir_name_matrices,
+                                              save_dir=results_dir+'summaries/{}/'.format(fig_name_general_prefix),
+                                              file_name='{}'.format(w),
+                                              viewpoint=1,
+                                              viewpoint_name='{}'.format(years[i] - 1),
+                                              thresh=0.6)
+            # viewpoint 2
+            get_contrastive_viewpoint_summary(w, n=25, k=100, model1=model1, model2=model2,
+                                              mat_name='trans', dir_name_matrices=dir_name_matrices,
+                                              save_dir=results_dir + 'summaries/{}/'.format(fig_name_general_prefix),
+                                              file_name='{}'.format(w),
+                                              viewpoint=2,
+                                              viewpoint_name='{}'.format(years[i]),
+                                              thresh=0.6)
+            print('///////////////////////////////////////////////////////////////////')
 
         ranks_comb, ranks_neigh, ranks_lin = get_ranks(stability_combined=stabilities_comb,
                                                        stability_neighbors=stabilities_neigh,
