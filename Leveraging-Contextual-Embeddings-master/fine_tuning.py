@@ -69,7 +69,9 @@ class TextDataset(Dataset):
     def __init__(self, tokenizer: PreTrainedTokenizer, args, file_path: str, block_size=512):
         assert os.path.isfile(file_path)
 
-        block_size = block_size - (tokenizer.max_len - tokenizer.max_len_single_sentence)
+        # block_size = block_size - (tokenizer.max_len - tokenizer.max_len_single_sentence)
+        block_size = block_size - (tokenizer.model_max_length - tokenizer.max_len_single_sentence)
+        # model_max_length
 
         directory, filename = os.path.split(file_path)
         cached_features_file = os.path.join(
@@ -335,7 +337,9 @@ def train(args, train_dataset, model: PreTrainedModel, tokenizer: PreTrainedToke
             inputs = inputs.to(args.device)
             labels = labels.to(args.device)
             model.train()
-            outputs = model(inputs, masked_lm_labels=labels) if args.mlm else model(inputs, labels=labels)
+            # outputs = model(inputs, masked_lm_labels=labels) if args.mlm else model(inputs, labels=labels)
+            outputs = model(inputs, labels=labels) # https://github.com/huggingface/transformers/issues/4960
+            # https://huggingface.co/docs/transformers/model_doc/bert#transformers.BertForMaskedLM.forward.labels
             loss = outputs[0]  # model outputs are always tuple in transformers (see doc)
 
             if args.n_gpu > 1:
@@ -445,7 +449,8 @@ def evaluate(args, model: PreTrainedModel, tokenizer: PreTrainedTokenizer, prefi
         labels = labels.to(args.device)
 
         with torch.no_grad():
-            outputs = model(inputs, masked_lm_labels=labels) if args.mlm else model(inputs, labels=labels)
+            # outputs = model(inputs, masked_lm_labels=labels) if args.mlm else model(inputs, labels=labels)
+            outputs = model(inputs, labels=labels)
             lm_loss = outputs[0]
             eval_loss += lm_loss.mean().item()
         nb_eval_steps += 1
@@ -467,26 +472,24 @@ def evaluate(args, model: PreTrainedModel, tokenizer: PreTrainedTokenizer, prefi
 
 def main():
     parser = argparse.ArgumentParser()
-
-    parser.add_argument("--train_data_file", default='data/liverpool/lm_train.txt', type=str,
+    # data/liverpool/lm_train.txt
+    parser.add_argument("--train_data_file", default='E:/fasttext_embeddings/2008-split.txt', type=str,
                         help="The input training data file (a text file).")
 
-    parser.add_argument("--output_dir", default='models/model_liverpool_no_line_by_line', type=str,
+    parser.add_argument("--output_dir", default='E:/fasttext_embeddings/models/', type=str,
                         help="The output directory where the model predictions and checkpoints will be written.")
 
     ## Other parameters
-    parser.add_argument("--eval_data_file", default='data/liverpool/lm_test.txt', type=str,
+    #  data/liverpool/lm_test.txt
+    parser.add_argument("--eval_data_file", default='E:/fasttext_embeddings/2009-split.txt', type=str,
                         help="An optional input evaluation data file to evaluate the perplexity on (a text file).")
 
 
     parser.add_argument("--model_type", default="bert", type=str,
                         help="The model architecture to be fine-tuned.")
-
-    parser.add_argument("--model_name_or_path", default="bert-base-uncased", type=str,
+    # bert-base-uncased
+    parser.add_argument("--model_name_or_path", default="aubmindlab/bert-base-arabertv2", type=str,
                         help="The model checkpoint for weights initialization.")
-
-
-
 
     parser.add_argument(
         "--line_by_line",
@@ -504,6 +507,7 @@ def main():
         "--mlm_probability", type=float, default=0.15, help="Ratio of tokens to mask for masked language modeling loss"
     )
 
+    # None
     parser.add_argument(
         "--config_name",
         default=None,
@@ -512,7 +516,7 @@ def main():
     )
     parser.add_argument(
         "--tokenizer_name",
-        default=None,
+        default="aubmindlab/bert-base-arabertv2",
         type=str,
         help="Optional pretrained tokenizer name or path if not the same as model_name_or_path. If both are None, initialize a new tokenizer.",
     )
@@ -550,8 +554,11 @@ def main():
     parser.add_argument("--weight_decay", default=0.0, type=float, help="Weight decay if we apply some.")
     parser.add_argument("--adam_epsilon", default=1e-8, type=float, help="Epsilon for Adam optimizer.")
     parser.add_argument("--max_grad_norm", default=1.0, type=float, help="Max gradient norm.")
+    # parser.add_argument(
+    #     "--num_train_epochs", default=10.0, type=float, help="Total number of training epochs to perform."
+    # )
     parser.add_argument(
-        "--num_train_epochs", default=10.0, type=float, help="Total number of training epochs to perform."
+        "--num_train_epochs", default=3.0, type=float, help="Total number of training epochs to perform."
     )
     parser.add_argument(
         "--max_steps",
@@ -692,7 +699,8 @@ def main():
         )
 
     if args.block_size <= 0:
-        args.block_size = tokenizer.max_len
+        # args.block_size = tokenizer.max_len
+        args.block_size = tokenizer.model_max_length
         # Our input block size will be the max possible for the model
     else:
         args.block_size = min(args.block_size, tokenizer.max_len)
