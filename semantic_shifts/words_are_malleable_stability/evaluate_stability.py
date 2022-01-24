@@ -11,6 +11,14 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 import csv
+# import sentiment word analysis related topics
+import nltk
+from nltk.corpus import wordnet as wn
+from nltk.corpus import sentiwordnet as swn
+from nltk.stem import WordNetLemmatizer
+from nltk.corpus import stopwords
+from deep_translator import GoogleTranslator
+from ar_corrector.corrector import Corrector
 
 
 def mkdir(folder):
@@ -353,6 +361,8 @@ def get_contrastive_viewpoint_summary(w, n, k, model1, model2, mat_name, dir_nam
         f.writelines('\n')
     f.close()
 
+    return summary1, summary2
+
 
 def perform_paired_t_test(ranks_comb, ranks_neigh, ranks_lin, save_dir, file_name):
     # get test-statistic and p-value results
@@ -473,21 +483,69 @@ if __name__ == '__main__':
         model1 = fasttext.load_model(os.path.join(path1, '{}.bin'.format(years[i-1])))
         model2 = fasttext.load_model(os.path.join(path2, '{}.bin'.format(years[i])))
 
+        summaries_politicians = {}
+        summaries_political_parties = {}
+
         dir_name_matrices = 'D:/fasttext_embeddings/results_diachronic/nahar_{}_nahar_{}/linear_numsteps80000/matrices/'.format(str(years[i]-1), str(years[i]))
 
-        for w in politicians:
-            get_contrastive_viewpoint_summary(w, n=50, k=100, model1=model1, model2=model2,
-                                              mat_name='trans', dir_name_matrices=dir_name_matrices,
-                                              save_dir=results_dir + 'summaries/',
-                                              file_name='politicians',
-                                              viewpoint1_name='{}'.format(years[i] - 1),
-                                              viewpoint2_name='{}'.format(years[i]),
-                                              thresh=0.6)
+        corr = Corrector()
 
-            print('///////////////////////////////////////////////////////////////////')
+        # for w in politicians:
+        #     key = '{}-{}'.format(str(years[i] - 1), str(years[i]))
+        #
+        #     if key in summaries_politicians:
+        #         summaries_politicians[key][w] = {}
+        #     else:
+        #         summaries_politicians[key] = {}
+        #         summaries_politicians[key][w] = {}
+        #
+        #     summary_v1, summary_v2 = get_contrastive_viewpoint_summary(w, n=50, k=100, model1=model1, model2=model2,
+        #                                       mat_name='trans', dir_name_matrices=dir_name_matrices,
+        #                                       save_dir=results_dir + 'summaries/',
+        #                                       file_name='politicians',
+        #                                       viewpoint1_name='{}'.format(years[i] - 1),
+        #                                       viewpoint2_name='{}'.format(years[i]),
+        #                                       thresh=0.6)
+        #
+        #     summaries_politicians[key][w]['v1'] = summary_v1
+        #     summaries_politicians[key][w]['v2'] = summary_v2
+        #
+        #     for w in summary_v1:
+        #         print('w: {}'.format(w[1]))
+        #         if ' ' in w[1]:
+        #             print(corr.contextual_correct(w[1]))
+        #         else:
+        #             if corr.spell_correct(w[1]):
+        #                 print('could not find mapping')
+        #             else:
+        #                 for tup in corr.spell_correct(w[1]):
+        #                     print(tup)
+        #         print('=================================================')
+        #
+        #     for w in summary_v2:
+        #         print('w: {}'.format(w[1]))
+        #         if ' ' in w[1]:
+        #             print(corr.contextual_correct(w[1]))
+        #         else:
+        #             if corr.spell_correct(w[1]):
+        #                 print('could not find mapping')
+        #             else:
+        #                 for tup in corr.spell_correct(w[1]):
+        #                     print(tup)
+        #         print('=================================================')
+        #
+        #     print('///////////////////////////////////////////////////////////////////')
 
         for w in political_parties:
-            get_contrastive_viewpoint_summary(w, n=50, k=100, model1=model1, model2=model2,
+            key = '{}-{}'.format(str(years[i] - 1), str(years[i]))
+
+            if key in summaries_political_parties:
+                summaries_political_parties[key][w] = {}
+            else:
+                summaries_political_parties[key] = {}
+                summaries_political_parties[key][w] = {}
+
+            summary_v1, summary_v2 = get_contrastive_viewpoint_summary(w, n=50, k=100, model1=model1, model2=model2,
                                               mat_name='trans', dir_name_matrices=dir_name_matrices,
                                               save_dir=results_dir + 'summaries/',
                                               file_name='political_parties',
@@ -495,61 +553,108 @@ if __name__ == '__main__':
                                               viewpoint2_name='{}'.format(years[i]),
                                               thresh=0.6)
 
-            print('///////////////////////////////////////////////////////////////////')
+            summaries_political_parties[key][w]['v1'] = summary_v1
+            summaries_political_parties[key][w]['v2'] = summary_v2
 
-        ranks_comb, ranks_neigh, ranks_lin = get_ranks(stability_combined=stabilities_comb,
-                                                       stability_neighbors=stabilities_neigh,
-                                                       stability_linear=stabilities_lin)
-        # paired two tail t-test
-        perform_paired_t_test(ranks_comb, ranks_neigh, ranks_lin, save_dir=results_dir + 'significance/',
-                              file_name=fig_name_general_prefix + '-' + str(yearsforfigs[i]))
+            corrections = {}
+            for w in summary_v1:
+                corrections[w] = []
+                print('w: {}'.format(w))
+                if ' ' in w[1]:
+                    print(corr.contextual_correct(w[1]))
+                    corrc = corr.contextual_correct(w[1])
+                    include = input('is {} a correct word to include?'.format(corrc))
+                    if include == 'y':
+                        corrections[w].append(corrc)
+                else:
+                    word = w[1]
+                    for i in range(1, len(word)):
+                        new_str = word[:i] + ' ' + word[i:]
+                        print(new_str)
+                        corrc = corr.contextual_correct(new_str)
+                        include = input('is {} a correct word to include?'.format(corrc))
+                        if include == 'y':
+                            corrections[w].append(corrc)
+                        print('------------------------------')
+                    if corr.spell_correct(w[1]):
+                        print('could not find mapping')
+                    else:
+                        for tup in corr.spell_correct(w[1]):
+                            print(tup)
+                print('=================================================')
 
-        # delta of the ranks between neighbors and linear vs. combination
-        plot_delta_ranks_words(ranks_comb, ranks_neigh, ranks_lin, ethnicities,
-                               save_dir=results_dir + 'delta_ranks/', fig_name=fig_name_prefixes[i] + '_ethnicities')
-        plot_delta_ranks_words(ranks_comb, ranks_neigh, ranks_lin, ideologies,
-                               save_dir=results_dir + 'delta_ranks/', fig_name=fig_name_prefixes[i] + '_ideologies')
-        plot_delta_ranks_words(ranks_comb, ranks_neigh, ranks_lin, political_parties,
-                               save_dir=results_dir + 'delta_ranks/', fig_name=fig_name_prefixes[i] + '_political_parties')
-        plot_delta_ranks_words(ranks_comb, ranks_neigh, ranks_lin, politicians,
-                               save_dir=results_dir + 'delta_ranks/', fig_name=fig_name_prefixes[i] + '_politicians')
-        # plot_delta_ranks_words(ranks_comb, ranks_neigh, ranks_lin, israeli_leaders,
-        #                        save_dir=results_dir + 'delta_ranks/', fig_name=fig_name_prefixes[i] + '_israeli_leaders')
+            for k, v in corrections:
+                print(k)
+                print(v)
+                print('???????????????????????????')
 
-        save_heads_tails_all(stabilities_comb=stabilities_comb, stabilities_neigh=stabilities_neigh,
-                             stabilities_lin=stabilities_lin, n=50, verbose=False,
-                             save_heads_tails=True,
-                             save_dir=results_dir + 'heads_tails/',
-                             file_name=fig_name_general_prefix + str(years[i]))
+            # for w in summary_v2:
+            #     print('w: {}'.format(w))
+            #     if ' ' in w[1]:
+            #         print(corr.contextual_correct(w[1]))
+            #     else:
+            #         if corr.spell_correct(w[1]):
+            #             print('could not find mapping')
+            #         else:
+            #             for tup in corr.spell_correct(w[1]):
+            #                 print(tup)
+            #     print('=================================================')
+            #
+            # print('///////////////////////////////////////////////////////////////////')
 
-    # heatmap of stability values for each word of interest
-    generate_stability_heatmap(ethnicities, stability_dicts_combined, stability_dicts_neighbor,
-                               stability_dicts_linear,
-                               years=yearsforfigs,
-                               save_dir=results_dir + 'heatmap/', fig_name=fig_name_general_prefix + '_ethnicities')
+        # ranks_comb, ranks_neigh, ranks_lin = get_ranks(stability_combined=stabilities_comb,
+        #                                                stability_neighbors=stabilities_neigh,
+        #                                                stability_linear=stabilities_lin)
+        # # paired two tail t-test
+        # perform_paired_t_test(ranks_comb, ranks_neigh, ranks_lin, save_dir=results_dir + 'significance/',
+        #                       file_name=fig_name_general_prefix + '-' + str(yearsforfigs[i]))
+        #
+        # # delta of the ranks between neighbors and linear vs. combination
+        # plot_delta_ranks_words(ranks_comb, ranks_neigh, ranks_lin, ethnicities,
+        #                        save_dir=results_dir + 'delta_ranks/', fig_name=fig_name_prefixes[i] + '_ethnicities')
+        # plot_delta_ranks_words(ranks_comb, ranks_neigh, ranks_lin, ideologies,
+        #                        save_dir=results_dir + 'delta_ranks/', fig_name=fig_name_prefixes[i] + '_ideologies')
+        # plot_delta_ranks_words(ranks_comb, ranks_neigh, ranks_lin, political_parties,
+        #                        save_dir=results_dir + 'delta_ranks/', fig_name=fig_name_prefixes[i] + '_political_parties')
+        # plot_delta_ranks_words(ranks_comb, ranks_neigh, ranks_lin, politicians,
+        #                        save_dir=results_dir + 'delta_ranks/', fig_name=fig_name_prefixes[i] + '_politicians')
+        # # plot_delta_ranks_words(ranks_comb, ranks_neigh, ranks_lin, israeli_leaders,
+        # #                        save_dir=results_dir + 'delta_ranks/', fig_name=fig_name_prefixes[i] + '_israeli_leaders')
+        #
+        # save_heads_tails_all(stabilities_comb=stabilities_comb, stabilities_neigh=stabilities_neigh,
+        #                      stabilities_lin=stabilities_lin, n=50, verbose=False,
+        #                      save_heads_tails=True,
+        #                      save_dir=results_dir + 'heads_tails/',
+        #                      file_name=fig_name_general_prefix + str(years[i]))
 
-    generate_stability_heatmap(ideologies, stability_dicts_combined, stability_dicts_neighbor,
-                               stability_dicts_linear,
-                               years=yearsforfigs,
-                               save_dir=results_dir + 'heatmap/', fig_name=fig_name_general_prefix + '_ideologies')
-
-    generate_stability_heatmap(political_parties, stability_dicts_combined, stability_dicts_neighbor,
-                               stability_dicts_linear,
-                               years=yearsforfigs,
-                               save_dir=results_dir + 'heatmap/', fig_name=fig_name_general_prefix + '_political_parties')
-
-    generate_stability_heatmap(politicians, stability_dicts_combined, stability_dicts_neighbor,
-                               stability_dicts_linear,
-                               years=yearsforfigs,
-                               save_dir=results_dir + 'heatmap/', fig_name=fig_name_general_prefix + '_politicians')
-    # generate_stability_heatmap(israeli_leaders, stability_dicts_combined, stability_dicts_neighbor,
+    # # heatmap of stability values for each word of interest
+    # generate_stability_heatmap(ethnicities, stability_dicts_combined, stability_dicts_neighbor,
     #                            stability_dicts_linear,
     #                            years=yearsforfigs,
-    #                            save_dir=results_dir + 'heatmap/', fig_name=fig_name_general_prefix + '_israeli_leaders')
-
-    # jaccard similarity between the tails of the stability dictionaries across years
-    plot_jaccard_similarity_tails(stability_dicts_combined,
-                                  stability_dicts_neighbor,
-                                  stability_dicts_linear,
-                                  n_sizes=list(range(10000, 110000, 10000)),
-                                  save_dir=results_dir, fig_name=fig_name_general_prefix)
+    #                            save_dir=results_dir + 'heatmap/', fig_name=fig_name_general_prefix + '_ethnicities')
+    #
+    # generate_stability_heatmap(ideologies, stability_dicts_combined, stability_dicts_neighbor,
+    #                            stability_dicts_linear,
+    #                            years=yearsforfigs,
+    #                            save_dir=results_dir + 'heatmap/', fig_name=fig_name_general_prefix + '_ideologies')
+    #
+    # generate_stability_heatmap(political_parties, stability_dicts_combined, stability_dicts_neighbor,
+    #                            stability_dicts_linear,
+    #                            years=yearsforfigs,
+    #                            save_dir=results_dir + 'heatmap/', fig_name=fig_name_general_prefix + '_political_parties')
+    #
+    # generate_stability_heatmap(politicians, stability_dicts_combined, stability_dicts_neighbor,
+    #                            stability_dicts_linear,
+    #                            years=yearsforfigs,
+    #                            save_dir=results_dir + 'heatmap/', fig_name=fig_name_general_prefix + '_politicians')
+    # # generate_stability_heatmap(israeli_leaders, stability_dicts_combined, stability_dicts_neighbor,
+    # #                            stability_dicts_linear,
+    # #                            years=yearsforfigs,
+    # #                            save_dir=results_dir + 'heatmap/', fig_name=fig_name_general_prefix + '_israeli_leaders')
+    #
+    # # jaccard similarity between the tails of the stability dictionaries across years
+    # plot_jaccard_similarity_tails(stability_dicts_combined,
+    #                               stability_dicts_neighbor,
+    #                               stability_dicts_linear,
+    #                               n_sizes=list(range(10000, 110000, 10000)),
+    #                               save_dir=results_dir, fig_name=fig_name_general_prefix)
