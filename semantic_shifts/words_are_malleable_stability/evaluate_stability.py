@@ -19,6 +19,8 @@ from nltk.stem import WordNetLemmatizer
 from nltk.corpus import stopwords
 from deep_translator import GoogleTranslator
 from ar_corrector.corrector import Corrector
+import time
+import argparse
 
 
 def mkdir(folder):
@@ -417,7 +419,79 @@ def read_keywords(file_path):
     return words
 
 
+def store_summary_corrections(summary, save_dir, filename):
+    t1 = time.time()
+    corr = Corrector()
+    corrections = {}
+    words = [w[1] for w in summary]
+    for w in words:
+        corrections[w] = []
+        print('w: {}'.format(w))
+
+        # if the word is correct then no need for doing any corrections
+        check = input('does the word {} have a correct spelling ?'.format(w))
+        if check == 'y':
+            corrections[w].append(w)
+            continue
+
+        # if the word contains a space then its a phrase (i.e more than one word)
+        if ' ' in w:
+            corrc = corr.contextual_correct(w)
+            print('correction: {}'.format(corrc))
+            include = input('is {} a correct word to include?'.format(corrc))
+            if include == 'y':
+                corrections[w].append(corrc)
+        else:
+            for i in range(1, len(w)):
+                new_str = w[:i] + ' ' + w[i:]
+                print(new_str)
+                corrc = corr.contextual_correct(new_str)
+                include = input('is {} a correct word to include?'.format(corrc))
+                if include == 'y':
+                    corrections[w].append(corrc)
+                    cont = input('would you like to continue (y) or move to another word (n)?')
+                    if cont == 'y':
+                        continue
+                    else:  # move to another word
+                        break
+                print('------------------------------')
+            if corrections[w] == []:
+                addwordmanually = input('Do you want to manually add the correction for word {}'.format(w))
+                if addwordmanually == 'y':
+                    wordfromuser = input('Please insert the correction: ')
+                    corrections[w].append(wordfromuser)
+                    print('------------------------------')
+        print('=================================================')
+    t2 = time.time()
+    print('time taken: {} mins'.format((t2 - t1) / 60))
+    for k, v in corrections.items():
+        print('{}: {}'.format(k, v))
+        print('???????????????????????????')
+    mkdir(save_dir)
+    with open(os.path.join(save_dir, '{}.pkl'.format(filename)), 'wb') as f:
+        pickle.dump(corrections, f)
+    return corrections
+
+
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--models_path1',
+                        default='D:/fasttext_embeddings/ngrams4-size300-window5-mincount100-negative15-lr0.001/ngrams4-size300-window5-mincount100-negative15-lr0.001/',
+                        help='path to trained models files')
+    parser.add_argument('--models_path2',
+                        default=None,
+                        help='path to trained models files of viewpoint 2. If not None, then analysis will be synchronic, else, analysis will be diachronic')
+    parser.add_argument('--keywords_paths', default='from_DrFatima_cleaned/ethnicities.txt;from_DrFatima_cleaned/ideologies.txt;from_DrFatima_cleaned/political_parties.txt;'
+                                                    'from_DrFatima_cleaned/politicians.txt;from_DrFatima_cleaned/israeli_leaders.txt')
+    parser.add_argument('--keywords_names', default='ethnicities;ideologies;political_parties;politicians;israeli_leaders')
+    parser.add_argument('--start_year', default=1982)
+    parser.add_argument('--end_year', default=2009)
+
+    parser.add_argument("--model1", default='2007.bin', help="model 1 file name")
+    parser.add_argument("--model2", default='2007.bin', help="model 2 file name")
+    parser.add_argument("--model1_name", default="nahar_07", help="string to name model 1 - used for saving results")
+    parser.add_argument("--model2_name", default="assafir_07", help="string to name model 2 - used for saving results")
+
     path1 = 'D:/fasttext_embeddings/ngrams4-size300-window5-mincount100-negative15-lr0.001/ngrams4-size300-window5-mincount100-negative15-lr0.001/'
     # path2 = 'E:/fasttext_embeddings/assafir/'
     path2 = path1
@@ -427,6 +501,9 @@ if __name__ == '__main__':
     political_parties = read_keywords('from_DrFatima_cleaned/political_parties.txt')
     politicians = read_keywords('from_DrFatima_cleaned/politicians.txt')
     israeli_leaders = read_keywords('from_DrFatima_cleaned/israeli_leaders.txt')
+
+    # for sentiment
+    sentiment_words = read_keywords('from_DrFatima/sentiment_keywords.txt')
 
     years = list(range(1983, 2009))
     yearsforfigs = ['{}-{}'.format(y-1, y) for y in years]
@@ -444,6 +521,8 @@ if __name__ == '__main__':
     stability_dicts_linear = []
     results_dir = 'output_diachronic/'
 
+    # to store all summaries of all words
+    all_summaries = {}
     for i, path in enumerate(paths):
         dict_combined = os.path.join(path, 'stabilities_combined.pkl')
         dict_neighbor = os.path.join(path, 'stabilities_neighbor.pkl')
@@ -483,124 +562,45 @@ if __name__ == '__main__':
         model1 = fasttext.load_model(os.path.join(path1, '{}.bin'.format(years[i-1])))
         model2 = fasttext.load_model(os.path.join(path2, '{}.bin'.format(years[i])))
 
-        summaries_politicians = {}
-        summaries_political_parties = {}
 
         dir_name_matrices = 'D:/fasttext_embeddings/results_diachronic/nahar_{}_nahar_{}/linear_numsteps80000/matrices/'.format(str(years[i]-1), str(years[i]))
 
-        corr = Corrector()
-
-        # for w in politicians:
-        #     key = '{}-{}'.format(str(years[i] - 1), str(years[i]))
-        #
-        #     if key in summaries_politicians:
-        #         summaries_politicians[key][w] = {}
-        #     else:
-        #         summaries_politicians[key] = {}
-        #         summaries_politicians[key][w] = {}
-        #
-        #     summary_v1, summary_v2 = get_contrastive_viewpoint_summary(w, n=50, k=100, model1=model1, model2=model2,
-        #                                       mat_name='trans', dir_name_matrices=dir_name_matrices,
-        #                                       save_dir=results_dir + 'summaries/',
-        #                                       file_name='politicians',
-        #                                       viewpoint1_name='{}'.format(years[i] - 1),
-        #                                       viewpoint2_name='{}'.format(years[i]),
-        #                                       thresh=0.6)
-        #
-        #     summaries_politicians[key][w]['v1'] = summary_v1
-        #     summaries_politicians[key][w]['v2'] = summary_v2
-        #
-        #     for w in summary_v1:
-        #         print('w: {}'.format(w[1]))
-        #         if ' ' in w[1]:
-        #             print(corr.contextual_correct(w[1]))
-        #         else:
-        #             if corr.spell_correct(w[1]):
-        #                 print('could not find mapping')
-        #             else:
-        #                 for tup in corr.spell_correct(w[1]):
-        #                     print(tup)
-        #         print('=================================================')
-        #
-        #     for w in summary_v2:
-        #         print('w: {}'.format(w[1]))
-        #         if ' ' in w[1]:
-        #             print(corr.contextual_correct(w[1]))
-        #         else:
-        #             if corr.spell_correct(w[1]):
-        #                 print('could not find mapping')
-        #             else:
-        #                 for tup in corr.spell_correct(w[1]):
-        #                     print(tup)
-        #         print('=================================================')
-        #
-        #     print('///////////////////////////////////////////////////////////////////')
-
-        for w in political_parties:
-            key = '{}-{}'.format(str(years[i] - 1), str(years[i]))
-
-            if key in summaries_political_parties:
-                summaries_political_parties[key][w] = {}
-            else:
-                summaries_political_parties[key] = {}
-                summaries_political_parties[key][w] = {}
+        # create a mapping between word and a numeric index
+        word2idx = dict(zip(sentiment_words, list(range(len(sentiment_words)))))
+        for z, w in enumerate(sentiment_words):
+            if w not in all_summaries:
+                all_summaries[w] = {}
 
             summary_v1, summary_v2 = get_contrastive_viewpoint_summary(w, n=50, k=100, model1=model1, model2=model2,
-                                              mat_name='trans', dir_name_matrices=dir_name_matrices,
-                                              save_dir=results_dir + 'summaries/',
-                                              file_name='political_parties',
-                                              viewpoint1_name='{}'.format(years[i] - 1),
-                                              viewpoint2_name='{}'.format(years[i]),
-                                              thresh=0.6)
+                                                                       mat_name='trans',
+                                                                       dir_name_matrices=dir_name_matrices,
+                                                                       save_dir=results_dir + 'summaries/',
+                                                                       file_name='sentiment_keywords',
+                                                                       viewpoint1_name='{}'.format(years[i] - 1),
+                                                                       viewpoint2_name='{}'.format(years[i]),
+                                                                       thresh=0.6)
 
-            summaries_political_parties[key][w]['v1'] = summary_v1
-            summaries_political_parties[key][w]['v2'] = summary_v2
+            # 1) although we dont have sentences (POS is imp for entiment analysis, which can be determined in the context of a sentence)
+            # but bcz of ocr errors two words are connected to each other, we separate them, this can be understood as a sentence
+            # 2) should we determine pos/neg ? bcz positive in viewpoint 1 might be negative in viewpoint 2 ? rather; focus on objectivity !!!!!!!
+            # 3) how to detemine sentiment of countries ? (THEY CARRY SENTIMENT) - like israeli-syrian, or israel, or palestine ?
 
-            corrections = {}
-            for w in summary_v1:
-                corrections[w] = []
-                print('w: {}'.format(w))
-                if ' ' in w[1]:
-                    print(corr.contextual_correct(w[1]))
-                    corrc = corr.contextual_correct(w[1])
-                    include = input('is {} a correct word to include?'.format(corrc))
-                    if include == 'y':
-                        corrections[w].append(corrc)
-                else:
-                    word = w[1]
-                    for i in range(1, len(word)):
-                        new_str = word[:i] + ' ' + word[i:]
-                        print(new_str)
-                        corrc = corr.contextual_correct(new_str)
-                        include = input('is {} a correct word to include?'.format(corrc))
-                        if include == 'y':
-                            corrections[w].append(corrc)
-                        print('------------------------------')
-                    if corr.spell_correct(w[1]):
-                        print('could not find mapping')
-                    else:
-                        for tup in corr.spell_correct(w[1]):
-                            print(tup)
-                print('=================================================')
+            if str(years[i] - 1) not in all_summaries[w]:
+                all_summaries[w][str(years[i] - 1)] = {}
+                print('storing corrected summaries of {} for viewpoint {}'.format(w, str(years[i] - 1)))
+                corrections = store_summary_corrections(summary_v1, save_dir=results_dir + 'summaries/sentiment_keywords/',
+                                          filename='{}_{}'.format(word2idx[w], str(years[i] - 1)))
+                all_summaries[w][str(years[i] - 1)] = corrections
 
-            for k, v in corrections:
-                print(k)
-                print(v)
-                print('???????????????????????????')
+            if str(years[i]) not in all_summaries[w]:
+                all_summaries[w][str(years[i])] = {}
+                print('storing corrected summaries of {} for viewpoint {}'.format(w, str(years[i])))
+                corrections = store_summary_corrections(summary_v2, save_dir=results_dir + 'summaries/sentiment_keywords/',
+                                          filename='{}_{}'.format(str(word2idx[w]), str(years[i])))
+                all_summaries[w][str(years[i])] = corrections
 
-            # for w in summary_v2:
-            #     print('w: {}'.format(w))
-            #     if ' ' in w[1]:
-            #         print(corr.contextual_correct(w[1]))
-            #     else:
-            #         if corr.spell_correct(w[1]):
-            #             print('could not find mapping')
-            #         else:
-            #             for tup in corr.spell_correct(w[1]):
-            #                 print(tup)
-            #     print('=================================================')
-            #
-            # print('///////////////////////////////////////////////////////////////////')
+            with open('all_summaries.pkl', 'wb') as f:
+                pickle.dump(all_summaries, f)
 
         # ranks_comb, ranks_neigh, ranks_lin = get_ranks(stability_combined=stabilities_comb,
         #                                                stability_neighbors=stabilities_neigh,
