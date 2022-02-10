@@ -2,6 +2,11 @@ from lang_trans.arabic import buckwalter
 from nltk.corpus import wordnet as wn
 import pyarabic.araby as araby
 import pickle
+# uncomment the below in order to run this script, if you dont have wordnet and omw installed
+# import nltk
+# nltk.download('wordnet')
+# import nltk
+# nltk.download('omw')
 
 with open('ArSEL_ArSenL_database/ArSEL1.0.txt', 'r') as f:
     lines = f.readlines()
@@ -57,13 +62,12 @@ for line in lines[19:]:
         'HAPPY': float(info[12]),
         'INSPIRED': float(info[13]),
         'SAD': float(info[14][:-1]),
-        'sense': sense,
+        'sense': sense.name(),
         'sense_definition': sense.definition(),
         'lemmas': [l.name() for l in sense.lemmas()]
     }
-    # count += 1
 print('finished reading emotions from ArSEL')
-with open('ArSEL_ArSenL_database/emotions_sentiment_ar.pickle', 'wb') as handle:
+with open('ArSEL_ArSenL_database/emotions_sentiment_ar.pkl', 'wb') as handle:
     pickle.dump(emotions_sentiment_ar, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 # for k in emotions:
