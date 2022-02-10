@@ -309,8 +309,9 @@ def get_contrastive_viewpoint_summary(w, n, k, model1, model2, mat_name, dir_nam
                                       save_dir, file_name, viewpoint1_name='1982', viewpoint2_name='1983',
                                       thresh=0.6):
     """ get a contrastive viewpoint summary of a word of length n. For a certain
-        word, we get its top k nearest neighbors. Then for each nearest neighbor, we add it
-        into the summary if its stability is less than a certain threshold.
+        word:
+        1. we get its top k nearest neighbors.
+        2. Then for each nearest neighbor, we add it into the summary if its stability is equal to or less than a certain threshold.
     """
     summary1, summary2 = [], []
 
@@ -513,7 +514,7 @@ if __name__ == '__main__':
     fig_name_general_prefix = 'nahar'
 
     paths = [
-        'E:/fasttext_embeddings/results_diachronic/nahar_{}_nahar_{}/t1k100/'.format(y - 1, y) for y in years
+        'D:/fasttext_embeddings/results_diachronic/nahar_{}_nahar_{}/t1k100/'.format(y - 1, y) for y in years
     ]
 
     stability_dicts_combined = []
@@ -522,7 +523,11 @@ if __name__ == '__main__':
     results_dir = 'output_diachronic/'
 
     # to store all summaries of all words
-    all_summaries = {}
+    if not os.path.exists('all_summaries.pkl'):
+        all_summaries = {}
+    else:
+        with open('all_summaries.pkl', 'rb') as handle:
+            all_summaries = pickle.load(handle)
     for i, path in enumerate(paths):
         dict_combined = os.path.join(path, 'stabilities_combined.pkl')
         dict_neighbor = os.path.join(path, 'stabilities_neighbor.pkl')
@@ -571,7 +576,7 @@ if __name__ == '__main__':
             if w not in all_summaries:
                 all_summaries[w] = {}
 
-            summary_v1, summary_v2 = get_contrastive_viewpoint_summary(w, n=50, k=100, model1=model1, model2=model2,
+            summary_v1, summary_v2 = get_contrastive_viewpoint_summary(w, n=20, k=100, model1=model1, model2=model2,
                                                                        mat_name='trans',
                                                                        dir_name_matrices=dir_name_matrices,
                                                                        save_dir=results_dir + 'summaries/',
