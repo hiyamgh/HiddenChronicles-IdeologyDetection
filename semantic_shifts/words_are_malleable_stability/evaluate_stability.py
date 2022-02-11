@@ -493,7 +493,7 @@ if __name__ == '__main__':
     parser.add_argument("--model1_name", default="nahar_07", help="string to name model 1 - used for saving results")
     parser.add_argument("--model2_name", default="assafir_07", help="string to name model 2 - used for saving results")
 
-    path1 = 'D:/fasttext_embeddings/ngrams4-size300-window5-mincount100-negative15-lr0.001/ngrams4-size300-window5-mincount100-negative15-lr0.001/'
+    path1 = 'E:/fasttext_embeddings/ngrams4-size300-window5-mincount100-negative15-lr0.001/ngrams4-size300-window5-mincount100-negative15-lr0.001/'
     # path2 = 'E:/fasttext_embeddings/assafir/'
     path2 = path1
 
@@ -506,7 +506,8 @@ if __name__ == '__main__':
     # for sentiment
     sentiment_words = read_keywords('from_DrFatima/sentiment_keywords.txt')
 
-    years = list(range(1983, 2009))
+    # years = list(range(1983, 2009))
+    years = list(range(2003, 2009))
     yearsforfigs = ['{}-{}'.format(y-1, y) for y in years]
     fig_name_prefixes = [
         'nahar_{}_{}'.format(y - 1, y) for y in years
@@ -514,7 +515,7 @@ if __name__ == '__main__':
     fig_name_general_prefix = 'nahar'
 
     paths = [
-        'D:/fasttext_embeddings/results_diachronic/nahar_{}_nahar_{}/t1k100/'.format(y - 1, y) for y in years
+        'E:/fasttext_embeddings/results_diachronic/nahar_{}_nahar_{}/t1k100/'.format(y - 1, y) for y in years
     ]
 
     stability_dicts_combined = []
@@ -568,7 +569,7 @@ if __name__ == '__main__':
         model2 = fasttext.load_model(os.path.join(path2, '{}.bin'.format(years[i])))
 
 
-        dir_name_matrices = 'D:/fasttext_embeddings/results_diachronic/nahar_{}_nahar_{}/linear_numsteps80000/matrices/'.format(str(years[i]-1), str(years[i]))
+        dir_name_matrices = 'E:/fasttext_embeddings/results_diachronic/nahar_{}_nahar_{}/linear_numsteps80000/matrices/'.format(str(years[i]-1), str(years[i]))
 
         # create a mapping between word and a numeric index
         word2idx = dict(zip(sentiment_words, list(range(len(sentiment_words)))))
