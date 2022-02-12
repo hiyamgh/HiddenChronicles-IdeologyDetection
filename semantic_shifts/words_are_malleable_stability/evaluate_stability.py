@@ -420,6 +420,17 @@ def read_keywords(file_path):
     return words
 
 
+def save_summary(original_word, summary, year, save_dir, filename):
+    mkdir(save_dir)
+    with open(os.path.join(save_dir, filename + '.txt'), 'a', encoding='utf-8') as f:
+        f.write('\nplease manually correct the summaries below for the word: {} in year: {}\n'.format(original_word, year))
+        words = [w[1] for w in summary] # words are the neighbors
+        for w in words:
+            f.write('{}:\n'.format(w))
+        f.write('\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n')
+    f.close()
+
+
 def store_summary_corrections(summary, save_dir, filename):
     t1 = time.time()
     corr = Corrector()
@@ -506,8 +517,8 @@ if __name__ == '__main__':
     # for sentiment
     sentiment_words = read_keywords('from_DrFatima/sentiment_keywords.txt')
 
-    # years = list(range(1983, 2009))
-    years = list(range(2003, 2009))
+    years = list(range(1983, 2009))
+    # years = list(range(2003, 2009))
     yearsforfigs = ['{}-{}'.format(y-1, y) for y in years]
     fig_name_prefixes = [
         'nahar_{}_{}'.format(y - 1, y) for y in years
@@ -573,6 +584,7 @@ if __name__ == '__main__':
 
         # create a mapping between word and a numeric index
         word2idx = dict(zip(sentiment_words, list(range(len(sentiment_words)))))
+        years_checked = {}
         for z, w in enumerate(sentiment_words):
             if w not in all_summaries:
                 all_summaries[w] = {}
@@ -586,27 +598,40 @@ if __name__ == '__main__':
                                                                        viewpoint2_name='{}'.format(years[i]),
                                                                        thresh=0.6)
 
-            # 1) although we dont have sentences (POS is imp for entiment analysis, which can be determined in the context of a sentence)
-            # but bcz of ocr errors two words are connected to each other, we separate them, this can be understood as a sentence
-            # 2) should we determine pos/neg ? bcz positive in viewpoint 1 might be negative in viewpoint 2 ? rather; focus on objectivity !!!!!!!
-            # 3) how to detemine sentiment of countries ? (THEY CARRY SENTIMENT) - like israeli-syrian, or israel, or palestine ?
+            # # 1) although we dont have sentences (POS is imp for entiment analysis, which can be determined in the context of a sentence)
+            # # but bcz of ocr errors two words are connected to each other, we separate them, this can be understood as a sentence
+            # # 2) should we determine pos/neg ? bcz positive in viewpoint 1 might be negative in viewpoint 2 ? rather; focus on objectivity !!!!!!!
+            # # 3) how to detemine sentiment of countries ? (THEY CARRY SENTIMENT) - like israeli-syrian, or israel, or palestine ?
+            #
+            # # apply OCR error correction manually for each summary (i.e. for each neighbor, in each summary)
+            # if str(years[i] - 1) not in all_summaries[w]:
+            #     all_summaries[w][str(years[i] - 1)] = {}
+            #     print('storing corrected summaries of {} for viewpoint {}'.format(w, str(years[i] - 1)))
+            #     corrections = store_summary_corrections(summary_v1, save_dir=results_dir + 'summaries/sentiment_keywords/',
+            #                               filename='{}_{}'.format(word2idx[w], str(years[i] - 1)))
+            #     all_summaries[w][str(years[i] - 1)] = corrections
+            #
+            # if str(years[i]) not in all_summaries[w]:
+            #     all_summaries[w][str(years[i])] = {}
+            #     print('storing corrected summaries of {} for viewpoint {}'.format(w, str(years[i])))
+            #     corrections = store_summary_corrections(summary_v2, save_dir=results_dir + 'summaries/sentiment_keywords/',
+            #                               filename='{}_{}'.format(str(word2idx[w]), str(years[i])))
+            #     all_summaries[w][str(years[i])] = corrections
+            #
+            # with open('all_summaries.pkl', 'wb') as f:
+            #     pickle.dump(all_summaries, f)
 
-            if str(years[i] - 1) not in all_summaries[w]:
-                all_summaries[w][str(years[i] - 1)] = {}
-                print('storing corrected summaries of {} for viewpoint {}'.format(w, str(years[i] - 1)))
-                corrections = store_summary_corrections(summary_v1, save_dir=results_dir + 'summaries/sentiment_keywords/',
-                                          filename='{}_{}'.format(word2idx[w], str(years[i] - 1)))
-                all_summaries[w][str(years[i] - 1)] = corrections
+            # save the neighbors of each summary (un -orrected ones) to a txt file for manual (human-only) correction
+            if w not in years_checked:
+                years_checked[w] = []
 
-            if str(years[i]) not in all_summaries[w]:
-                all_summaries[w][str(years[i])] = {}
-                print('storing corrected summaries of {} for viewpoint {}'.format(w, str(years[i])))
-                corrections = store_summary_corrections(summary_v2, save_dir=results_dir + 'summaries/sentiment_keywords/',
-                                          filename='{}_{}'.format(str(word2idx[w]), str(years[i])))
-                all_summaries[w][str(years[i])] = corrections
+            if years[i] - 1 not in years_checked[w]:
+                save_summary(original_word=w, summary=summary_v1, year=years[i] - 1, save_dir='summaries/manual/', filename='summaries_azarbonyad')
+                years_checked[w].append(years[i] - 1)
 
-            with open('all_summaries.pkl', 'wb') as f:
-                pickle.dump(all_summaries, f)
+            if years[i] not in years_checked[w]:
+                save_summary(original_word=w, summary=summary_v2, year=years[i], save_dir='summaries/manual/', filename='summaries_azarbonyad')
+                years_checked[w].append(years[i])
 
         # ranks_comb, ranks_neigh, ranks_lin = get_ranks(stability_combined=stabilities_comb,
         #                                                stability_neighbors=stabilities_neigh,
