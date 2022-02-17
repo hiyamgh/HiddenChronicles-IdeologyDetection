@@ -1,5 +1,5 @@
-# import alyahmor.genelex
-# import naftawayh.wordtag
+import alyahmor.genelex
+import naftawayh.wordtag
 import pickle
 import qalsadi.lemmatizer
 import numpy as np
@@ -18,7 +18,7 @@ lemmer = qalsadi.lemmatizer.Lemmatizer()
 # tagger = naftawayh.wordtag.WordTagger()
 
 # loop over summaries and store the ones found in the emotion lexicon
-with open('azarbonyad_prp.txt', 'r', encoding='utf-8') as f:
+with open('gonen_prp.txt', 'r', encoding='utf-8') as f:
     total_count = 0
     actual_count = 0
     everything = f.readlines()
@@ -135,12 +135,11 @@ def mkdir(folder):
 
 
 # line plots
-plots_folder_lines = 'plots/line_plots/'
-plots_folder_bars = 'plots/bar_plots/'
+plots_folder_lines = 'plots_gonen/line_plots/'
+plots_folder_bars = 'plots_gonen/bar_plots/'
 
 mkdir(plots_folder_lines)
 mkdir(plots_folder_bars)
-
 
 def slope(x1, y1, x2, y2):
     m = (y2 - y1) / (x2 - x1)
@@ -169,6 +168,7 @@ for w in avg_scores_yearly:
     fig.set_size_inches(10, 5)
     plt.savefig(os.path.join(plots_folder_lines, '{}.png'.format(w)))
     plt.close()
+
 
 # stacked bar plots
 
