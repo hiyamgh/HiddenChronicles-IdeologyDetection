@@ -5,6 +5,7 @@ import qalsadi.lemmatizer
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+from manual_corrections_azarbonyad import azarbonyad
 # import farasa
 # from farasa.stemmer import FarasaStemmer
 
@@ -17,68 +18,92 @@ lemmer = qalsadi.lemmatizer.Lemmatizer()
 # stemmer = FarasaStemmer()
 # tagger = naftawayh.wordtag.WordTagger()
 
-# loop over summaries and store the ones found in the emotion lexicon
-with open('azarbonyad_prp.txt', 'r', encoding='utf-8') as f:
-    total_count = 0
-    actual_count = 0
-    everything = f.readlines()
+years = [1982, 1983, 1984, 1996, 1997, 1998, 2000, 2005, 2006, 2007, 2008, 2009, 2010, 2011]
+with open('year2word2summary_nahar.pickle', 'rb') as handle:
+    nahar = pickle.load(handle)
+
     summaries = {}
-    for w in everything:
-        if '\t\t\t' in w:
-            if ''.join(w.split(':')[0].split()) != '\'\'':
-                normal = ''.join([c for c in w if c != '\n' and c != '\t'])
-                orig = normal.split(':')[1]
-                corr = normal.split(':')[0]
-                print('orig: {}, corr: {}'.format(orig, corr))
-                if ' ' in corr:
-                    spc = corr.split(' ')
-                    for s in spc:
-                        s = s.replace('\'', '')
-                        if s != '-' and s != '':
-                            total_count += 1
-
-                            if s in emotions_sentiment_ar:
-                                actual_count += 1
-                                summaries[keyword][year].append(s)
-                            else:
-                                sl = lemmer.lemmatize(s)
-                                # sl = stemmer.stem(s)
-                                if sl in emotions_sentiment_ar:
-                                    print('word: {}, lemma: {}'.format(s, sl))
-                                    actual_count += 1
-                                    summaries[keyword][year].append(sl)
-
+    for year in years:
+        summaries[year] = {}
+        for w in nahar[year]:
+            summaries[year][w] = []
+            summary = nahar[year][w]
+            for s in summary:
+                if s in emotions_sentiment_ar:
+                    summaries[year][w].append(s)
                 else:
-                    s = corr
-                    s = s.replace('\'', '')
+                    if ' ' in s:
+                        splitted = s.split(' ')
+                        for sp in splitted:
+                            if sp in azarbonyad:
+                                sp = azarbonyad[sp]
+                                if ' ' in sp:
+                                    for spp in sp.split(' '):
+                                        if
 
-                    if s != '-' and s != '':
-                        total_count += 1
 
-                        if s in emotions_sentiment_ar:
-                            actual_count += 1
-                            summaries[keyword][year].append(s)
-                        else:
-                            sl = lemmer.lemmatize(s)
-                            # sl = stemmer.stem(s)
-                            if sl in emotions_sentiment_ar:
-                                print('word: {}, lemma: {}'.format(s, sl))
-                                actual_count += 1
-                                summaries[keyword][year].append(sl)
-
-        elif '\t\t' in w and ':' in w:
-            year = int(''.join(w.split(':')[0].split()).replace('\'', ''))
-            summaries[keyword][year] = []
-
-        elif '\t' in w and ':' in w:
-            keyword = ''.join(w.split(':')[0].split()).replace('\'', '')
-            summaries[keyword] = {}
-
-        else:
-            # do nothing
-            pass
-    # how many words after stemming actually found in the emotion lexicon out of all the words out there
-    print(actual_count/total_count)
+# loop over summaries and store the ones found in the emotion lexicon
+# with open('azarbonyad_prp.txt', 'r', encoding='utf-8') as f:
+#     total_count = 0
+#     actual_count = 0
+#     everything = f.readlines()
+#     summaries = {}
+#     for w in everything:
+#         if '\t\t\t' in w:
+#             if ''.join(w.split(':')[0].split()) != '\'\'':
+#                 normal = ''.join([c for c in w if c != '\n' and c != '\t'])
+#                 orig = normal.split(':')[1]
+#                 corr = normal.split(':')[0]
+#                 print('orig: {}, corr: {}'.format(orig, corr))
+#                 if ' ' in corr:
+#                     spc = corr.split(' ')
+#                     for s in spc:
+#                         s = s.replace('\'', '')
+#                         if s != '-' and s != '':
+#                             total_count += 1
+#
+#                             if s in emotions_sentiment_ar:
+#                                 actual_count += 1
+#                                 summaries[keyword][year].append(s)
+#                             else:
+#                                 sl = lemmer.lemmatize(s)
+#                                 # sl = stemmer.stem(s)
+#                                 if sl in emotions_sentiment_ar:
+#                                     print('word: {}, lemma: {}'.format(s, sl))
+#                                     actual_count += 1
+#                                     summaries[keyword][year].append(sl)
+#
+#                 else:
+#                     s = corr
+#                     s = s.replace('\'', '')
+#
+#                     if s != '-' and s != '':
+#                         total_count += 1
+#
+#                         if s in emotions_sentiment_ar:
+#                             actual_count += 1
+#                             summaries[keyword][year].append(s)
+#                         else:
+#                             sl = lemmer.lemmatize(s)
+#                             # sl = stemmer.stem(s)
+#                             if sl in emotions_sentiment_ar:
+#                                 print('word: {}, lemma: {}'.format(s, sl))
+#                                 actual_count += 1
+#                                 summaries[keyword][year].append(sl)
+#
+#         elif '\t\t' in w and ':' in w:
+#             year = int(''.join(w.split(':')[0].split()).replace('\'', ''))
+#             summaries[keyword][year] = []
+#
+#         elif '\t' in w and ':' in w:
+#             keyword = ''.join(w.split(':')[0].split()).replace('\'', '')
+#             summaries[keyword] = {}
+#
+#         else:
+#             # do nothing
+#             pass
+#     # how many words after stemming actually found in the emotion lexicon out of all the words out there
+#     print(actual_count/total_count)
 
 # loop over stored summaries and get scores
 emotions = ['AFRAID', 'AMUSED', 'ANGRY', 'ANNOYED', 'DONT_CARE', 'HAPPY', 'INSPIRED', 'SAD']
