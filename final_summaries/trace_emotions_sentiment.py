@@ -4,17 +4,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 from manual_corrections_azarbonyad import azarbonyad
-
-lemmer = qalsadi.lemmatizer.Lemmatizer()
+import numpy.ma as ma
+import matplotlib.cm as cm
 
 
 def collect_summaries(stored_summaries, emotions_sentiment_ar, years):
     summaries = {}
-
     for w in stored_summaries:
         summaries[w] = {}
         for year in stored_summaries[w]:
-            if year in years: # if we want that year
+            if year in years:
                 summaries[w][year] = []
                 summary = stored_summaries[w][year]
                 for s in summary:
@@ -59,61 +58,8 @@ def get_scores(summaries, emotions_aggregated):
                     for sub_em in emotions_aggregated[em]:
                         if em not in scores[w][year]:
                             scores[w][year][em] = []
-                        # scores[w][em][year] = []
                         scores[w][year][em].append(emotions_sentiment_ar[s][sub_em])
     return scores
-
-
-# load the dictionary of emotions
-with open('../semantic_shifts/words_are_malleable_stability/ArSEL_ArSenL_database/emotions_sentiment_ar.pkl', 'rb') as f:
-    emotions_sentiment_ar = pickle.load(f)
-
-with open('year2word2summary_nahar.pickle', 'rb') as handle:
-    nahar = pickle.load(handle)
-
-with open('year2word2summary_assafir.pickle', 'rb') as handle:
-    assafir = pickle.load(handle)
-
-years_nahar = ['1982', '1983', '1984', '1996', '1997', '1998', '2000', '2005', '2006', '2007', '2008', '2009']
-years_assafir = ['1982', '1983', '1984', '1996', '1997', '1998', '2000', '2005', '2006', '2007', '2008', '2009', '2010', '2011']
-
-summaries_nahar = collect_summaries(nahar, emotions_sentiment_ar, years_nahar)
-summaries_assafir = collect_summaries(assafir, emotions_sentiment_ar, years_assafir)
-
-# loop over stored summaries and get scores
-emotions = ['AFRAID', 'AMUSED', 'ANGRY', 'ANNOYED', 'DONT_CARE', 'HAPPY', 'INSPIRED', 'SAD']
-emotions_aggregated = {
-    'hopeful': ['HAPPY', 'INSPIRED'],
-    'annoyed': ['ANGRY', 'ANNOYED', 'SAD'],
-    'afraid': ['AFRAID'],
-}
-
-scores_nahar = get_scores(summaries_nahar, emotions_aggregated)
-scores_assafir = get_scores(summaries_assafir, emotions_aggregated)
-
-# loop over scores and get avg values per word per year
-avg_scores_yearly_nahar = {}
-avg_scores_yearly_assafir = {}
-
-for w in scores_nahar:
-    avg_scores_yearly_nahar[w] = {}
-    years = [y for y in scores_nahar[w]]
-    for y in years:
-        avg_scores_yearly_nahar[w][y] = {}
-        for em in emotions_aggregated:
-            avg = np.mean(scores_nahar[w][y][em]) if em in scores_nahar[w][y] else 0
-            avg_scores_yearly_nahar[w][y][em] = avg
-print(avg_scores_yearly_nahar)
-
-for w in scores_assafir:
-    avg_scores_yearly_assafir[w] = {}
-    years = [y for y in scores_assafir[w]]
-    for y in years:
-        avg_scores_yearly_assafir[w][y] = {}
-        for em in emotions_aggregated:
-            avg = np.mean(scores_assafir[w][y][em]) if em in scores_assafir[w][y] else 0
-            avg_scores_yearly_assafir[w][y][em] = avg
-print(avg_scores_yearly_assafir)
 
 
 def mkdir(folder):
@@ -121,81 +67,113 @@ def mkdir(folder):
         os.makedirs(folder)
 
 
-# line plots
-plots_folder_lines_nahar = 'final_plots/nahar/'
-plots_folder_lines_assafir = 'final_plots/assafir/'
-
-
-mkdir(plots_folder_lines_nahar)
-mkdir(plots_folder_lines_assafir)
-# mkdir(plots_folder_bars)
-
-
 def slope(x1, y1, x2, y2):
     m = (y2 - y1) / (x2 - x1)
     return m
 
 
-mappings = {
-    'اسرائيل': 'israel',
-    'السعوديه': 'saudiarabia',
-    'المقاومه': 'mukawama',
-    'ايران': 'iran',
-    'حزب الله': 'hezbollah',
-    'رفيق الحريري': 'hariri',
-    'سوري': 'syrian',
-    'فلسطيني': 'palestinian',
-    'منظمه التحرير الفلسطينيه': 'munazama',
-    'ياسر عرفات': 'arafat',
-}
+if __name__ == '__main__':
+    # define the stemmer
+    lemmer = qalsadi.lemmatizer.Lemmatizer()
 
-# line plots
-for w in avg_scores_yearly_nahar:
-    years = [y for y in avg_scores_yearly_nahar[w]]
-    for em in emotions_aggregated:
-        em_over_years = [avg_scores_yearly_nahar[w][year][em] for year in years]
-        plt.plot(years, em_over_years,  marker='o', label=em)
+    # load the dictionary of emotions
+    with open('../semantic_shifts/words_are_malleable_stability/ArSEL_ArSenL_database/emotions_sentiment_ar.pkl', 'rb') as f:
+        emotions_sentiment_ar = pickle.load(f)
 
-    plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.05),
-           ncol=4, fancybox=True, shadow=True)
-    fig = plt.gcf()
-    fig.set_size_inches(10, 5)
-    plt.savefig(os.path.join(plots_folder_lines_nahar, 'nahar_{}.png'.format(mappings[w.strip()])))
-    plt.close()
+    # load the summaries
+    with open('year2word2summary_nahar.pickle', 'rb') as handle:
+        nahar = pickle.load(handle)
 
+    with open('year2word2summary_assafir.pickle', 'rb') as handle:
+        assafir = pickle.load(handle)
 
-for w in avg_scores_yearly_assafir:
-    years = [y for y in avg_scores_yearly_assafir[w]]
-    for em in emotions_aggregated:
-        em_over_years = [avg_scores_yearly_assafir[w][year][em] for year in years]
-        plt.plot(years, em_over_years,  marker='o', label=em)
-    plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.05),
-           ncol=4, fancybox=True, shadow=True)
-    fig = plt.gcf()
-    fig.set_size_inches(10, 5)
-    plt.savefig(os.path.join(plots_folder_lines_assafir, 'assafir_{}.png'.format(mappings[w.strip()])))
-    plt.close()
+    # years of interest for Nahar archive vs. Assafir archive
+    years_nahar = ['1982', '1983', '1984', '1985', '1986', '1987', '1998', '1999', '2000', '2001', '2006', '2007', '2008', '2009']
+    years_assafir = ['1982', '1983', '1984', '1985', '1986', '1987', '1998', '1999', '2000', '2001', '2006', '2007', '2008', '2009', '2010', '2011']
 
+    # change summaries to their corrected form (spelling error correction done manually)
+    summaries_nahar = collect_summaries(nahar, emotions_sentiment_ar, years_nahar)
+    summaries_assafir = collect_summaries(assafir, emotions_sentiment_ar, years_assafir)
 
-# # stacked bar plots
-# # width = 0.35
-# for w in avg_scores_yearly:
-#     fig, ax = plt.subplots()
-#     years = [y for y in avg_scores_yearly[w]]
-#     i = 0
-#     for em in emotions_aggregated:
-#         em_over_years = [avg_scores_yearly[w][year][em] for year in years]
-#         if i == 0:
-#             ax.bar(years, em_over_years, label=em)
-#             em_over_years_old = np.array(em_over_years)
-#         else:
-#             ax.bar(years, em_over_years, bottom=em_over_years_old, label=em)
-#             em_over_years_old += np.array(em_over_years)
-#         i += 1
-#
-#     plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.05),
-#            ncol=4, fancybox=True, shadow=True)
-#     # fig = plt.gcf()
-#     fig.set_size_inches(10, 5)
-#     plt.savefig(os.path.join(plots_folder_bars, '{}.png'.format(w)))
-#     plt.close()
+    # aggregate emotions
+    emotions = ['AFRAID', 'AMUSED', 'ANGRY', 'ANNOYED', 'DONT_CARE', 'HAPPY', 'INSPIRED', 'SAD']
+    emotions_aggregated = {
+        'hopeful': ['HAPPY', 'INSPIRED'],
+        'annoyed': ['ANGRY', 'ANNOYED', 'SAD'],
+        'afraid': ['AFRAID'],
+    }
+
+    scores_nahar = get_scores(summaries_nahar, emotions_aggregated)
+    scores_assafir = get_scores(summaries_assafir, emotions_aggregated)
+
+    # loop over scores and get avg values per word per year
+    avg_scores_yearly_nahar = {}
+    avg_scores_yearly_assafir = {}
+
+    for w in scores_nahar:
+        avg_scores_yearly_nahar[w] = {}
+        years = [y for y in scores_nahar[w]]
+        for y in years:
+            avg_scores_yearly_nahar[w][y] = {}
+            for em in emotions_aggregated:
+                avg = np.mean(scores_nahar[w][y][em]) if em in scores_nahar[w][y] else 0
+                avg_scores_yearly_nahar[w][y][em] = avg
+    print(avg_scores_yearly_nahar)
+
+    for w in scores_assafir:
+        avg_scores_yearly_assafir[w] = {}
+        years = [y for y in scores_assafir[w]]
+        for y in years:
+            avg_scores_yearly_assafir[w][y] = {}
+            for em in emotions_aggregated:
+                avg = np.mean(scores_assafir[w][y][em]) if em in scores_assafir[w][y] else 0
+                avg_scores_yearly_assafir[w][y][em] = avg
+    print(avg_scores_yearly_assafir)
+
+    # line plots
+    plots_folder = 'final_plots/'
+
+    # map arabic words to english words for plotting purposes
+    mappings = {
+        'اسرائيل': 'israel',
+        'السعوديه': 'saudiarabia',
+        'المقاومه': 'mukawama',
+        'ايران': 'iran',
+        'حزب الله': 'hezbollah',
+        'رفيق الحريري': 'hariri',
+        'سوري': 'syrian',
+        'فلسطيني': 'palestinian',
+        'منظمه التحرير الفلسطينيه': 'munazama',
+        'ياسر عرفات': 'arafat',
+    }
+
+    # line plots
+    for w in avg_scores_yearly_nahar:
+        years = list(range(1982, 2012))
+        years = [str(y) for y in years]
+        colors = cm.rainbow(np.linspace(0, 1, len(emotions_aggregated)))
+        count = 0
+        for em in emotions_aggregated:
+            em_over_years = [avg_scores_yearly_nahar[w][year][em] if year in avg_scores_yearly_nahar[w] else None for year in years]
+            idxs_nonvalid = [i for i, _ in enumerate(em_over_years) if em_over_years[i] == None]
+            em_over_years = np.array(em_over_years)
+            mc = ma.array(em_over_years)
+            mc[idxs_nonvalid] = ma.masked
+            plt.plot(years, mc,  marker='o', color=colors[count], label=em + ': nahar')
+
+            em_over_years = [avg_scores_yearly_assafir[w][year][em] if year in avg_scores_yearly_assafir[w] else None for year in years]
+            idxs_nonvalid = [i for i, _ in enumerate(em_over_years) if em_over_years[i] == None]
+            em_over_years = np.array(em_over_years)
+            mc = ma.array(em_over_years)
+            mc[idxs_nonvalid] = ma.masked
+            plt.plot(years, mc, marker='+', color=colors[count], label=em + ': assafir', linestyle='--')
+
+            count += 1
+
+        plt.ylim([0, 0.5])
+        plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.05), ncol=3, fancybox=True, shadow=True)
+        plt.xticks(rotation=45)
+        fig = plt.gcf()
+        fig.set_size_inches(14, 5)
+        plt.savefig(os.path.join(plots_folder, '{}.png'.format(mappings[w.strip()])))
+        plt.close()
