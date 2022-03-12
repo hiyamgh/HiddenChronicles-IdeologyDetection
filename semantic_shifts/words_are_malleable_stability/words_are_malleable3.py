@@ -285,7 +285,7 @@ def get_stability_combined_one_word(w, models, mat_name, dir_name_matrices, k=50
                 # if there are some words that are found in one list but not in the other
                 # then calculate their stability using linear mapping approach
                 if not_found1 != [] or not_found2 != []:
-                    R, R_inv = load_linear_mapping_matrices(dir_name=dir_name_matrices, mat_name=mat_name)
+                    R, R_inv = load_linear_mapping_matrices(dir_name=dir_name_matrices, mat_name=mat_name, model1_name=models_names[i], model2_name=models_names[j])
 
                     sim_lin01, sim_lin10 = 0.0, 0.0
                     for wp in not_found1:
@@ -422,7 +422,7 @@ def get_stability_combined(models, models_names, mat_name, words_path=None, k=50
                     # if there are some words that are found in one list but not in the other
                     # then calculate their stability using linear mapping approach
                     if not_found1 != [] or not_found2 != []:
-                        R, R_inv = load_linear_mapping_matrices(dir_name=dir_name_matrices, mat_name=mat_name)
+                        R, R_inv = load_linear_mapping_matrices(dir_name=dir_name_matrices, mat_name=mat_name, model1_name=models_names[i], model2_name=models_names[j])
 
                         sim_lin01, sim_lin10 = 0.0, 0.0
                         for wp in not_found1:
