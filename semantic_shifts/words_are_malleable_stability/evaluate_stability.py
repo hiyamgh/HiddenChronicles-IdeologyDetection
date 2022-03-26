@@ -3,7 +3,8 @@ import os
 from itertools import cycle
 from bidi import algorithm as bidialg
 import arabic_reshaper
-from words_are_malleable import get_stability_combined_one_word
+# from words_are_malleable import get_stability_combined_one_word
+from words_are_malleable4 import get_stability_combined_one_word
 import fasttext
 from scipy import stats
 import numpy as np
@@ -305,26 +306,37 @@ def get_ranks(stability_combined, stability_neighbors, stability_linear):
 # neighs of oov are also oov, should we also get stability values
 # for these ?
 
-def get_contrastive_viewpoint_summary(w, n, k, model1, model2, mat_name, dir_name_matrices,
+def get_contrastive_viewpoint_summary(w, n, k, models, mat_name, dir_name_matrices,
                                       save_dir, file_name, viewpoint1_name='1982', viewpoint2_name='1983',
-                                      thresh=0.6):
+                                      thresh=0.5):
     """ get a contrastive viewpoint summary of a word of length n. For a certain
         word:
         1. we get its top k nearest neighbors.
         2. Then for each nearest neighbor, we add it into the summary if its stability is equal to or less than a certain threshold.
     """
-    summary1, summary2 = [], []
+    summary1, summary2, summary3 = [], [], []
 
-    nns1 = [n[1] for n in model1.get_nearest_neighbors(w, k)]
-    nns2 = [n[1] for n in model2.get_nearest_neighbors(w, k)]
+    nns1 = [n[1] for n in models[0].get_nearest_neighbors(w, k)]
+    nns2 = [n[1] for n in models[1].get_nearest_neighbors(w, k)]
+
+    if len(models) > 2:
+        nns3 = [n[1] for n in models[2].get_nearest_neighbors(w, k)]
+        count = 0
+        for nn in nns3:
+            if count == n:
+                break
+            st = get_stability_combined_one_word(w=nn, models=models, mat_name=mat_name, dir_name_matrices=dir_name_matrices, k=k)
+
+            if abs(st) <= thresh:
+                summary3.append((st, nn))
+                count += 1
 
     count = 0
     for nn in nns1:
         if count == n:
             break
-        st = get_stability_combined_one_word(w=nn, model1=model1, model2=model2, mat_name=mat_name,
-                                             dir_name_matrices=dir_name_matrices)
 
+        st = get_stability_combined_one_word(w=nn, models=models, mat_name=mat_name, dir_name_matrices=dir_name_matrices, k=k)
         if st <= thresh:
             summary1.append((st, nn))
             count += 1
@@ -332,10 +344,10 @@ def get_contrastive_viewpoint_summary(w, n, k, model1, model2, mat_name, dir_nam
     for nn in nns2:
         if count == n:
             break
-        st = get_stability_combined_one_word(w=nn, model1=model1, model2=model2, mat_name=mat_name,
-                                             dir_name_matrices=dir_name_matrices)
 
-        if st <= thresh:
+        st = get_stability_combined_one_word(w=nn, models=models, mat_name=mat_name, dir_name_matrices=dir_name_matrices, k=k)
+
+        if abs(st) <= thresh:
             summary2.append((st, nn))
             count += 1
 
@@ -487,37 +499,31 @@ def store_summary_corrections(summary, save_dir, filename):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--models_path1',
-                        default='D:/fasttext_embeddings/ngrams4-size300-window5-mincount100-negative15-lr0.001/ngrams4-size300-window5-mincount100-negative15-lr0.001/',
-                        help='path to trained models files')
-    parser.add_argument('--models_path2',
-                        default=None,
-                        help='path to trained models files of viewpoint 2. If not None, then analysis will be synchronic, else, analysis will be diachronic')
-    parser.add_argument('--keywords_paths', default='from_DrFatima_cleaned/ethnicities.txt;from_DrFatima_cleaned/ideologies.txt;from_DrFatima_cleaned/political_parties.txt;'
-                                                    'from_DrFatima_cleaned/politicians.txt;from_DrFatima_cleaned/israeli_leaders.txt')
-    parser.add_argument('--keywords_names', default='ethnicities;ideologies;political_parties;politicians;israeli_leaders')
-    parser.add_argument('--start_year', default=1982)
-    parser.add_argument('--end_year', default=2009)
+    parser.add_argument('--models_path1', default='D:/fasttext_embeddings/ngrams4-size300-window5-mincount100-negative15-lr0.001/ngrams4-size300-window5-mincount100-negative15-lr0.001/', help='path to trained models files')
+    parser.add_argument('--models_path2', default='D:/fasttext_embeddings/ngrams4-size300-window5-mincount100-negative15-lr0.001/ngrams4-size300-window5-mincount100-negative15-lr0.001/', help='path to trained models files of viewpoint 2. If not None, then analysis will be synchronic, else, analysis will be diachronic')
+    parser.add_argument('--models_path3', default=None, help='path to trained models files of viewpoint 3. If not None, then analysis will be synchronic, else, analysis will be diachronic')
+
+    parser.add_argument('--keywords_path', default='from_DrFatima/sentiment_keywords.txt')
 
     parser.add_argument("--model1", default='2007.bin', help="model 1 file name")
     parser.add_argument("--model2", default='2007.bin', help="model 2 file name")
-    parser.add_argument("--model1_name", default="nahar_07", help="string to name model 1 - used for saving results")
-    parser.add_argument("--model2_name", default="assafir_07", help="string to name model 2 - used for saving results")
+    parser.add_argument("--model3", default='2007.bin', help="model 3 file name")
 
-    path1 = 'E:/fasttext_embeddings/ngrams4-size300-window5-mincount100-negative15-lr0.001/ngrams4-size300-window5-mincount100-negative15-lr0.001/'
-    # path2 = 'E:/fasttext_embeddings/assafir/'
-    path2 = path1
+    parser.add_argument("--model1_name", default="nahar_00",   help="string to name model 1 - used for saving results")
+    parser.add_argument("--model2_name", default="assafir_00", help="string to name model 2 - used for saving results")
+    parser.add_argument("--model2_name", default="hayat_00",   help="string to name model 3 - used for saving results")
+    args = parser.parse_args()
 
-    ethnicities = read_keywords('from_DrFatima_cleaned/ethnicities.txt')
-    ideologies = read_keywords('from_DrFatima_cleaned/ideologies.txt')
-    political_parties = read_keywords('from_DrFatima_cleaned/political_parties.txt')
-    politicians = read_keywords('from_DrFatima_cleaned/politicians.txt')
-    israeli_leaders = read_keywords('from_DrFatima_cleaned/israeli_leaders.txt')
+    path1 = args.models_path1
+    path2 = args.models_path1
+    path3 = args.models_path3
 
     # for sentiment
-    sentiment_words = read_keywords('from_DrFatima/sentiment_keywords.txt')
+    sentiment_words = read_keywords(args.keywords_path)
 
-    years = list(range(1983, 2009))
+    years = list(range(1983, 2011))
+    # years = list(range(1983, 2009))
+    # years = list(range(1998, 2009))
     # years = list(range(2003, 2009))
     yearsforfigs = ['{}-{}'.format(y-1, y) for y in years]
     fig_name_prefixes = [
@@ -525,138 +531,124 @@ if __name__ == '__main__':
     ]
     fig_name_general_prefix = 'nahar'
 
+    # paths = [
+    #     'E:/fasttext_embeddings/results_diachronic/nahar_{}_nahar_{}/t1k100/'.format(y - 1, y) for y in years
+    # ]
     paths = [
-        'E:/fasttext_embeddings/results_diachronic/nahar_{}_nahar_{}/t1k100/'.format(y - 1, y) for y in years
+        # 'E:/fasttext_embeddings/results_diachronic_new/nahar/nahar_{}_nahar_{}/t1k100/'.format(y - 1, y) for y in years
+        'E:/results_diachronic_new/assafir/assafir_{}_assafir_{}/t1k100/'.format(y - 1, y) for y in years
     ]
 
-    stability_dicts_combined = []
-    stability_dicts_neighbor = []
-    stability_dicts_linear = []
-    results_dir = 'output_diachronic/'
+    # stability_dicts_combined = []
+    # stability_dicts_neighbor = []
+    # stability_dicts_linear = []
+    # results_dir = 'output_diachronic/'
+    # results_dir = 'output_diachronic_new/nahar/'
+    results_dir = 'output_diachronic_new/assafir/'
 
-    # to store all summaries of all words
-    if not os.path.exists('all_summaries.pkl'):
-        all_summaries = {}
-    else:
-        with open('all_summaries.pkl', 'rb') as handle:
-            all_summaries = pickle.load(handle)
+    # # to store all summaries of all words
+    # if not os.path.exists('all_summaries.pkl'):
+    #     all_summaries = {}
+    # else:
+    #     with open('all_summaries.pkl', 'rb') as handle:
+    #         all_summaries = pickle.load(handle)
     for i, path in enumerate(paths):
-        dict_combined = os.path.join(path, 'stabilities_combined.pkl')
-        dict_neighbor = os.path.join(path, 'stabilities_neighbor.pkl')
-        dict_linear = os.path.join(path[:-7], 'stabilities_linear.pkl')
-        print('path: {}'.format(path))
+        if os.path.exists(path):
+            dict_combined = os.path.join(path, 'stabilities_combined.pkl')
+            print('path: {}'.format(path))
 
-        if os.path.exists(dict_combined):
-            print('combined:')
-            # load pickle file of stabilities
-            with open(dict_combined, 'rb') as handle:
-                stabilities_comb = pickle.load(handle)
-                stability_dicts_combined.append(stabilities_comb)
-                # get_stability_words(stabilities, words)
-                # get_heads_tails(stabilities, n=50)
-            print('================================================================')
+            if os.path.exists(dict_combined):
+                print('combined:')
+                # load pickle file of stabilities
+                with open(dict_combined, 'rb') as handle:
+                    stabilities_comb = pickle.load(handle)
+                print('================================================================')
 
-        if os.path.exists(dict_neighbor):
-            print('neighbor:')
-            # load pickle file of stabilities
-            with open(dict_neighbor, 'rb') as handle:
-                stabilities_neigh = pickle.load(handle)
-                stabilities_neigh = filter_stability_neighbors(stabilities_neigh, stabilities_comb)
-                stability_dicts_neighbor.append(stabilities_neigh)
-                # get_stability_words(stabilities, words)
-                # get_heads_tails(stabilities, n=50)
-            print('================================================================')
+            model1 = fasttext.load_model(os.path.join(path1, '{}.bin'.format(years[i]-1)))
+            model2 = fasttext.load_model(os.path.join(path2, '{}.bin'.format(years[i])))
 
-        if os.path.exists(dict_linear):
-            print('linear:')
-            # load pickle file of stabilities
-            with open(dict_linear, 'rb') as handle:
-                stabilities_lin = pickle.load(handle)
-                stabilities_lin = filter_stability_neighbors(stabilities_lin, stabilities_comb)
-                stability_dicts_linear.append(stabilities_lin)
-            print('================================================================')
+            # dir_name_matrices = 'E:/fasttext_embeddings/results_diachronic/nahar_{}_nahar_{}/linear_numsteps80000/matrices/'.format(str(years[i]-1), str(years[i]))
+            # dir_name_matrices = 'E:/fasttext_embeddings/results_diachronic_new/nahar/nahar_{}_nahar_{}/linear_numsteps80000/matrices/'.format(str(years[i] - 1), str(years[i]))
+            dir_name_matrices = 'E:/results_diachronic_new/assafir/assafir_{}_assafir_{}/linear_numsteps80000/matrices/'.format(str(years[i] - 1), str(years[i]))
 
-        model1 = fasttext.load_model(os.path.join(path1, '{}.bin'.format(years[i-1])))
-        model2 = fasttext.load_model(os.path.join(path2, '{}.bin'.format(years[i])))
+            # create a mapping between word and a numeric index
+            word2idx = dict(zip(sentiment_words, list(range(len(sentiment_words)))))
+            years_checked = {}
+            for z, w in enumerate(sentiment_words):
 
+                summary_v1, summary_v2 = get_contrastive_viewpoint_summary(w, n=20, k=100, model1=model1, model2=model2,
+                                                                           mat_name='trans',
+                                                                           dir_name_matrices=dir_name_matrices,
+                                                                           save_dir=results_dir + 'summaries/',
+                                                                           file_name='sentiment_keywords',
+                                                                           viewpoint1_name='{}'.format(years[i] - 1),
+                                                                           viewpoint2_name='{}'.format(years[i]),
+                                                                           thresh=0.5)
+                                                                           # thresh=0.6)
 
-        dir_name_matrices = 'E:/fasttext_embeddings/results_diachronic/nahar_{}_nahar_{}/linear_numsteps80000/matrices/'.format(str(years[i]-1), str(years[i]))
+                # # 1) although we dont have sentences (POS is imp for entiment analysis, which can be determined in the context of a sentence)
+                # # but bcz of ocr errors two words are connected to each other, we separate them, this can be understood as a sentence
+                # # 2) should we determine pos/neg ? bcz positive in viewpoint 1 might be negative in viewpoint 2 ? rather; focus on objectivity !!!!!!!
+                # # 3) how to detemine sentiment of countries ? (THEY CARRY SENTIMENT) - like israeli-syrian, or israel, or palestine ?
+                #
+                # # apply OCR error correction manually for each summary (i.e. for each neighbor, in each summary)
+                # if str(years[i] - 1) not in all_summaries[w]:
+                #     all_summaries[w][str(years[i] - 1)] = {}
+                #     print('storing corrected summaries of {} for viewpoint {}'.format(w, str(years[i] - 1)))
+                #     corrections = store_summary_corrections(summary_v1, save_dir=results_dir + 'summaries/sentiment_keywords/',
+                #                               filename='{}_{}'.format(word2idx[w], str(years[i] - 1)))
+                #     all_summaries[w][str(years[i] - 1)] = corrections
+                #
+                # if str(years[i]) not in all_summaries[w]:
+                #     all_summaries[w][str(years[i])] = {}
+                #     print('storing corrected summaries of {} for viewpoint {}'.format(w, str(years[i])))
+                #     corrections = store_summary_corrections(summary_v2, save_dir=results_dir + 'summaries/sentiment_keywords/',
+                #                               filename='{}_{}'.format(str(word2idx[w]), str(years[i])))
+                #     all_summaries[w][str(years[i])] = corrections
+                #
+                # with open('all_summaries.pkl', 'wb') as f:
+                #     pickle.dump(all_summaries, f)
 
-        # create a mapping between word and a numeric index
-        word2idx = dict(zip(sentiment_words, list(range(len(sentiment_words)))))
-        years_checked = {}
-        for z, w in enumerate(sentiment_words):
-            if w not in all_summaries:
-                all_summaries[w] = {}
+                # save the neighbors of each summary (un -orrected ones) to a txt file for manual (human-only) correction
+                if w not in years_checked:
+                    years_checked[w] = []
 
-            summary_v1, summary_v2 = get_contrastive_viewpoint_summary(w, n=20, k=100, model1=model1, model2=model2,
-                                                                       mat_name='trans',
-                                                                       dir_name_matrices=dir_name_matrices,
-                                                                       save_dir=results_dir + 'summaries/',
-                                                                       file_name='sentiment_keywords',
-                                                                       viewpoint1_name='{}'.format(years[i] - 1),
-                                                                       viewpoint2_name='{}'.format(years[i]),
-                                                                       thresh=0.6)
+                if years[i] - 1 not in years_checked[w]:
+                    # save_summary(original_word=w, summary=summary_v1, year=years[i] - 1, save_dir='summaries/manual/', filename='summaries_azarbonyad')
+                    # save_summary(original_word=w, summary=summary_v1, year=years[i] - 1, save_dir='summaries_new/manual/nahar/', filename='summaries_azarbonyad')
+                    save_summary(original_word=w, summary=summary_v1, year=years[i] - 1, save_dir='summaries_new/manual/assafir/', filename='summaries_azarbonyad')
+                    years_checked[w].append(years[i] - 1)
 
-            # # 1) although we dont have sentences (POS is imp for entiment analysis, which can be determined in the context of a sentence)
-            # # but bcz of ocr errors two words are connected to each other, we separate them, this can be understood as a sentence
-            # # 2) should we determine pos/neg ? bcz positive in viewpoint 1 might be negative in viewpoint 2 ? rather; focus on objectivity !!!!!!!
-            # # 3) how to detemine sentiment of countries ? (THEY CARRY SENTIMENT) - like israeli-syrian, or israel, or palestine ?
+                if years[i] not in years_checked[w]:
+                    # save_summary(original_word=w, summary=summary_v2, year=years[i], save_dir='summaries/manual/', filename='summaries_azarbonyad')
+                    # save_summary(original_word=w, summary=summary_v2, year=years[i], save_dir='summaries_new/manual/nahar/', filename='summaries_azarbonyad')
+                    save_summary(original_word=w, summary=summary_v2, year=years[i], save_dir='summaries_new/manual/assafir/', filename='summaries_azarbonyad')
+                    years_checked[w].append(years[i])
+
+            # ranks_comb, ranks_neigh, ranks_lin = get_ranks(stability_combined=stabilities_comb,
+            #                                                stability_neighbors=stabilities_neigh,
+            #                                                stability_linear=stabilities_lin)
+            # # paired two tail t-test
+            # perform_paired_t_test(ranks_comb, ranks_neigh, ranks_lin, save_dir=results_dir + 'significance/',
+            #                       file_name=fig_name_general_prefix + '-' + str(yearsforfigs[i]))
             #
-            # # apply OCR error correction manually for each summary (i.e. for each neighbor, in each summary)
-            # if str(years[i] - 1) not in all_summaries[w]:
-            #     all_summaries[w][str(years[i] - 1)] = {}
-            #     print('storing corrected summaries of {} for viewpoint {}'.format(w, str(years[i] - 1)))
-            #     corrections = store_summary_corrections(summary_v1, save_dir=results_dir + 'summaries/sentiment_keywords/',
-            #                               filename='{}_{}'.format(word2idx[w], str(years[i] - 1)))
-            #     all_summaries[w][str(years[i] - 1)] = corrections
+            # # delta of the ranks between neighbors and linear vs. combination
+            # plot_delta_ranks_words(ranks_comb, ranks_neigh, ranks_lin, ethnicities,
+            #                        save_dir=results_dir + 'delta_ranks/', fig_name=fig_name_prefixes[i] + '_ethnicities')
+            # plot_delta_ranks_words(ranks_comb, ranks_neigh, ranks_lin, ideologies,
+            #                        save_dir=results_dir + 'delta_ranks/', fig_name=fig_name_prefixes[i] + '_ideologies')
+            # plot_delta_ranks_words(ranks_comb, ranks_neigh, ranks_lin, political_parties,
+            #                        save_dir=results_dir + 'delta_ranks/', fig_name=fig_name_prefixes[i] + '_political_parties')
+            # plot_delta_ranks_words(ranks_comb, ranks_neigh, ranks_lin, politicians,
+            #                        save_dir=results_dir + 'delta_ranks/', fig_name=fig_name_prefixes[i] + '_politicians')
+            # # plot_delta_ranks_words(ranks_comb, ranks_neigh, ranks_lin, israeli_leaders,
+            # #                        save_dir=results_dir + 'delta_ranks/', fig_name=fig_name_prefixes[i] + '_israeli_leaders')
             #
-            # if str(years[i]) not in all_summaries[w]:
-            #     all_summaries[w][str(years[i])] = {}
-            #     print('storing corrected summaries of {} for viewpoint {}'.format(w, str(years[i])))
-            #     corrections = store_summary_corrections(summary_v2, save_dir=results_dir + 'summaries/sentiment_keywords/',
-            #                               filename='{}_{}'.format(str(word2idx[w]), str(years[i])))
-            #     all_summaries[w][str(years[i])] = corrections
-            #
-            # with open('all_summaries.pkl', 'wb') as f:
-            #     pickle.dump(all_summaries, f)
-
-            # save the neighbors of each summary (un -orrected ones) to a txt file for manual (human-only) correction
-            if w not in years_checked:
-                years_checked[w] = []
-
-            if years[i] - 1 not in years_checked[w]:
-                save_summary(original_word=w, summary=summary_v1, year=years[i] - 1, save_dir='summaries/manual/', filename='summaries_azarbonyad')
-                years_checked[w].append(years[i] - 1)
-
-            if years[i] not in years_checked[w]:
-                save_summary(original_word=w, summary=summary_v2, year=years[i], save_dir='summaries/manual/', filename='summaries_azarbonyad')
-                years_checked[w].append(years[i])
-
-        # ranks_comb, ranks_neigh, ranks_lin = get_ranks(stability_combined=stabilities_comb,
-        #                                                stability_neighbors=stabilities_neigh,
-        #                                                stability_linear=stabilities_lin)
-        # # paired two tail t-test
-        # perform_paired_t_test(ranks_comb, ranks_neigh, ranks_lin, save_dir=results_dir + 'significance/',
-        #                       file_name=fig_name_general_prefix + '-' + str(yearsforfigs[i]))
-        #
-        # # delta of the ranks between neighbors and linear vs. combination
-        # plot_delta_ranks_words(ranks_comb, ranks_neigh, ranks_lin, ethnicities,
-        #                        save_dir=results_dir + 'delta_ranks/', fig_name=fig_name_prefixes[i] + '_ethnicities')
-        # plot_delta_ranks_words(ranks_comb, ranks_neigh, ranks_lin, ideologies,
-        #                        save_dir=results_dir + 'delta_ranks/', fig_name=fig_name_prefixes[i] + '_ideologies')
-        # plot_delta_ranks_words(ranks_comb, ranks_neigh, ranks_lin, political_parties,
-        #                        save_dir=results_dir + 'delta_ranks/', fig_name=fig_name_prefixes[i] + '_political_parties')
-        # plot_delta_ranks_words(ranks_comb, ranks_neigh, ranks_lin, politicians,
-        #                        save_dir=results_dir + 'delta_ranks/', fig_name=fig_name_prefixes[i] + '_politicians')
-        # # plot_delta_ranks_words(ranks_comb, ranks_neigh, ranks_lin, israeli_leaders,
-        # #                        save_dir=results_dir + 'delta_ranks/', fig_name=fig_name_prefixes[i] + '_israeli_leaders')
-        #
-        # save_heads_tails_all(stabilities_comb=stabilities_comb, stabilities_neigh=stabilities_neigh,
-        #                      stabilities_lin=stabilities_lin, n=50, verbose=False,
-        #                      save_heads_tails=True,
-        #                      save_dir=results_dir + 'heads_tails/',
-        #                      file_name=fig_name_general_prefix + str(years[i]))
+            # save_heads_tails_all(stabilities_comb=stabilities_comb, stabilities_neigh=stabilities_neigh,
+            #                      stabilities_lin=stabilities_lin, n=50, verbose=False,
+            #                      save_heads_tails=True,
+            #                      save_dir=results_dir + 'heads_tails/',
+            #                      file_name=fig_name_general_prefix + str(years[i]))
 
     # # heatmap of stability values for each word of interest
     # generate_stability_heatmap(ethnicities, stability_dicts_combined, stability_dicts_neighbor,
@@ -688,4 +680,3 @@ if __name__ == '__main__':
     #                               stability_dicts_neighbor,
     #                               stability_dicts_linear,
     #                               n_sizes=list(range(10000, 110000, 10000)),
-    #                               save_dir=results_dir, fig_name=fig_name_general_prefix)
