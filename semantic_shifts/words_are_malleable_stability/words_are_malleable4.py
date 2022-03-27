@@ -238,103 +238,198 @@ def get_stability_linear_mapping(model1, model2, model1_name, model2_name, mat_n
     return stabilities
 
 
-def get_stability_combined_one_word(w, models, mat_name, dir_name_matrices, k=50):
+def get_stability_combined_one_word(w, models, models_names, mat_name, dir_name_matrices, k=50):
     """ gets the combined stability value of a certain word w """
-    similarities = []
-    for i in range(len(models)):
-        for j in range(len(models)):
-            if i != j:
-                nnsims1 = models[i].get_nearest_neighbors(w, k)
-                nnsims2 = models[j].get_nearest_neighbors(w, k)
+    if len(models) > 2:
+        similarities = []
+        for i in range(len(models)):
+            for j in range(len(models)):
+                if i != j:
+                    nnsims1 = models[i].get_nearest_neighbors(w, k)
+                    nnsims2 = models[j].get_nearest_neighbors(w, k)
 
-                nn1 = [n[1] for n in nnsims1]  # get only the neighbour, not the similarity
-                nn2 = [n[1] for n in nnsims2]  # get only the neighbour, not the similarity
+                    nn1 = [n[1] for n in nnsims1]  # get only the neighbour, not the similarity
+                    nn2 = [n[1] for n in nnsims2]  # get only the neighbour, not the similarity
 
-                inter = set.intersection(*map(set, [nn1, nn2]))
+                    inter = set.intersection(*map(set, [nn1, nn2]))
 
-                ranks1, ranks2 = {}, {}  # for storing indices
-                not_found1, not_found2 = [], []  # for storing words that are found in one list, but not in the other
+                    ranks1, ranks2 = {}, {}  # for storing indices
+                    not_found1, not_found2 = [], []  # for storing words that are found in one list, but not in the other
 
-                # loop over neighbors of w in embedding space 1, check if they're in the neighbors of w in embedding space 2
-                # calculate their rank, if yes.
-                for wp in nn1:
-                    if wp in nn2:
-                        ranks1[wp] = nn2.index(wp)  # index of wp in nn2
+                    # loop over neighbors of w in embedding space 1, check if they're in the neighbors of w in embedding space 2
+                    # calculate their rank, if yes.
+                    for wp in nn1:
+                        if wp in nn2:
+                            ranks1[wp] = nn2.index(wp)  # index of wp in nn2
+                        else:
+                            # if not present, it has no index
+                            not_found1.append(wp)
+
+                    # loop over neighbors of w in embedding space 2, check if they're in the neighbors of w in embedding space 1
+                    # calculate their rank, if yes.
+                    for wp in nn2:
+                        if wp in nn1:
+                            ranks2[wp] = nn1.index(wp)  # index of wp in nn1
+                        else:
+                            # if not present, it has no index
+                            not_found2.append(wp)
+
+                    sum_ranks1, sum_ranks2 = 0.0, 0.0
+                    for wp in ranks1:
+                        sum_ranks1 += ranks1[wp]
+                    for wp in ranks2:
+                        sum_ranks2 += ranks2[wp]
+
+                    Count_neig12 = (len(nn1) * len(inter)) - sum_ranks1
+                    Count_neig21 = (len(nn2) * len(inter)) - sum_ranks2
+
+                    # if there are some words that are found in one list but not in the other
+                    # then calculate their stability using linear mapping approach
+                    if not_found1 != [] or not_found2 != []:
+                        R, R_inv = load_linear_mapping_matrices(dir_name=dir_name_matrices, mat_name=mat_name, model1_name=models_names[i], model2_name=models_names[j])
+
+                        sim_lin01, sim_lin10 = 0.0, 0.0
+                        for wp in not_found1:
+                            w_v = models[j].get_word_vector(w) if ' ' not in w else models[j].get_sentence_vector(w)
+                            wp_v = models[i].get_word_vector(wp) if ' ' not in wp else models[i].get_sentence_vector(wp)
+
+                            val = get_cosine_sim(R.dot(wp_v), w_v)
+                            sim_lin01 += val
+                            print('{} - {} - {}'.format(w, wp, val))
+                        sim_lin01 /= len(not_found1)
+
+                        for wp in not_found2:
+                            w_v = models[i].get_word_vector(w) if ' ' not in w else models[i].get_sentence_vector(w)
+                            wp_v = models[j].get_word_vector(wp) if ' ' not in wp else models[j].get_sentence_vector(wp)
+
+                            val = get_cosine_sim(R_inv.dot(wp_v), w_v)
+                            sim_lin10 += val
+                            print('{} - {} - {}'.format(w, wp, val))
+                        sim_lin10 /= len(not_found2)
+
+                    st_neig = (Count_neig12 + Count_neig21) / (2 * sum(
+                        [i for i in range(1, k + 1)]))  # this is 2 * (k)(k+1) where k is the number of nearest neighbors
+                    st_lin = None
+                    if not_found1 != [] or not_found2 != []:
+                        st_lin = np.mean([sim_lin01, sim_lin10])
+
+                    # calculate value of lambda
+                    if nn1 == nn2:
+                        # when the nearest neighbours of w are exactly the same,
+                        # and have the same order in embedding 1 and embedding 2
+                        # lmbda = 1.0
+                        st = st_neig
+                        print('{}: st_neigh: {}, st_lin: {}, st: {}'.format(w, st_neig, '-', st))
+                    elif Count_neig12 == 0 and Count_neig12 == 0:
+                        # when the nearest neighbours in embedding 1 are completely
+                        # not found in embedding 2, and vice versa would be also true
+                        # lmbda = 0
+                        st = st_lin
+                        print('{}: st_neigh: {}, st_lin: {}, st: {}'.format(w, '-', st_lin, st))
                     else:
-                        # if not present, it has no index
-                        not_found1.append(wp)
+                        # some neighbours of w in embedding 1 are found in embedding 2,
+                        # and vice versa would be true
+                        lmbda = 0.5
+                        st = (lmbda * st_neig) + ((1 - lmbda) * st_lin)
+                        print('{}: st_nei: {}, st_lin: {}, st: {}'.format(w, st_neig, st_lin, st))
 
-                # loop over neighbors of w in embedding space 2, check if they're in the neighbors of w in embedding space 1
-                # calculate their rank, if yes.
-                for wp in nn2:
-                    if wp in nn1:
-                        ranks2[wp] = nn1.index(wp)  # index of wp in nn1
-                    else:
-                        # if not present, it has no index
-                        not_found2.append(wp)
+                    similarities.append(st)
 
-                sum_ranks1, sum_ranks2 = 0.0, 0.0
-                for wp in ranks1:
-                    sum_ranks1 += ranks1[wp]
-                for wp in ranks2:
-                    sum_ranks2 += ranks2[wp]
+        return np.mean(similarities)
 
-                Count_neig12 = (len(nn1) * len(inter)) - sum_ranks1
-                Count_neig21 = (len(nn2) * len(inter)) - sum_ranks2
+    else:
+        nnsims1 = models[0].get_nearest_neighbors(w, k)
+        nnsims2 = models[1].get_nearest_neighbors(w, k)
 
-                # if there are some words that are found in one list but not in the other
-                # then calculate their stability using linear mapping approach
-                if not_found1 != [] or not_found2 != []:
-                    R, R_inv = load_linear_mapping_matrices(dir_name=dir_name_matrices, mat_name=mat_name, model1_name=models_names[i], model2_name=models_names[j])
+        nn1 = [n[1] for n in nnsims1]  # get only the neighbour, not the similarity
+        nn2 = [n[1] for n in nnsims2]  # get only the neighbour, not the similarity
 
-                    sim_lin01, sim_lin10 = 0.0, 0.0
-                    for wp in not_found1:
-                        w_v = models[j].get_word_vector(w) if ' ' not in w else models[j].get_sentence_vector(w)
-                        wp_v = models[i].get_word_vector(wp) if ' ' not in wp else models[i].get_sentence_vector(wp)
+        inter = set.intersection(*map(set, [nn1, nn2]))
 
-                        val = get_cosine_sim(R.dot(wp_v), w_v)
-                        sim_lin01 += val
-                        print('{} - {} - {}'.format(w, wp, val))
-                    sim_lin01 /= len(not_found1)
+        ranks1, ranks2 = {}, {}  # for storing indices
+        not_found1, not_found2 = [], []  # for storing words that are found in one list, but not in the other
 
-                    for wp in not_found2:
-                        w_v = models[i].get_word_vector(w) if ' ' not in w else models[i].get_sentence_vector(w)
-                        wp_v = models[j].get_word_vector(wp) if ' ' not in wp else models[j].get_sentence_vector(wp)
+        # loop over neighbors of w in embedding space 1, check if they're in the neighbors of w in embedding space 2
+        # calculate their rank, if yes.
+        for wp in nn1:
+            if wp in nn2:
+                ranks1[wp] = nn2.index(wp)  # index of wp in nn2
 
-                        val = get_cosine_sim(R_inv.dot(wp_v), w_v)
-                        sim_lin10 += val
-                        print('{} - {} - {}'.format(w, wp, val))
-                    sim_lin10 /= len(not_found2)
+            else:
+                # if not present, it has no index
+                not_found1.append(wp)
 
-                st_neig = (Count_neig12 + Count_neig21) / (2 * sum(
-                    [i for i in range(1, k + 1)]))  # this is 2 * (k)(k+1) where k is the number of nearest neighbors
-                st_lin = None
-                if not_found1 != [] or not_found2 != []:
-                    st_lin = np.mean([sim_lin01, sim_lin10])
+        # loop over neighbors of w in embedding space 2, check if they're in the neighbors of w in embedding space 1
+        # calculate their rank, if yes.
+        for wp in nn2:
+            if wp in nn1:
+                ranks2[wp] = nn1.index(wp)  # index of wp in nn1
 
-                # calculate value of lambda
-                if nn1 == nn2:
-                    # when the nearest neighbours of w are exactly the same,
-                    # and have the same order in embedding 1 and embedding 2
-                    # lmbda = 1.0
-                    st = st_neig
-                    print('{}: st_neigh: {}, st_lin: {}, st: {}'.format(w, st_neig, '-', st))
-                elif Count_neig12 == 0 and Count_neig12 == 0:
-                    # when the nearest neighbours in embedding 1 are completely
-                    # not found in embedding 2, and vice versa would be also true
-                    # lmbda = 0
-                    st = st_lin
-                    print('{}: st_neigh: {}, st_lin: {}, st: {}'.format(w, '-', st_lin, st))
-                else:
-                    # some neighbours of w in embedding 1 are found in embedding 2,
-                    # and vice versa would be true
-                    lmbda = 0.5
-                    st = (lmbda * st_neig) + ((1 - lmbda) * st_lin)
-                    print('{}: st_nei: {}, st_lin: {}, st: {}'.format(w, st_neig, st_lin, st))
+            else:
+                # if not present, it has no index
+                not_found2.append(wp)
 
-                similarities.append(st)
+        sum_ranks1, sum_ranks2 = 0.0, 0.0
+        for wp in ranks1:
+            sum_ranks1 += ranks1[wp]
+        for wp in ranks2:
+            sum_ranks2 += ranks2[wp]
 
-    return np.mean(similarities)
+        Count_neig12 = (len(nn1) * len(inter)) - sum_ranks1
+        Count_neig21 = (len(nn2) * len(inter)) - sum_ranks2
+
+        # if there are some words that are found in one list but not in the other
+        # then calculate their stability using linear mapping approach
+        if not_found1 != [] or not_found2 != []:
+            R, R_inv = load_linear_mapping_matrices(dir_name=dir_name_matrices, mat_name=mat_name,
+                                                    model1_name=models_names[0], model2_name=models_names[1])
+
+            sim_lin01, sim_lin10 = 0.0, 0.0
+            for wp in not_found1:
+                w_v = models[1].get_word_vector(w) if ' ' not in w else models[1].get_sentence_vector(w)
+                wp_v = models[0].get_word_vector(wp) if ' ' not in wp else models[0].get_sentence_vector(wp)
+
+                val = get_cosine_sim(R.dot(wp_v), w_v)
+                sim_lin01 += val
+                # print('{} - {} - {}'.format(w, wp, val))
+            sim_lin01 /= len(not_found1)
+
+            for wp in not_found2:
+                w_v = models[0].get_word_vector(w) if ' ' not in w else models[0].get_sentence_vector(w)
+                wp_v = models[1].get_word_vector(wp) if ' ' not in wp else models[1].get_sentence_vector(wp)
+
+                val = get_cosine_sim(R_inv.dot(wp_v), w_v)
+                sim_lin10 += val
+                # print('{} - {} - {}'.format(w, wp, val))
+            sim_lin10 /= len(not_found2)
+
+        st_neig = (Count_neig12 + Count_neig21) / (2 * sum(
+            [i for i in range(1, k + 1)]))  # this is 2 * (k)(k+1) where k is the number of nearest neighbors
+        st_lin = None
+        if not_found1 != [] or not_found2 != []:
+            st_lin = np.mean([sim_lin01, sim_lin10])
+
+        # calculate value of lambda
+        if nn1 == nn2:
+            # when the nearest neighbours of w are exactly the same,
+            # and have the same order in embedding 1 and embedding 2
+            # lmbda = 1.0
+            st = st_neig
+            print('{}: st_neigh: {}, st_lin: {}, st: {}'.format(w, st_neig, '-', st))
+        elif Count_neig12 == 0 and Count_neig12 == 0:
+            # when the nearest neighbours in embedding 1 are completely
+            # not found in embedding 2, and vice versa would be also true
+            # lmbda = 0
+            st = st_lin
+            print('{}: st_neigh: {}, st_lin: {}, st: {}'.format(w, '-', st_lin, st))
+        else:
+            # some neighbours of w in embedding 1 are found in embedding 2,
+            # and vice versa would be true
+            lmbda = 0.5
+            st = (lmbda * st_neig) + ((1 - lmbda) * st_lin)
+            print('{}: st_nei: {}, st_lin: {}, st: {}'.format(w, st_neig, st_lin, st))
+
+        return st
 
 
 def get_stability_combined(models, models_names, mat_name, words_path=None, k=50, save_dir='results/',

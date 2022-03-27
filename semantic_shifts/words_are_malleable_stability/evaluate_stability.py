@@ -9,17 +9,14 @@ import fasttext
 from scipy import stats
 import numpy as np
 import matplotlib.pyplot as plt
+
+################### common parameters for all images ###################
+plt.rcParams['figure.dpi'] = 300
+################### end of common parameters         ###################
+
 import seaborn as sns
 import pandas as pd
 import csv
-# import sentiment word analysis related topics
-import nltk
-from nltk.corpus import wordnet as wn
-from nltk.corpus import sentiwordnet as swn
-from nltk.stem import WordNetLemmatizer
-from nltk.corpus import stopwords
-from deep_translator import GoogleTranslator
-from ar_corrector.corrector import Corrector
 import time
 import argparse
 
@@ -302,12 +299,8 @@ def get_ranks(stability_combined, stability_neighbors, stability_linear):
     return ranks_combined, ranks_neigh, ranks_lin
 
 
-# cannot decide yet on summary because our words are oov and nearest
-# neighs of oov are also oov, should we also get stability values
-# for these ?
-
 def get_contrastive_viewpoint_summary(w, n, k, models, mat_name, dir_name_matrices,
-                                      save_dir, file_name, viewpoint1_name='1982', viewpoint2_name='1983',
+                                      save_dir, file_name, viewpoints_names,
                                       thresh=0.5):
     """ get a contrastive viewpoint summary of a word of length n. For a certain
         word:
@@ -315,6 +308,7 @@ def get_contrastive_viewpoint_summary(w, n, k, models, mat_name, dir_name_matric
         2. Then for each nearest neighbor, we add it into the summary if its stability is equal to or less than a certain threshold.
     """
     summary1, summary2, summary3 = [], [], []
+    all_summaries = []
 
     nns1 = [n[1] for n in models[0].get_nearest_neighbors(w, k)]
     nns2 = [n[1] for n in models[1].get_nearest_neighbors(w, k)]
@@ -325,7 +319,7 @@ def get_contrastive_viewpoint_summary(w, n, k, models, mat_name, dir_name_matric
         for nn in nns3:
             if count == n:
                 break
-            st = get_stability_combined_one_word(w=nn, models=models, mat_name=mat_name, dir_name_matrices=dir_name_matrices, k=k)
+            st = get_stability_combined_one_word(w=nn, models=models, models_names=viewpoints_names, mat_name=mat_name, dir_name_matrices=dir_name_matrices, k=k)
 
             if abs(st) <= thresh:
                 summary3.append((st, nn))
@@ -336,47 +330,45 @@ def get_contrastive_viewpoint_summary(w, n, k, models, mat_name, dir_name_matric
         if count == n:
             break
 
-        st = get_stability_combined_one_word(w=nn, models=models, mat_name=mat_name, dir_name_matrices=dir_name_matrices, k=k)
+        st = get_stability_combined_one_word(w=nn, models=models, models_names=viewpoints_names, mat_name=mat_name, dir_name_matrices=dir_name_matrices, k=k)
         if st <= thresh:
             summary1.append((st, nn))
             count += 1
+    all_summaries.append(summary1)
+
     count = 0
     for nn in nns2:
         if count == n:
             break
 
-        st = get_stability_combined_one_word(w=nn, models=models, mat_name=mat_name, dir_name_matrices=dir_name_matrices, k=k)
+        st = get_stability_combined_one_word(w=nn, models=models, models_names=viewpoints_names, mat_name=mat_name, dir_name_matrices=dir_name_matrices, k=k)
 
         if abs(st) <= thresh:
             summary2.append((st, nn))
             count += 1
+    all_summaries.append(summary2)
+    if len(models) > 2:
+        all_summaries.append(summary3)
 
     mkdir(save_dir)
     with open(os.path.join(save_dir, '{}.txt'.format(file_name)), 'a', encoding='utf-8') as f:
-        f.write('w: {}\n'.format(w))
-        f.write('viewpoint {}\n'.format(viewpoint1_name))
-        for i, s in enumerate(summary1):
-            if i % 10 != 0 or i == 0:
-                f.write(s[1] + ", ")
-            else:
-                f.write(s[1] + "\n")
-        f.writelines('\n')
-        f.writelines('\n')
-        f.writelines('-------------------------------------------------------------------------------------------\n')
-        f.write('w: {}\n'.format(w))
-        f.write('viewpoint {}\n'.format(viewpoint2_name))
-        for i, s in enumerate(summary2):
-            if i % 10 != 0 or i == 0:
-                f.write(s[1] + ", ")
-            else:
-                f.write(s[1] + "\n")
-        f.writelines('\n')
-        f.writelines('\n')
-        f.writelines('========================================================================================================================================')
+        for j in range(len(viewpoints_names)):
+            f.write('w: {}\n'.format(w))
+            f.write('viewpoint {}\n'.format(viewpoints_names[j]))
+            for i, s in enumerate(all_summaries[j]):
+                if i % 10 != 0 or i == 0:
+                    f.write(s[1] + ", ")
+                else:
+                    f.write(s[1] + "\n")
+            f.writelines('\n')
+            f.writelines('\n')
+            f.writelines('-------------------------------------------------------------------------------------------\n')
+        f.writelines('==================================================== END OF SUMMARIES FOR WORD {} =================================================================================='.format(w))
         f.writelines('\n')
     f.close()
 
-    return summary1, summary2
+    # if summary3 is [], it will be returned as such
+    return summary1, summary2, summary3
 
 
 def perform_paired_t_test(ranks_comb, ranks_neigh, ranks_lin, save_dir, file_name):
@@ -429,6 +421,7 @@ def read_keywords(file_path):
     with open(file_path, 'r', encoding='utf-8') as f:
         words = f.readlines()
     words = [w[:-1] for w in words if '\n' in w]
+    words = [w for w in words if w.strip() != '']
     return words
 
 
@@ -443,58 +436,81 @@ def save_summary(original_word, summary, year, save_dir, filename):
     f.close()
 
 
-def store_summary_corrections(summary, save_dir, filename):
-    t1 = time.time()
-    corr = Corrector()
-    corrections = {}
-    words = [w[1] for w in summary]
-    for w in words:
-        corrections[w] = []
-        print('w: {}'.format(w))
+# def store_summary_corrections(summary, save_dir, filename):
+#     t1 = time.time()
+#     corr = Corrector()
+#     corrections = {}
+#     words = [w[1] for w in summary]
+#     for w in words:
+#         corrections[w] = []
+#         print('w: {}'.format(w))
+#
+#         # if the word is correct then no need for doing any corrections
+#         check = input('does the word {} have a correct spelling ?'.format(w))
+#         if check == 'y':
+#             corrections[w].append(w)
+#             continue
+#
+#         # if the word contains a space then its a phrase (i.e more than one word)
+#         if ' ' in w:
+#             corrc = corr.contextual_correct(w)
+#             print('correction: {}'.format(corrc))
+#             include = input('is {} a correct word to include?'.format(corrc))
+#             if include == 'y':
+#                 corrections[w].append(corrc)
+#         else:
+#             for i in range(1, len(w)):
+#                 new_str = w[:i] + ' ' + w[i:]
+#                 print(new_str)
+#                 corrc = corr.contextual_correct(new_str)
+#                 include = input('is {} a correct word to include?'.format(corrc))
+#                 if include == 'y':
+#                     corrections[w].append(corrc)
+#                     cont = input('would you like to continue (y) or move to another word (n)?')
+#                     if cont == 'y':
+#                         continue
+#                     else:  # move to another word
+#                         break
+#                 print('------------------------------')
+#             if corrections[w] == []:
+#                 addwordmanually = input('Do you want to manually add the correction for word {}'.format(w))
+#                 if addwordmanually == 'y':
+#                     wordfromuser = input('Please insert the correction: ')
+#                     corrections[w].append(wordfromuser)
+#                     print('------------------------------')
+#         print('=================================================')
+#     t2 = time.time()
+#     print('time taken: {} mins'.format((t2 - t1) / 60))
+#     for k, v in corrections.items():
+#         print('{}: {}'.format(k, v))
+#         print('???????????????????????????')
+#     mkdir(save_dir)
+#     with open(os.path.join(save_dir, '{}.pkl'.format(filename)), 'wb') as f:
+#         pickle.dump(corrections, f)
+#     return corrections
 
-        # if the word is correct then no need for doing any corrections
-        check = input('does the word {} have a correct spelling ?'.format(w))
-        if check == 'y':
-            corrections[w].append(w)
-            continue
 
-        # if the word contains a space then its a phrase (i.e more than one word)
-        if ' ' in w:
-            corrc = corr.contextual_correct(w)
-            print('correction: {}'.format(corrc))
-            include = input('is {} a correct word to include?'.format(corrc))
-            if include == 'y':
-                corrections[w].append(corrc)
-        else:
-            for i in range(1, len(w)):
-                new_str = w[:i] + ' ' + w[i:]
-                print(new_str)
-                corrc = corr.contextual_correct(new_str)
-                include = input('is {} a correct word to include?'.format(corrc))
-                if include == 'y':
-                    corrections[w].append(corrc)
-                    cont = input('would you like to continue (y) or move to another word (n)?')
-                    if cont == 'y':
-                        continue
-                    else:  # move to another word
-                        break
-                print('------------------------------')
-            if corrections[w] == []:
-                addwordmanually = input('Do you want to manually add the correction for word {}'.format(w))
-                if addwordmanually == 'y':
-                    wordfromuser = input('Please insert the correction: ')
-                    corrections[w].append(wordfromuser)
-                    print('------------------------------')
-        print('=================================================')
-    t2 = time.time()
-    print('time taken: {} mins'.format((t2 - t1) / 60))
-    for k, v in corrections.items():
-        print('{}: {}'.format(k, v))
-        print('???????????????????????????')
+def plot_stabilities_over_time(w, stabilities_over_time, mode, save_dir, fig_name):
+    stabilities = []
+    for tp in stabilities_over_time: # tp meaning time_point
+        st = stabilities_over_time[tp][w]
+        stabilities.append(st)
+
+    plt.plot(list(stabilities_over_time.keys()), stabilities)
+    type_analysis = 'diachronic' if mode[:2] == 'd-' else 'synchronic'
+    archive = mode[2:] if mode != 's' else None
+    word_proc = bidialg.get_display(arabic_reshaper.reshape(w))
+    if archive is not None:
+        xlab = 'time points of the stability for the word {} in {} archive - {} analysis'.format(word_proc, archive, type_analysis)
+    else:
+        xlab = 'time points of the stability for the word {} - {} analysis'.format(word_proc, type_analysis)
+    plt.xlabel(xlab)
+    plt.ylabel('stability')
+    plt.xticks(rotation=45)
     mkdir(save_dir)
-    with open(os.path.join(save_dir, '{}.pkl'.format(filename)), 'wb') as f:
-        pickle.dump(corrections, f)
-    return corrections
+    plt.savefig(os.path.join(save_dir, fig_name + '.png'))
+    plt.savefig(os.path.join(save_dir, fig_name + '.pdf'))
+    plt.close()
 
 
 if __name__ == '__main__':
@@ -502,181 +518,140 @@ if __name__ == '__main__':
     parser.add_argument('--models_path1', default='D:/fasttext_embeddings/ngrams4-size300-window5-mincount100-negative15-lr0.001/ngrams4-size300-window5-mincount100-negative15-lr0.001/', help='path to trained models files')
     parser.add_argument('--models_path2', default='D:/fasttext_embeddings/ngrams4-size300-window5-mincount100-negative15-lr0.001/ngrams4-size300-window5-mincount100-negative15-lr0.001/', help='path to trained models files of viewpoint 2. If not None, then analysis will be synchronic, else, analysis will be diachronic')
     parser.add_argument('--models_path3', default=None, help='path to trained models files of viewpoint 3. If not None, then analysis will be synchronic, else, analysis will be diachronic')
-
     parser.add_argument('--keywords_path', default='from_DrFatima/sentiment_keywords.txt')
+    parser.add_argument("--mode", default="s", help="mode: \'d-archivename\' for diachronic, \'s\' for synchronic")
 
-    parser.add_argument("--model1", default='2007.bin', help="model 1 file name")
-    parser.add_argument("--model2", default='2007.bin', help="model 2 file name")
-    parser.add_argument("--model3", default='2007.bin', help="model 3 file name")
-
-    parser.add_argument("--model1_name", default="nahar_00",   help="string to name model 1 - used for saving results")
-    parser.add_argument("--model2_name", default="assafir_00", help="string to name model 2 - used for saving results")
-    parser.add_argument("--model2_name", default="hayat_00",   help="string to name model 3 - used for saving results")
     args = parser.parse_args()
 
     path1 = args.models_path1
-    path2 = args.models_path1
+    path2 = args.models_path2
     path3 = args.models_path3
 
     # for sentiment
     sentiment_words = read_keywords(args.keywords_path)
 
-    years = list(range(1983, 2011))
-    # years = list(range(1983, 2009))
-    # years = list(range(1998, 2009))
-    # years = list(range(2003, 2009))
-    yearsforfigs = ['{}-{}'.format(y-1, y) for y in years]
-    fig_name_prefixes = [
-        'nahar_{}_{}'.format(y - 1, y) for y in years
-    ]
-    fig_name_general_prefix = 'nahar'
+    # absolute prefix of any path on the hpc cluster
+    # prefix = '/scratch/7613491_hkg02/political_discourse_mining_hiyam/semantic_shifts_modified/'
 
-    # paths = [
-    #     'E:/fasttext_embeddings/results_diachronic/nahar_{}_nahar_{}/t1k100/'.format(y - 1, y) for y in years
-    # ]
-    paths = [
-        # 'E:/fasttext_embeddings/results_diachronic_new/nahar/nahar_{}_nahar_{}/t1k100/'.format(y - 1, y) for y in years
-        'E:/results_diachronic_new/assafir/assafir_{}_assafir_{}/t1k100/'.format(y - 1, y) for y in years
-    ]
+    # key is mode, value is start and end years
+    dict_years = {
+        'd-nahar': {
+            'start': 1983,
+            'end': 2009,
+            'years': [[y - 1, y] for y in list(range(1983, 2010))],
+            'paths': ['stability_diachronic/nahar/nahar_{}_nahar_{}/'.format(y - 1, y) for y in list(range(1983, 2010))],
+            'viewpoints': [['nahar_{}'.format(y - 1), 'nahar_{}'.format(y)] for y in list(range(1983, 2010))],
+            'models': [['{}.bin'.format(y - 1), '{}.bin'.format(y)] for y in list(range(1983, 2010))],
+            'time_points': ['{}-{}'.format(y - 1, y) for y in list(range(1983, 2010))]
+        },
+        'd-assafir': {
+            'start': 1983,
+            'end': 2011,
+            'years': [[y-1, y] for y in list(range(1983, 2012))],
+            'paths': ['stability_diachronic/assafir/assafir_{}_assafir_{}/'.format(y - 1, y) for y in list(range(1983, 2012))],
+            'viewpoints': [['assafir_{}'.format(y - 1), 'assafir_{}'.format(y)] for y in list(range(1983, 2012))],
+            'models': [['{}.bin'.format(y - 1), '{}.bin'.format(y)] for y in list(range(1983, 2012))],
+            'time_points': ['{}-{}'.format(y - 1, y) for y in list(range(1983, 2012))]
+        },
+        'd-hayat': {
+            'start': 1988,
+            'end': 2000,
+            'years': [[y - 1, y] for y in list(range(1989, 2001))],
+            'paths': ['stability_diachronic/hayat/hayat_{}_hayat_{}/'.format(y - 1, y) for y in list(range(1989, 2001))],
+            'viewpoints': [['hayat_{}'.format(y - 1), 'hayat_{}'.format(y)] for y in list(range(1989, 2001))],
+            'models': [['{}.bin'.format(y - 1), '{}.bin'.format(y)] for y in list(range(1989, 2001))],
+            'time_points': ['{}-{}'.format(y - 1, y) for y in list(range(1989, 2001))]
+        },
+        's': {
+            'start': 1988,
+            'end': 2000,
+            'years': [[y, y, y] for y in list(range(1988, 2001))],
+            'paths': ['stability_synchronic/nahar_{}_assafir_{}_hayat_{}/'.format(y, y, y) for y in list(range(1988, 2001))],
+            'viewpoints': [['nahar_{}'.format(y), 'assafir_{}'.format(y), 'hayat_{}'.format(y)] for y in list(range(1988, 2001))],
+            'models': [['{}.bin'.format(y), '{}.bin'.format(y), '{}.bin'.format(y)] for y in list(range(1988, 2001))],
+            'time_points': ['{}'.format(y) for y in list(range(1988, 2001))]
+        }
+    }
 
-    # stability_dicts_combined = []
-    # stability_dicts_neighbor = []
-    # stability_dicts_linear = []
-    # results_dir = 'output_diachronic/'
-    # results_dir = 'output_diachronic_new/nahar/'
-    results_dir = 'output_diachronic_new/assafir/'
+    mode = args.mode
+    paths = dict_years[mode]['paths']
+    stabilities_over_time = {}
+    results_dir = 'evaluate_stability/{}/'.format(mode)
 
-    # # to store all summaries of all words
-    # if not os.path.exists('all_summaries.pkl'):
-    #     all_summaries = {}
-    # else:
-    #     with open('all_summaries.pkl', 'rb') as handle:
-    #         all_summaries = pickle.load(handle)
     for i, path in enumerate(paths):
         if os.path.exists(path):
-            dict_combined = os.path.join(path, 'stabilities_combined.pkl')
+            dict_combined = os.path.join(path + 'k100/', 'stabilities_combined.pkl')
             print('path: {}'.format(path))
 
+            models2load = dict_years[mode]['models'][i]
+            viewpoints = dict_years[mode]['viewpoints'][i]
+            years2load = dict_years[mode]['years'][i]
+            time_point = dict_years[mode]['time_points'][i]
+
+            stabilities_over_time[time_point] = {}
+
             if os.path.exists(dict_combined):
-                print('combined:')
-                # load pickle file of stabilities
-                with open(dict_combined, 'rb') as handle:
+                with open(dict_combined, 'rb') as handle: # load pickle file of stability dictionary
                     stabilities_comb = pickle.load(handle)
-                print('================================================================')
+                    print('loaded the stability dictionary for time point {} in mode: {}'.format(time_point, mode))
 
-            model1 = fasttext.load_model(os.path.join(path1, '{}.bin'.format(years[i]-1)))
-            model2 = fasttext.load_model(os.path.join(path2, '{}.bin'.format(years[i])))
+            stabilities_over_time[time_point] = stabilities_comb # store the stability values for a particular time point
 
-            # dir_name_matrices = 'E:/fasttext_embeddings/results_diachronic/nahar_{}_nahar_{}/linear_numsteps80000/matrices/'.format(str(years[i]-1), str(years[i]))
-            # dir_name_matrices = 'E:/fasttext_embeddings/results_diachronic_new/nahar/nahar_{}_nahar_{}/linear_numsteps80000/matrices/'.format(str(years[i] - 1), str(years[i]))
-            dir_name_matrices = 'E:/results_diachronic_new/assafir/assafir_{}_assafir_{}/linear_numsteps80000/matrices/'.format(str(years[i] - 1), str(years[i]))
+            models = [] # to store loaded models inside an array to pass to the get_summaries method
+            model1 = fasttext.load_model(os.path.join(path1, '{}'.format(models2load[0])))
+            model2 = fasttext.load_model(os.path.join(path2, '{}'.format(models2load[1])))
 
-            # create a mapping between word and a numeric index
-            word2idx = dict(zip(sentiment_words, list(range(len(sentiment_words)))))
+            models.append(model1)
+            models.append(model2)
+            if len(models2load) > 2:
+                model3 = fasttext.load_model(os.path.join(path3, '{}'.format(models2load[2])))
+                models.append(model3)
+
+            dir_name_matrices = '{}/linear_numsteps80000/matrices/'.format(path)
+
             years_checked = {}
             for z, w in enumerate(sentiment_words):
 
-                summary_v1, summary_v2 = get_contrastive_viewpoint_summary(w, n=20, k=100, model1=model1, model2=model2,
+                summary_v1, summary_v2, summary_v3 = get_contrastive_viewpoint_summary(w, n=20, k=100,
+                                                                           models=models,
                                                                            mat_name='trans',
                                                                            dir_name_matrices=dir_name_matrices,
                                                                            save_dir=results_dir + 'summaries/',
                                                                            file_name='sentiment_keywords',
-                                                                           viewpoint1_name='{}'.format(years[i] - 1),
-                                                                           viewpoint2_name='{}'.format(years[i]),
+                                                                           viewpoints_names=viewpoints,
                                                                            thresh=0.5)
-                                                                           # thresh=0.6)
-
-                # # 1) although we dont have sentences (POS is imp for entiment analysis, which can be determined in the context of a sentence)
-                # # but bcz of ocr errors two words are connected to each other, we separate them, this can be understood as a sentence
-                # # 2) should we determine pos/neg ? bcz positive in viewpoint 1 might be negative in viewpoint 2 ? rather; focus on objectivity !!!!!!!
-                # # 3) how to detemine sentiment of countries ? (THEY CARRY SENTIMENT) - like israeli-syrian, or israel, or palestine ?
-                #
-                # # apply OCR error correction manually for each summary (i.e. for each neighbor, in each summary)
-                # if str(years[i] - 1) not in all_summaries[w]:
-                #     all_summaries[w][str(years[i] - 1)] = {}
-                #     print('storing corrected summaries of {} for viewpoint {}'.format(w, str(years[i] - 1)))
-                #     corrections = store_summary_corrections(summary_v1, save_dir=results_dir + 'summaries/sentiment_keywords/',
-                #                               filename='{}_{}'.format(word2idx[w], str(years[i] - 1)))
-                #     all_summaries[w][str(years[i] - 1)] = corrections
-                #
-                # if str(years[i]) not in all_summaries[w]:
-                #     all_summaries[w][str(years[i])] = {}
-                #     print('storing corrected summaries of {} for viewpoint {}'.format(w, str(years[i])))
-                #     corrections = store_summary_corrections(summary_v2, save_dir=results_dir + 'summaries/sentiment_keywords/',
-                #                               filename='{}_{}'.format(str(word2idx[w]), str(years[i])))
-                #     all_summaries[w][str(years[i])] = corrections
-                #
-                # with open('all_summaries.pkl', 'wb') as f:
-                #     pickle.dump(all_summaries, f)
-
-                # save the neighbors of each summary (un -orrected ones) to a txt file for manual (human-only) correction
                 if w not in years_checked:
                     years_checked[w] = []
 
-                if years[i] - 1 not in years_checked[w]:
-                    # save_summary(original_word=w, summary=summary_v1, year=years[i] - 1, save_dir='summaries/manual/', filename='summaries_azarbonyad')
-                    # save_summary(original_word=w, summary=summary_v1, year=years[i] - 1, save_dir='summaries_new/manual/nahar/', filename='summaries_azarbonyad')
-                    save_summary(original_word=w, summary=summary_v1, year=years[i] - 1, save_dir='summaries_new/manual/assafir/', filename='summaries_azarbonyad')
-                    years_checked[w].append(years[i] - 1)
+                if years2load[0] not in years_checked[w]:
+                    save_summary(original_word=w, summary=summary_v1, year=years2load[0], save_dir=results_dir + 'summaries/', filename='summaries_azarbonyad')
+                    years_checked[w].append(years2load[0])
 
-                if years[i] not in years_checked[w]:
-                    # save_summary(original_word=w, summary=summary_v2, year=years[i], save_dir='summaries/manual/', filename='summaries_azarbonyad')
-                    # save_summary(original_word=w, summary=summary_v2, year=years[i], save_dir='summaries_new/manual/nahar/', filename='summaries_azarbonyad')
-                    save_summary(original_word=w, summary=summary_v2, year=years[i], save_dir='summaries_new/manual/assafir/', filename='summaries_azarbonyad')
-                    years_checked[w].append(years[i])
+                if years2load[1] not in years_checked[w]:
+                    save_summary(original_word=w, summary=summary_v2, year=years2load[1], save_dir=results_dir + 'summaries/', filename='summaries_azarbonyad')
+                    years_checked[w].append(years2load[1])
 
-            # ranks_comb, ranks_neigh, ranks_lin = get_ranks(stability_combined=stabilities_comb,
-            #                                                stability_neighbors=stabilities_neigh,
-            #                                                stability_linear=stabilities_lin)
-            # # paired two tail t-test
-            # perform_paired_t_test(ranks_comb, ranks_neigh, ranks_lin, save_dir=results_dir + 'significance/',
-            #                       file_name=fig_name_general_prefix + '-' + str(yearsforfigs[i]))
-            #
-            # # delta of the ranks between neighbors and linear vs. combination
-            # plot_delta_ranks_words(ranks_comb, ranks_neigh, ranks_lin, ethnicities,
-            #                        save_dir=results_dir + 'delta_ranks/', fig_name=fig_name_prefixes[i] + '_ethnicities')
-            # plot_delta_ranks_words(ranks_comb, ranks_neigh, ranks_lin, ideologies,
-            #                        save_dir=results_dir + 'delta_ranks/', fig_name=fig_name_prefixes[i] + '_ideologies')
-            # plot_delta_ranks_words(ranks_comb, ranks_neigh, ranks_lin, political_parties,
-            #                        save_dir=results_dir + 'delta_ranks/', fig_name=fig_name_prefixes[i] + '_political_parties')
-            # plot_delta_ranks_words(ranks_comb, ranks_neigh, ranks_lin, politicians,
-            #                        save_dir=results_dir + 'delta_ranks/', fig_name=fig_name_prefixes[i] + '_politicians')
-            # # plot_delta_ranks_words(ranks_comb, ranks_neigh, ranks_lin, israeli_leaders,
-            # #                        save_dir=results_dir + 'delta_ranks/', fig_name=fig_name_prefixes[i] + '_israeli_leaders')
-            #
-            # save_heads_tails_all(stabilities_comb=stabilities_comb, stabilities_neigh=stabilities_neigh,
-            #                      stabilities_lin=stabilities_lin, n=50, verbose=False,
-            #                      save_heads_tails=True,
-            #                      save_dir=results_dir + 'heads_tails/',
-            #                      file_name=fig_name_general_prefix + str(years[i]))
+                if summary_v3 != []:
+                    if years2load[2] not in years_checked[w]:
+                        save_summary(original_word=w, summary=summary_v3, year=years2load[2], save_dir=results_dir + 'summaries/', filename='summaries_azarbonyad')
+                        years_checked[w].append(years2load[2])
 
-    # # heatmap of stability values for each word of interest
-    # generate_stability_heatmap(ethnicities, stability_dicts_combined, stability_dicts_neighbor,
-    #                            stability_dicts_linear,
-    #                            years=yearsforfigs,
-    #                            save_dir=results_dir + 'heatmap/', fig_name=fig_name_general_prefix + '_ethnicities')
-    #
-    # generate_stability_heatmap(ideologies, stability_dicts_combined, stability_dicts_neighbor,
-    #                            stability_dicts_linear,
-    #                            years=yearsforfigs,
-    #                            save_dir=results_dir + 'heatmap/', fig_name=fig_name_general_prefix + '_ideologies')
-    #
-    # generate_stability_heatmap(political_parties, stability_dicts_combined, stability_dicts_neighbor,
-    #                            stability_dicts_linear,
-    #                            years=yearsforfigs,
-    #                            save_dir=results_dir + 'heatmap/', fig_name=fig_name_general_prefix + '_political_parties')
-    #
-    # generate_stability_heatmap(politicians, stability_dicts_combined, stability_dicts_neighbor,
-    #                            stability_dicts_linear,
-    #                            years=yearsforfigs,
-    #                            save_dir=results_dir + 'heatmap/', fig_name=fig_name_general_prefix + '_politicians')
-    # # generate_stability_heatmap(israeli_leaders, stability_dicts_combined, stability_dicts_neighbor,
-    # #                            stability_dicts_linear,
-    # #                            years=yearsforfigs,
-    # #                            save_dir=results_dir + 'heatmap/', fig_name=fig_name_general_prefix + '_israeli_leaders')
-    #
-    # # jaccard similarity between the tails of the stability dictionaries across years
-    # plot_jaccard_similarity_tails(stability_dicts_combined,
-    #                               stability_dicts_neighbor,
-    #                               stability_dicts_linear,
-    #                               n_sizes=list(range(10000, 110000, 10000)),
+    # a dictionary mapping word in Arabic to a 'temporary name' in English
+    # to make it easier to save plots and retrieve them
+    # later on in latex (for reporting)
+    mapar2en = {
+        'الولايات المتحده الاميركيه': 'UnitedStatesofAmerica',
+        'اميركا': 'America',
+        'اسرائيل': 'Israel',
+        'فلسطيني': 'Palestinian',
+        'حزب الله': 'Hezbollah',
+        'المقاومه': 'Resistance',
+        'سوري': 'Syrian',
+        'منظمه التحرير الفلسطينيه': 'PalestinianLiberationOrganization',
+        'ايران': 'Iran',
+        'السعوديه': 'Saudiya'
+    }
+
+    # plot the stability as a function of time for each word
+    for w in sentiment_words:
+        plot_stabilities_over_time(w, stabilities_over_time, mode, results_dir + 'stability_plots/', mapar2en[w])
