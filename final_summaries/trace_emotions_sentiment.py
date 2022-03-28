@@ -6,6 +6,8 @@ import os
 from manual_corrections_azarbonyad import azarbonyad
 import numpy.ma as ma
 import matplotlib.cm as cm
+from bidi import algorithm as bidialg
+import arabic_reshaper
 
 
 def collect_summaries(stored_summaries, emotions_sentiment_ar, years):
@@ -88,8 +90,10 @@ if __name__ == '__main__':
         assafir = pickle.load(handle)
 
     # years of interest for Nahar archive vs. Assafir archive
-    years_nahar = ['1982', '1983', '1984', '1985', '1986', '1987', '1998', '1999', '2000', '2001', '2006', '2007', '2008', '2009']
-    years_assafir = ['1982', '1983', '1984', '1985', '1986', '1987', '1998', '1999', '2000', '2001', '2006', '2007', '2008', '2009', '2010', '2011']
+    # years_nahar = ['1982', '1983', '1984', '1985', '1986', '1987', '1998', '1999', '2000', '2001', '2006', '2007', '2008', '2009']
+    # years_assafir = ['1982', '1983', '1984', '1985', '1986', '1987', '1998', '1999', '2000', '2001', '2006', '2007', '2008', '2009', '2010', '2011']
+    years_nahar = list(range(1982, 2010))
+    years_assafir = list(range(1982, 2012))
 
     # change summaries to their corrected form (spelling error correction done manually)
     summaries_nahar = collect_summaries(nahar, emotions_sentiment_ar, years_nahar)
@@ -134,46 +138,68 @@ if __name__ == '__main__':
     plots_folder = 'final_plots/'
 
     # map arabic words to english words for plotting purposes
-    mappings = {
-        'اسرائيل': 'israel',
-        'السعوديه': 'saudiarabia',
-        'المقاومه': 'mukawama',
-        'ايران': 'iran',
-        'حزب الله': 'hezbollah',
-        'رفيق الحريري': 'hariri',
-        'سوري': 'syrian',
-        'فلسطيني': 'palestinian',
-        'منظمه التحرير الفلسطينيه': 'munazama',
-        'ياسر عرفات': 'arafat',
+    x_titles = {
+        'اسرائيل': 'Israel',
+        'السعوديه': 'Saudi Arabia',
+        'المقاومه': 'Mukawama = {}'.format(bidialg.get_display(arabic_reshaper.reshape('المقاومه'))),
+        'ايران': 'Iran',
+        'حزب الله': 'Hezbollah={}'.format(bidialg.get_display(arabic_reshaper.reshape('حزب الله'))),
+        'رفيق الحريري': 'Rafik Hariri',
+        'سوري': 'Syrian',
+        'فلسطيني': 'Palestinian',
+        'منظمه التحرير الفلسطينيه': 'Munazama={}'.format(bidialg.get_display(arabic_reshaper.reshape('منظمه التحرير الفلسطينيه'))),
+        'ياسر عرفات': 'Arafat={}'.format(bidialg.get_display(arabic_reshaper.reshape('عرفات'))),
     }
 
-    # line plots
-    for w in avg_scores_yearly_nahar:
-        years = list(range(1982, 2012))
-        years = [str(y) for y in years]
-        colors = cm.rainbow(np.linspace(0, 1, len(emotions_aggregated)))
-        count = 0
-        for em in emotions_aggregated:
-            em_over_years = [avg_scores_yearly_nahar[w][year][em] if year in avg_scores_yearly_nahar[w] else None for year in years]
-            idxs_nonvalid = [i for i, _ in enumerate(em_over_years) if em_over_years[i] == None]
-            em_over_years = np.array(em_over_years)
-            mc = ma.array(em_over_years)
-            mc[idxs_nonvalid] = ma.masked
-            plt.plot(years, mc,  marker='o', color=colors[count], label=em + ': nahar')
+    mappings = {
+        'اسرائيل': 'Israel',
+        'السعوديه': 'Saudi Arabia',
+        'المقاومه': 'Mukawama',
+        'ايران': 'Iran',
+        'حزب الله': 'Hezbollah',
+        'رفيق الحريري': 'Rafik Hariri',
+        'سوري': 'Syrian',
+        'فلسطيني': 'Palestinian',
+        'منظمه التحرير الفلسطينيه': 'Munazama',
+        'ياسر عرفات': 'Arafat',
+    }
 
-            em_over_years = [avg_scores_yearly_assafir[w][year][em] if year in avg_scores_yearly_assafir[w] else None for year in years]
-            idxs_nonvalid = [i for i, _ in enumerate(em_over_years) if em_over_years[i] == None]
-            em_over_years = np.array(em_over_years)
-            mc = ma.array(em_over_years)
-            mc[idxs_nonvalid] = ma.masked
-            plt.plot(years, mc, marker='+', color=colors[count], label=em + ': assafir', linestyle='--')
+    fig, ax = plt.subplots(nrows=5, ncols=2)
+    allwords = list(avg_scores_yearly_nahar.keys())
+    countwords = 0
+    for row in ax:
+        for col in row:
+            w = allwords[countwords]
+            years = list(range(1982, 2012))
+            years = [str(y) for y in years]
+            colors = cm.rainbow(np.linspace(0, 1, len(emotions_aggregated)))
+            count = 0
+            for em in emotions_aggregated:
+                em_over_years = [avg_scores_yearly_nahar[w][year][em] if year in avg_scores_yearly_nahar[w] else None for year in years]
+                idxs_nonvalid = [i for i, _ in enumerate(em_over_years) if em_over_years[i] == None]
+                em_over_years = np.array(em_over_years)
+                mc = ma.array(em_over_years)
+                mc[idxs_nonvalid] = ma.masked
+                col.plot(years, mc, marker='o', color=colors[count], label=em + ': nahar')
 
-            count += 1
+                em_over_years = [
+                    avg_scores_yearly_assafir[w][year][em] if year in avg_scores_yearly_assafir[w] else None for year in
+                    years]
+                idxs_nonvalid = [i for i, _ in enumerate(em_over_years) if em_over_years[i] == None]
+                em_over_years = np.array(em_over_years)
+                mc = ma.array(em_over_years)
+                mc[idxs_nonvalid] = ma.masked
+                col.plot(years, mc, marker='+', color=colors[count], label=em + ': assafir', linestyle='--')
 
-        plt.ylim([0, 0.5])
-        plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.05), ncol=3, fancybox=True, shadow=True)
-        plt.xticks(rotation=45)
-        fig = plt.gcf()
-        fig.set_size_inches(14, 5)
-        plt.savefig(os.path.join(plots_folder, '{}.png'.format(mappings[w.strip()])))
-        plt.close()
+                col.set_xlabel(x_titles[w.strip()])
+                count += 1
+
+            col.set_ylim([0, 0.5])
+            col.legend(loc='upper center', bbox_to_anchor=(0.5, 1.05), ncol=3, fancybox=True, shadow=True)
+            col.tick_params(axis='x', rotation=45)
+
+            countwords += 1
+
+    # fig.set_size_inches(14, 7)
+    plt.savefig(os.path.join(plots_folder, 'emotions_time.png'))
+    plt.close()
