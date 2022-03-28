@@ -490,23 +490,29 @@ def save_summary(original_word, summary, year, save_dir, filename):
 #     return corrections
 
 
-def plot_stabilities_over_time(w, stabilities_over_time, mode, save_dir, fig_name):
-    stabilities = []
-    for tp in stabilities_over_time: # tp meaning time_point
-        st = stabilities_over_time[tp][w]
-        stabilities.append(st)
+def plot_stabilities_over_time(words, stabilities_over_time, mode, save_dir, fig_name):
+    for w in words:
+        stabilities = []
+        for tp in stabilities_over_time: # tp meaning time_point
+            st = stabilities_over_time[tp][w]
+            stabilities.append(st)
+        w_proc = bidialg.get_display(arabic_reshaper.reshape(w))
+        plt.plot(list(stabilities_over_time.keys()), stabilities, label=w_proc)
 
-    plt.plot(list(stabilities_over_time.keys()), stabilities)
     type_analysis = 'diachronic' if mode[:2] == 'd-' else 'synchronic'
     archive = mode[2:] if mode != 's' else None
-    word_proc = bidialg.get_display(arabic_reshaper.reshape(w))
+    # word_proc = bidialg.get_display(arabic_reshaper.reshape(w))
     if archive is not None:
-        xlab = 'time points of the stability for the word {} in {} archive - {} analysis'.format(word_proc, archive, type_analysis)
+        xlab = 'time points of the stability in {} archive - {} analysis'.format(archive, type_analysis)
     else:
-        xlab = 'time points of the stability for the word {} - {} analysis'.format(word_proc, type_analysis)
+        xlab = 'time points of the stability - {} analysis'.format(type_analysis)
     plt.xlabel(xlab)
     plt.ylabel('stability')
     plt.xticks(rotation=45)
+    plt.legend()
+    plt.tick_params(axis='x', which='major', pad=1)
+    fig = plt.gcf()
+    fig.set_size_inches(12, 6)
     mkdir(save_dir)
     plt.savefig(os.path.join(save_dir, fig_name + '.png'))
     plt.savefig(os.path.join(save_dir, fig_name + '.pdf'))
@@ -519,7 +525,7 @@ if __name__ == '__main__':
     parser.add_argument('--models_path2', default='D:/fasttext_embeddings/ngrams4-size300-window5-mincount100-negative15-lr0.001/ngrams4-size300-window5-mincount100-negative15-lr0.001/', help='path to trained models files of viewpoint 2. If not None, then analysis will be synchronic, else, analysis will be diachronic')
     parser.add_argument('--models_path3', default=None, help='path to trained models files of viewpoint 3. If not None, then analysis will be synchronic, else, analysis will be diachronic')
     parser.add_argument('--keywords_path', default='from_DrFatima/sentiment_keywords.txt')
-    parser.add_argument("--mode", default="s", help="mode: \'d-archivename\' for diachronic, \'s\' for synchronic")
+    parser.add_argument("--mode", default="d-assafir", help="mode: \'d-archivename\' for diachronic, \'s\' for synchronic")
 
     args = parser.parse_args()
 
@@ -652,6 +658,18 @@ if __name__ == '__main__':
         'السعوديه': 'Saudiya'
     }
 
+    words_batch1 = ['فلسطيني', 'منظمه التحرير الفلسطينيه', 'المقاومه']
+    words_batch2 = ['السعوديه', 'الولايات المتحده الاميركيه', 'اميركا']
+    words_batch3 = ['اسرائيل']
+    words_batch4 = ['حزب الله', 'المقاومه', 'سوري',  'ايران']
+
     # plot the stability as a function of time for each word
-    for w in sentiment_words:
-        plot_stabilities_over_time(w, stabilities_over_time, mode, results_dir + 'stability_plots/', mapar2en[w])
+    # for w in sentiment_words:
+    #     plot_stabilities_over_time(w, stabilities_over_time, mode, results_dir + 'stability_plots/', mapar2en[w])
+
+    plot_stabilities_over_time(words_batch1, stabilities_over_time, mode, results_dir + 'stability_plots/', 'palestine_related')
+    plot_stabilities_over_time(words_batch2, stabilities_over_time, mode, results_dir + 'stability_plots/', 'america_related')
+    plot_stabilities_over_time(words_batch3, stabilities_over_time, mode, results_dir + 'stability_plots/', 'israel_related')
+    plot_stabilities_over_time(words_batch4, stabilities_over_time, mode, results_dir + 'stability_plots/', 'syrian_related')
+
+
