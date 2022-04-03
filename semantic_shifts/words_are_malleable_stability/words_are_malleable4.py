@@ -467,7 +467,7 @@ def get_stability_combined(models, models_names, mat_name, words_path=None, k=50
             words = f.readlines()
         words = [w[:-1] for w in words if '\n' in w]  # remove '\n'
         words = [w for w in words if w.strip() != '']
-        vocab = [w for w in words]
+        vocab = [w.strip() for w in words]
 
     print('len of vocab: {}'.format(len(vocab)))
     stabilities = {}
@@ -587,8 +587,6 @@ def get_stability_combined(models, models_names, mat_name, words_path=None, k=50
             for wp in nn1:
                 if wp in nn2:
                     ranks1[wp] = nn2.index(wp)  # index of wp in nn2
-                    if wp not in stabilities:
-                        stabilities[wp] = 1.0
                 else:
                     # if not present, it has no index
                     not_found1.append(wp)
@@ -598,17 +596,15 @@ def get_stability_combined(models, models_names, mat_name, words_path=None, k=50
             for wp in nn2:
                 if wp in nn1:
                     ranks2[wp] = nn1.index(wp)  # index of wp in nn1
-                    if wp not in stabilities:
-                        stabilities[wp] = 1.0
                 else:
                     # if not present, it has no index
                     not_found2.append(wp)
 
             sum_ranks1, sum_ranks2 = 0.0, 0.0
             for wp in ranks1:
-                sum_ranks1 += ranks1[wp] / stabilities[wp]
+                sum_ranks1 += ranks1[wp]
             for wp in ranks2:
-                sum_ranks2 += ranks2[wp] / stabilities[wp]
+                sum_ranks2 += ranks2[wp]
 
             Count_neig12 = (len(nn1) * len(inter)) - sum_ranks1
             Count_neig21 = (len(nn2) * len(inter)) - sum_ranks2
@@ -622,9 +618,8 @@ def get_stability_combined(models, models_names, mat_name, words_path=None, k=50
                 for wp in not_found1:
                     w_v = models[1].get_word_vector(w) if ' ' not in w else models[1].get_sentence_vector(w)
                     wp_v = models[0].get_word_vector(wp) if ' ' not in wp else models[0].get_sentence_vector(wp)
-                    if wp not in stabilities:
-                        stabilities[wp] = 1.0
-                    val = get_cosine_sim(R.dot(wp_v), w_v) * stabilities[wp]
+
+                    val = get_cosine_sim(R.dot(wp_v), w_v)
                     sim_lin01 += val
                     # print('{} - {} - {}'.format(w, wp, val))
                 sim_lin01 /= len(not_found1)
@@ -632,9 +627,8 @@ def get_stability_combined(models, models_names, mat_name, words_path=None, k=50
                 for wp in not_found2:
                     w_v = models[0].get_word_vector(w) if ' ' not in w else models[0].get_sentence_vector(w)
                     wp_v = models[1].get_word_vector(wp) if ' ' not in wp else models[1].get_sentence_vector(wp)
-                    if wp not in stabilities:
-                        stabilities[wp] = 1.0
-                    val = get_cosine_sim(R_inv.dot(wp_v), w_v) * stabilities[wp]
+
+                    val = get_cosine_sim(R_inv.dot(wp_v), w_v)
                     sim_lin10 += val
                     # print('{} - {} - {}'.format(w, wp, val))
                 sim_lin10 /= len(not_found2)
