@@ -3,10 +3,11 @@ import os
 from itertools import cycle
 from bidi import algorithm as bidialg
 import arabic_reshaper
-# from words_are_malleable import get_stability_combined_one_word
 from words_are_malleable4 import get_stability_combined_one_word
 import fasttext
+from scipy.signal import find_peaks
 from scipy import stats
+from collections import Counter
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -422,6 +423,7 @@ def read_keywords(file_path):
         words = f.readlines()
     words = [w[:-1] for w in words if '\n' in w]
     words = [w for w in words if w.strip() != '']
+    # words = [w.strip() for w in words]
     return words
 
 
@@ -436,68 +438,68 @@ def save_summary(original_word, summary, year, save_dir, filename):
     f.close()
 
 
-# def store_summary_corrections(summary, save_dir, filename):
-#     t1 = time.time()
-#     corr = Corrector()
-#     corrections = {}
-#     words = [w[1] for w in summary]
-#     for w in words:
-#         corrections[w] = []
-#         print('w: {}'.format(w))
-#
-#         # if the word is correct then no need for doing any corrections
-#         check = input('does the word {} have a correct spelling ?'.format(w))
-#         if check == 'y':
-#             corrections[w].append(w)
-#             continue
-#
-#         # if the word contains a space then its a phrase (i.e more than one word)
-#         if ' ' in w:
-#             corrc = corr.contextual_correct(w)
-#             print('correction: {}'.format(corrc))
-#             include = input('is {} a correct word to include?'.format(corrc))
-#             if include == 'y':
-#                 corrections[w].append(corrc)
-#         else:
-#             for i in range(1, len(w)):
-#                 new_str = w[:i] + ' ' + w[i:]
-#                 print(new_str)
-#                 corrc = corr.contextual_correct(new_str)
-#                 include = input('is {} a correct word to include?'.format(corrc))
-#                 if include == 'y':
-#                     corrections[w].append(corrc)
-#                     cont = input('would you like to continue (y) or move to another word (n)?')
-#                     if cont == 'y':
-#                         continue
-#                     else:  # move to another word
-#                         break
-#                 print('------------------------------')
-#             if corrections[w] == []:
-#                 addwordmanually = input('Do you want to manually add the correction for word {}'.format(w))
-#                 if addwordmanually == 'y':
-#                     wordfromuser = input('Please insert the correction: ')
-#                     corrections[w].append(wordfromuser)
-#                     print('------------------------------')
-#         print('=================================================')
-#     t2 = time.time()
-#     print('time taken: {} mins'.format((t2 - t1) / 60))
-#     for k, v in corrections.items():
-#         print('{}: {}'.format(k, v))
-#         print('???????????????????????????')
-#     mkdir(save_dir)
-#     with open(os.path.join(save_dir, '{}.pkl'.format(filename)), 'wb') as f:
-#         pickle.dump(corrections, f)
-#     return corrections
+def plot_stabilities_over_time_heatmpap(words_batches, stabilities_over_time, mode, save_dir, batch_names, fig_name):
+    temp = np.empty([len(words_batches), len(stabilities_over_time)])
+    stabilities = np.zeros_like(temp)
+
+    for i, batch in enumerate(words_batches):
+        for w in batch:
+            for j, tp in enumerate(stabilities_over_time):
+                st = stabilities_over_time[tp][w]
+                stabilities[i][j] += st
+
+    fig, ax = plt.subplots(figsize=(12, 4))
+    sns.heatmap(stabilities, linewidths=.5, yticklabels=batch_names)
+    ax.set_xticklabels(list(stabilities_over_time.keys()))
+
+    type_analysis = 'diachronic' if mode[:2] == 'd-' else 'synchronic'
+    archive = mode[2:] if mode != 's' else None
+    if archive is not None:
+        xlab = 'time points of the stability in {} archive - {} analysis'.format(archive, type_analysis)
+    else:
+        xlab = 'time points of the stability - {} analysis'.format(type_analysis)
+    plt.xticks(rotation=45)
+    plt.xlabel(xlab)
+    plt.ylabel('stability')
+    plt.tight_layout()
+    mkdir(save_dir)
+    plt.savefig(os.path.join(save_dir, fig_name + '.png'))
+    plt.savefig(os.path.join(save_dir, fig_name + '.pdf'))
+    plt.close()
 
 
-def plot_stabilities_over_time(words, stabilities_over_time, mode, save_dir, fig_name):
-    for w in words:
-        stabilities = []
-        for tp in stabilities_over_time: # tp meaning time_point
-            st = stabilities_over_time[tp][w]
-            stabilities.append(st)
-        w_proc = bidialg.get_display(arabic_reshaper.reshape(w))
-        plt.plot(list(stabilities_over_time.keys()), stabilities, label=w_proc)
+def plot_stabilities_over_time_lineplot(words_batches, stabilities_over_time, mode, save_dir, batch_names, fig_name):
+    # https://stats.stackexchange.com/questions/118033/best-series-of-colors-to-use-for-differentiating-series-in-publication-quality
+    # https://colorbrewer2.org/#type=qualitative&scheme=Paired&n=8
+    all_mins, all_maxs = [], []
+    for i, batch in enumerate(words_batches):
+        stabilities = [0 for _ in range(len(stabilities_over_time))]
+        for w in batch:
+            stabilities_temp = []
+            for tp in stabilities_over_time: # tp meaning time_point
+                st = stabilities_over_time[tp][w]
+                stabilities_temp.append(st)
+            stabilities = [orig + curr for orig, curr in zip(stabilities, stabilities_temp)]
+        # w_proc = bidialg.get_display(arabic_reshaper.reshape(w))
+
+        # find peaks and troughs
+        peaks, _ = find_peaks(np.array(stabilities))
+        mins, _ = find_peaks(np.array(stabilities) * -1)
+
+        # add the peaks and mins to an array
+        all_maxs.extend(peaks)
+        all_mins.extend(mins)
+
+        colors = ['#a6cee3', '#1f78b4', '#b2df8a', '#33a02c']
+        x = np.array(list(stabilities_over_time.keys()))
+        # plot stabilities over time with peaks and troughs marked
+        plt.plot(x, stabilities, label=batch_names[i], color=colors[i])
+        if i == len(words_batches) - 1:
+            plt.plot(x[mins], np.array(stabilities)[mins], color='#fb9a99', marker='o',  linestyle='None', label='mins')
+            plt.plot(x[peaks], np.array(stabilities)[peaks], color='#e31a1c', marker='o', linestyle='None', label='peaks')
+        else:
+            plt.plot(x[mins], np.array(stabilities)[mins], color='#fb9a99', marker='o',  linestyle='None')
+            plt.plot(x[peaks], np.array(stabilities)[peaks], color='#e31a1c', marker='o',  linestyle='None')
 
     type_analysis = 'diachronic' if mode[:2] == 'd-' else 'synchronic'
     archive = mode[2:] if mode != 's' else None
@@ -508,11 +510,38 @@ def plot_stabilities_over_time(words, stabilities_over_time, mode, save_dir, fig
         xlab = 'time points of the stability - {} analysis'.format(type_analysis)
     plt.xlabel(xlab)
     plt.ylabel('stability')
+    plt.ylim(-0.5, 1.5)
+
+    cnt1 = Counter(all_maxs)
+    cnt2 = Counter(all_mins)
+    maxs_to_mark = [k for k, v in cnt1.items() if v == len(words_batches)] # time points were peaks were found in all batches
+    mins_to_mark = [k for k, v in cnt2.items() if v == len(words_batches)] # time points were troughs were found in all batches
+
+    maxs_to_mark2 = [k for k, v in cnt1.items() if v > 2 and v < 4]
+    mins_to_mark2 = [k for k, v in cnt2.items() if v > 2 and v < 4]
+
+    if maxs_to_mark:
+        for mx in maxs_to_mark:
+            plt.axvline(x=x[mx], color='#fdbf6f', linestyle='--')
+
+    if mins_to_mark:
+        for mn in mins_to_mark:
+            plt.axvline(x=x[mn], color='#fdbf6f', linestyle='--')
+
+    if maxs_to_mark2:
+        for mx in maxs_to_mark2:
+            plt.axvline(x=x[mx], color='#ff7f00', linestyle='--')
+
+    if mins_to_mark2:
+        for mn in mins_to_mark2:
+            plt.axvline(x=x[mn], color='#ff7f00', linestyle='--')
+
     plt.xticks(rotation=45)
-    plt.legend()
-    plt.tick_params(axis='x', which='major', pad=1)
+    plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.05), ncol=len(words_batches), fancybox=True, shadow=True)
+    plt.tight_layout()
+    # plt.tick_params(axis='x', which='major', pad=1)
     fig = plt.gcf()
-    fig.set_size_inches(12, 6)
+    fig.set_size_inches(16, 6)
     mkdir(save_dir)
     plt.savefig(os.path.join(save_dir, fig_name + '.png'))
     plt.savefig(os.path.join(save_dir, fig_name + '.pdf'))
@@ -525,7 +554,7 @@ if __name__ == '__main__':
     parser.add_argument('--models_path2', default='D:/fasttext_embeddings/ngrams4-size300-window5-mincount100-negative15-lr0.001/ngrams4-size300-window5-mincount100-negative15-lr0.001/', help='path to trained models files of viewpoint 2. If not None, then analysis will be synchronic, else, analysis will be diachronic')
     parser.add_argument('--models_path3', default=None, help='path to trained models files of viewpoint 3. If not None, then analysis will be synchronic, else, analysis will be diachronic')
     parser.add_argument('--keywords_path', default='from_DrFatima/sentiment_keywords.txt')
-    parser.add_argument("--mode", default="d-assafir", help="mode: \'d-archivename\' for diachronic, \'s\' for synchronic")
+    parser.add_argument("--mode", default="d-nahar", help="mode: \'d-archivename\' for diachronic, \'s\' for synchronic")
 
     args = parser.parse_args()
 
@@ -603,44 +632,49 @@ if __name__ == '__main__':
 
             stabilities_over_time[time_point] = stabilities_comb # store the stability values for a particular time point
 
-            models = [] # to store loaded models inside an array to pass to the get_summaries method
-            model1 = fasttext.load_model(os.path.join(path1, '{}'.format(models2load[0])))
-            model2 = fasttext.load_model(os.path.join(path2, '{}'.format(models2load[1])))
+            if time_point == '1986-1987':
+                print(time_point)
+                for w in sentiment_words:
+                    print('{}: {}'.format(w, stabilities_comb[w]))
 
-            models.append(model1)
-            models.append(model2)
-            if len(models2load) > 2:
-                model3 = fasttext.load_model(os.path.join(path3, '{}'.format(models2load[2])))
-                models.append(model3)
-
-            dir_name_matrices = '{}/linear_numsteps80000/matrices/'.format(path)
-
-            years_checked = {}
-            for z, w in enumerate(sentiment_words):
-
-                summary_v1, summary_v2, summary_v3 = get_contrastive_viewpoint_summary(w, n=20, k=100,
-                                                                           models=models,
-                                                                           mat_name='trans',
-                                                                           dir_name_matrices=dir_name_matrices,
-                                                                           save_dir=results_dir + 'summaries/',
-                                                                           file_name='sentiment_keywords',
-                                                                           viewpoints_names=viewpoints,
-                                                                           thresh=0.5)
-                if w not in years_checked:
-                    years_checked[w] = []
-
-                if years2load[0] not in years_checked[w]:
-                    save_summary(original_word=w, summary=summary_v1, year=years2load[0], save_dir=results_dir + 'summaries/', filename='summaries_azarbonyad')
-                    years_checked[w].append(years2load[0])
-
-                if years2load[1] not in years_checked[w]:
-                    save_summary(original_word=w, summary=summary_v2, year=years2load[1], save_dir=results_dir + 'summaries/', filename='summaries_azarbonyad')
-                    years_checked[w].append(years2load[1])
-
-                if summary_v3 != []:
-                    if years2load[2] not in years_checked[w]:
-                        save_summary(original_word=w, summary=summary_v3, year=years2load[2], save_dir=results_dir + 'summaries/', filename='summaries_azarbonyad')
-                        years_checked[w].append(years2load[2])
+            # models = [] # to store loaded models inside an array to pass to the get_summaries method
+            # model1 = fasttext.load_model(os.path.join(path1, '{}'.format(models2load[0])))
+            # model2 = fasttext.load_model(os.path.join(path2, '{}'.format(models2load[1])))
+            #
+            # models.append(model1)
+            # models.append(model2)
+            # if len(models2load) > 2:
+            #     model3 = fasttext.load_model(os.path.join(path3, '{}'.format(models2load[2])))
+            #     models.append(model3)
+            #
+            # dir_name_matrices = '{}/linear_numsteps80000/matrices/'.format(path)
+            #
+            # years_checked = {}
+            # for z, w in enumerate(sentiment_words):
+            #
+            #     summary_v1, summary_v2, summary_v3 = get_contrastive_viewpoint_summary(w, n=20, k=100,
+            #                                                                models=models,
+            #                                                                mat_name='trans',
+            #                                                                dir_name_matrices=dir_name_matrices,
+            #                                                                save_dir=results_dir + 'summaries/',
+            #                                                                file_name='sentiment_keywords',
+            #                                                                viewpoints_names=viewpoints,
+            #                                                                thresh=0.5)
+            #     if w not in years_checked:
+            #         years_checked[w] = []
+            #
+            #     if years2load[0] not in years_checked[w]:
+            #         save_summary(original_word=w, summary=summary_v1, year=years2load[0], save_dir=results_dir + 'summaries/', filename='summaries_azarbonyad')
+            #         years_checked[w].append(years2load[0])
+            #
+            #     if years2load[1] not in years_checked[w]:
+            #         save_summary(original_word=w, summary=summary_v2, year=years2load[1], save_dir=results_dir + 'summaries/', filename='summaries_azarbonyad')
+            #         years_checked[w].append(years2load[1])
+            #
+            #     if summary_v3 != []:
+            #         if years2load[2] not in years_checked[w]:
+            #             save_summary(original_word=w, summary=summary_v3, year=years2load[2], save_dir=results_dir + 'summaries/', filename='summaries_azarbonyad')
+            #             years_checked[w].append(years2load[2])
 
     # a dictionary mapping word in Arabic to a 'temporary name' in English
     # to make it easier to save plots and retrieve them
@@ -658,18 +692,22 @@ if __name__ == '__main__':
         'السعوديه': 'Saudiya'
     }
 
-    words_batch1 = ['فلسطيني', 'منظمه التحرير الفلسطينيه', 'المقاومه']
+    words_batch1 = ['فلسطيني', 'منظمه التحرير الفلسطينيه']
     words_batch2 = ['السعوديه', 'الولايات المتحده الاميركيه', 'اميركا']
     words_batch3 = ['اسرائيل']
     words_batch4 = ['حزب الله', 'المقاومه', 'سوري',  'ايران']
-
+    words_batches = [words_batch1, words_batch2, words_batch3, words_batch4]
+    batch_names = ['palestine_related', 'america_related', 'israel_related', 'syrian_related']
     # plot the stability as a function of time for each word
     # for w in sentiment_words:
     #     plot_stabilities_over_time(w, stabilities_over_time, mode, results_dir + 'stability_plots/', mapar2en[w])
 
-    plot_stabilities_over_time(words_batch1, stabilities_over_time, mode, results_dir + 'stability_plots/', 'palestine_related')
-    plot_stabilities_over_time(words_batch2, stabilities_over_time, mode, results_dir + 'stability_plots/', 'america_related')
-    plot_stabilities_over_time(words_batch3, stabilities_over_time, mode, results_dir + 'stability_plots/', 'israel_related')
-    plot_stabilities_over_time(words_batch4, stabilities_over_time, mode, results_dir + 'stability_plots/', 'syrian_related')
+    plot_stabilities_over_time_lineplot(words_batches, stabilities_over_time, mode, results_dir + 'stability_plots/', batch_names=batch_names, fig_name='stability_line')
+    plot_stabilities_over_time_heatmpap(words_batches, stabilities_over_time, mode, results_dir + 'stability_plots/', batch_names=batch_names, fig_name='stability_heat')
+
+    # plot_stabilities_over_time(words_batch1, stabilities_over_time, mode, results_dir + 'stability_plots/', 'palestine_related')
+    # plot_stabilities_over_time(words_batch2, stabilities_over_time, mode, results_dir + 'stability_plots/', 'america_related')
+    # plot_stabilities_over_time(words_batch3, stabilities_over_time, mode, results_dir + 'stability_plots/', 'israel_related')
+    # plot_stabilities_over_time(words_batch4, stabilities_over_time, mode, results_dir + 'stability_plots/', 'syrian_related')
 
 
