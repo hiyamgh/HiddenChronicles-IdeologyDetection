@@ -554,7 +554,7 @@ if __name__ == '__main__':
     parser.add_argument('--models_path2', default='D:/fasttext_embeddings/ngrams4-size300-window5-mincount100-negative15-lr0.001/ngrams4-size300-window5-mincount100-negative15-lr0.001/', help='path to trained models files of viewpoint 2. If not None, then analysis will be synchronic, else, analysis will be diachronic')
     parser.add_argument('--models_path3', default=None, help='path to trained models files of viewpoint 3. If not None, then analysis will be synchronic, else, analysis will be diachronic')
     parser.add_argument('--keywords_path', default='from_DrFatima/sentiment_keywords.txt')
-    parser.add_argument("--mode", default="d-nahar", help="mode: \'d-archivename\' for diachronic, \'s\' for synchronic")
+    parser.add_argument("--mode", default="d-assafir", help="mode: \'d-archivename\' for diachronic, \'s\' for synchronic")
 
     args = parser.parse_args()
 
@@ -632,10 +632,9 @@ if __name__ == '__main__':
 
             stabilities_over_time[time_point] = stabilities_comb # store the stability values for a particular time point
 
-            if time_point == '1986-1987':
-                print(time_point)
-                for w in sentiment_words:
-                    print('{}: {}'.format(w, stabilities_comb[w]))
+            print(time_point)
+            for w in sentiment_words:
+                print('{}: {}'.format(w, stabilities_comb[w]))
 
             # models = [] # to store loaded models inside an array to pass to the get_summaries method
             # model1 = fasttext.load_model(os.path.join(path1, '{}'.format(models2load[0])))
