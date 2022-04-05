@@ -4,8 +4,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 from manual_corrections_azarbonyad import azarbonyad
-import numpy.ma as ma
-import matplotlib.cm as cm
 from bidi import algorithm as bidialg
 import arabic_reshaper
 
@@ -93,7 +91,9 @@ if __name__ == '__main__':
     # years_nahar = ['1982', '1983', '1984', '1985', '1986', '1987', '1998', '1999', '2000', '2001', '2006', '2007', '2008', '2009']
     # years_assafir = ['1982', '1983', '1984', '1985', '1986', '1987', '1998', '1999', '2000', '2001', '2006', '2007', '2008', '2009', '2010', '2011']
     years_nahar = list(range(1982, 2010))
+    years_nahar = [str(y) for y in years_nahar]
     years_assafir = list(range(1982, 2012))
+    years_assafir = [str(y) for y in years_assafir]
 
     # change summaries to their corrected form (spelling error correction done manually)
     summaries_nahar = collect_summaries(nahar, emotions_sentiment_ar, years_nahar)
@@ -135,7 +135,8 @@ if __name__ == '__main__':
     print(avg_scores_yearly_assafir)
 
     # line plots
-    plots_folder = 'final_plots/'
+    plots_folder_nahar = 'final_plots/nahar/'
+    plots_folder_assafir = 'final_plots/assafir/'
 
     # map arabic words to english words for plotting purposes
     x_titles = {
@@ -151,6 +152,14 @@ if __name__ == '__main__':
         'ياسر عرفات': 'Arafat={}'.format(bidialg.get_display(arabic_reshaper.reshape('عرفات'))),
     }
 
+    words_batch1 = ['فلسطيني', 'منظمه التحرير الفلسطينيه']
+    # words_batch2 = ['السعوديه', 'الولايات المتحده الاميركيه', 'اميركا']
+    words_batch2 = ['السعوديه']
+    words_batch3 = ['اسرائيل']
+    words_batch4 = ['حزب الله', 'المقاومه', 'سوري', 'ايران']
+    words_batches = [words_batch1, words_batch2, words_batch3, words_batch4]
+    batch_names = ['palestine_related', 'america_related', 'israel_related', 'syrian_related']
+
     mappings = {
         'اسرائيل': 'Israel',
         'السعوديه': 'Saudi Arabia',
@@ -164,42 +173,52 @@ if __name__ == '__main__':
         'ياسر عرفات': 'Arafat',
     }
 
-    fig, ax = plt.subplots(nrows=5, ncols=2)
-    allwords = list(avg_scores_yearly_nahar.keys())
-    countwords = 0
-    for row in ax:
-        for col in row:
-            w = allwords[countwords]
-            years = list(range(1982, 2012))
-            years = [str(y) for y in years]
-            colors = cm.rainbow(np.linspace(0, 1, len(emotions_aggregated)))
-            count = 0
-            for em in emotions_aggregated:
-                em_over_years = [avg_scores_yearly_nahar[w][year][em] if year in avg_scores_yearly_nahar[w] else None for year in years]
-                idxs_nonvalid = [i for i, _ in enumerate(em_over_years) if em_over_years[i] == None]
-                em_over_years = np.array(em_over_years)
-                mc = ma.array(em_over_years)
-                mc[idxs_nonvalid] = ma.masked
-                col.plot(years, mc, marker='o', color=colors[count], label=em + ': nahar')
+    years = list(range(1982, 2010))
+    years = [str(y) for y in years]
+    colors = ['#a6cee3', '#1f78b4', '#b2df8a', '#33a02c']
+    for em in emotions_aggregated:
+        count_batches = 0
+        for batch in words_batches:
+            em_over_years = np.array([0 for _ in range(len(years))])
+            for w in batch:
+                w = ' ' + w + ' '
+                em_over_years_temp = [avg_scores_yearly_nahar[w][year][em] if year in avg_scores_yearly_nahar[w] else None for year in years]
+                em_over_years = [orig + curr if orig is not None and curr is not None else None for orig, curr in zip(em_over_years, em_over_years_temp)]
+            plt.plot(years, em_over_years, marker='o', color=colors[count_batches], label=batch_names[count_batches])
+            count_batches += 1
 
-                em_over_years = [
-                    avg_scores_yearly_assafir[w][year][em] if year in avg_scores_yearly_assafir[w] else None for year in
-                    years]
-                idxs_nonvalid = [i for i, _ in enumerate(em_over_years) if em_over_years[i] == None]
-                em_over_years = np.array(em_over_years)
-                mc = ma.array(em_over_years)
-                mc[idxs_nonvalid] = ma.masked
-                col.plot(years, mc, marker='+', color=colors[count], label=em + ': assafir', linestyle='--')
+        plt.ylim([0, 1])
+        plt.xlabel('Diachronic analysis for different batches of words - with {} as an emotion'.format(em))
+        plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.05), ncol=3, fancybox=True, shadow=True)
+        plt.tick_params(axis='x', rotation=45)
+        plt.tight_layout()
+        fig = plt.gcf()
+        fig.set_size_inches(16, 6)
+        mkdir(plots_folder_nahar)
+        plt.savefig(os.path.join(plots_folder_nahar, 'emotions_lineplot_{}.png'.format(em)))
+        plt.close()
 
-                col.set_xlabel(x_titles[w.strip()])
-                count += 1
+    years = list(range(1982, 2012))
+    years = [str(y) for y in years]
+    colors = ['#a6cee3', '#1f78b4', '#b2df8a', '#33a02c']
+    for em in emotions_aggregated:
+        count_batches = 0
+        for batch in words_batches:
+            em_over_years = np.array([0 for _ in range(len(years))])
+            for w in batch:
+                w = ' ' + w + ' '
+                em_over_years_temp = [avg_scores_yearly_assafir[w][year][em] if year in avg_scores_yearly_assafir[w] else None for year in years]
+                em_over_years = [orig + curr if orig is not None and curr is not None else None for orig, curr in zip(em_over_years, em_over_years_temp)]
+            plt.plot(years, em_over_years, marker='o', color=colors[count_batches], label=batch_names[count_batches])
+            count_batches += 1
 
-            col.set_ylim([0, 0.5])
-            col.legend(loc='upper center', bbox_to_anchor=(0.5, 1.05), ncol=3, fancybox=True, shadow=True)
-            col.tick_params(axis='x', rotation=45)
-
-            countwords += 1
-
-    # fig.set_size_inches(14, 7)
-    plt.savefig(os.path.join(plots_folder, 'emotions_time.png'))
-    plt.close()
+        plt.ylim([0, 1])
+        plt.xlabel('Diachronic analysis for different batches of words - with {} as an emotion'.format(em))
+        plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.05), ncol=3, fancybox=True, shadow=True)
+        plt.tick_params(axis='x', rotation=45)
+        plt.tight_layout()
+        fig = plt.gcf()
+        fig.set_size_inches(16, 6)
+        mkdir(plots_folder_assafir)
+        plt.savefig(os.path.join(plots_folder_assafir, 'emotions_lineplot_{}.png'.format(em)))
+        plt.close()
