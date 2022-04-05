@@ -20,7 +20,7 @@ keywords_file=input/all_keywords3.txt
 savedir=/scratch/7613491_hkg02/political_discourse_mining_hiyam/semantic_shifts_modified/stability_diachronic/nahar/
 USCOUNTER=1
 
-for y in {1983..2009}; do
+for y in {1983..2010}; do
     ycurr=$((y))
     yprev=$((y - 1))
     echo "$yprev vs $ycurr in $arch1 and $arch2"
