@@ -22,7 +22,7 @@ USCOUNTER=1
 
 
 
-for y in {1989..2000}; do
+for y in {1989..2001}; do
     ycurr=$((y))
     yprev=$((y - 1))
     echo "$yprev vs $ycurr in $arch1 and $arch2"

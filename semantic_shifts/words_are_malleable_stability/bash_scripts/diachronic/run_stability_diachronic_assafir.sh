@@ -25,7 +25,7 @@ USCOUNTER=1
 
 
 for k in ${neighs[@]}; do
-    for y in {1983..2011}; do
+    for y in {1983..2012}; do
         ycurr=$((y))
         yprev=$((y - 1))
         if [ $USCOUNTER -eq $SLURM_ARRAY_TASK_ID ]; then
