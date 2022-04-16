@@ -10,6 +10,7 @@ from scipy import stats
 from collections import Counter
 import numpy as np
 import matplotlib.pyplot as plt
+import csv
 
 ################### common parameters for all images ###################
 plt.rcParams['figure.dpi'] = 300
@@ -468,6 +469,41 @@ def plot_stabilities_over_time_heatmpap(words_batches, stabilities_over_time, mo
     plt.close()
 
 
+def get_average_stability_over_time(words_batches, stabilities_over_time, save_dir):
+    # get total average stability: average of all words across all time points
+    # get average stability per word: average of a certain word across all time points
+    all_words = []
+    for batch in words_batches:
+        for word in batch:
+            all_words.append(word)
+
+    averages = []
+    average_word = {}
+    for time_point in stabilities_over_time:
+        for word in stabilities_over_time[time_point]:
+            if word in all_words:
+                val = stabilities_over_time[time_point][word]
+                averages.append(val)
+                if word in average_word:
+                    average_word[word].append(val)
+                else:
+                    average_word[word] = [val]
+    total_average = np.sum(np.array(averages)) / len(averages)
+    print('total average stability (across all words; across all time points): {}'.format(total_average))
+    print('saving average stability per word (across all time points):')
+
+    mkdir(save_dir)
+    with open(os.path.join(save_dir, 'average_stability.csv'), 'w', newline='', encoding='utf-8-sig') as csvfile:
+        fieldnames = ['word', 'avg. stability']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+
+        writer.writeheader()
+
+        for w in average_word:
+            # print('word: {} - average stability: {}'.format(w, np.sum(average_word[w]) / len(average_word[w])))
+            writer.writerow({'word': '{}'.format(w), 'avg. stability': '{}'.format(np.sum(average_word[w]) / len(average_word[w]))})
+
+
 def plot_stabilities_over_time_lineplot(words_batches, stabilities_over_time, mode, save_dir, batch_names, fig_name):
     # https://stats.stackexchange.com/questions/118033/best-series-of-colors-to-use-for-differentiating-series-in-publication-quality
     # https://colorbrewer2.org/#type=qualitative&scheme=Paired&n=8
@@ -703,6 +739,7 @@ if __name__ == '__main__':
 
     plot_stabilities_over_time_lineplot(words_batches, stabilities_over_time, mode, results_dir + 'stability_plots/', batch_names=batch_names, fig_name='stability_line')
     plot_stabilities_over_time_heatmpap(words_batches, stabilities_over_time, mode, results_dir + 'stability_plots/', batch_names=batch_names, fig_name='stability_heat')
+    get_average_stability_over_time(words_batches, stabilities_over_time, results_dir)
 
     # plot_stabilities_over_time(words_batch1, stabilities_over_time, mode, results_dir + 'stability_plots/', 'palestine_related')
     # plot_stabilities_over_time(words_batch2, stabilities_over_time, mode, results_dir + 'stability_plots/', 'america_related')
