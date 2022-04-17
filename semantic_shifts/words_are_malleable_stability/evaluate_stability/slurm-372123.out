@@ -155,4 +155,6 @@ loaded the stability dictionary for time point 1999-2000 in mode: d-hayat
 ايران: 0.2679310987896596
 السعوديه: 0.1352921982227094
 total average stability (across all words; across all time points): 0.12923996344247993
+max stability attained (across all words; across all time points): 0.32959239517878974
+min stability attained (across all words; across all time points): -0.030361458580578475
 saving average stability per word (across all time points):

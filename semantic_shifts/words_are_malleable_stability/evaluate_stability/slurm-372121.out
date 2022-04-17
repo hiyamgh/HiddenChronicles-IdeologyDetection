@@ -376,4 +376,6 @@ loaded the stability dictionary for time point 2010-2011 in mode: d-assafir
 ايران: 0.03307173441713392
 السعوديه: -0.006193859413468112
 total average stability (across all words; across all time points): 0.1346011641356865
+max stability attained (across all words; across all time points): 0.36011528459299535
+min stability attained (across all words; across all time points): -0.06546064090325365
 saving average stability per word (across all time points):

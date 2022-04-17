@@ -350,4 +350,6 @@ loaded the stability dictionary for time point 2008-2009 in mode: d-nahar
 ايران: -0.01212740572239409
 السعوديه: -0.05006480090806624
 total average stability (across all words; across all time points): 0.13681961021238465
+max stability attained (across all words; across all time points): 0.39699742021961487
+min stability attained (across all words; across all time points): -0.09811928204189617
 saving average stability per word (across all time points):
