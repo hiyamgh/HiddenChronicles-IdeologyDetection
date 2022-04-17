@@ -302,8 +302,7 @@ def get_ranks(stability_combined, stability_neighbors, stability_linear):
 
 
 def get_contrastive_viewpoint_summary(w, n, k, models, mat_name, dir_name_matrices,
-                                      save_dir, file_name, viewpoints_names,
-                                      thresh=0.5):
+                                      viewpoints_names, summary2save, thresh=0.5):
     """ get a contrastive viewpoint summary of a word of length n. For a certain
         word:
         1. we get its top k nearest neighbors.
@@ -352,25 +351,31 @@ def get_contrastive_viewpoint_summary(w, n, k, models, mat_name, dir_name_matric
     if len(models) > 2:
         all_summaries.append(summary3)
 
-    mkdir(save_dir)
-    with open(os.path.join(save_dir, '{}.txt'.format(file_name)), 'a', encoding='utf-8') as f:
-        for j in range(len(viewpoints_names)):
-            f.write('w: {}\n'.format(w))
-            f.write('viewpoint {}\n'.format(viewpoints_names[j]))
-            for i, s in enumerate(all_summaries[j]):
-                if i % 10 != 0 or i == 0:
-                    f.write(s[1] + ", ")
-                else:
-                    f.write(s[1] + "\n")
-            f.writelines('\n')
-            f.writelines('\n')
-            f.writelines('-------------------------------------------------------------------------------------------\n')
-        f.writelines('==================================================== END OF SUMMARIES FOR WORD {} =================================================================================='.format(w))
-        f.writelines('\n')
-    f.close()
+    # mkdir(save_dir)
 
-    # if summary3 is [], it will be returned as such
-    return summary1, summary2, summary3
+    if w not in summary2save:
+        summary2save[w] = {}
+    viewpoints_batch_name = '{}_{}'.format(viewpoints_names[0], viewpoints_names[1]) if len(viewpoints_names) < 3 else '{}_{}_{}'.format(viewpoints_names[0], viewpoints_names[1], viewpoints_names[2])
+
+    if viewpoints_batch_name not in summary2save[w]:
+        summary2save[w][viewpoints_batch_name] = {}
+
+    # with open(os.path.join(save_dir, '{}_{}_summary.txt'.format(mapar2en[w], viewpoints_batch_name)), 'w', encoding='utf-8') as f:
+    #     for i in range(len(all_summaries)):
+    #         if viewpoints_names[i] not in summary2save[w][viewpoints_batch_name]:
+    #             summary2save[w][viewpoints_batch_name][viewpoints_names[i]] = []
+    #         f.write('summary of the word {} from the {} viewpoint:\n'.format(w, viewpoints_names[i]))
+    #         for s in all_summaries[i]:
+    #             f.write(s[1] + "\n")
+    #             summary2save[w][viewpoints_batch_name][viewpoints_names[i]].append(s[1])
+
+    for i in range(len(all_summaries)):
+        if viewpoints_names[i] not in summary2save[w][viewpoints_batch_name]:
+            summary2save[w][viewpoints_batch_name][viewpoints_names[i]] = []
+        for s in all_summaries[i]:
+            summary2save[w][viewpoints_batch_name][viewpoints_names[i]].append(s[1])
+
+    return summary2save
 
 
 def perform_paired_t_test(ranks_comb, ranks_neigh, ranks_lin, save_dir, file_name):
@@ -428,15 +433,10 @@ def read_keywords(file_path):
     return words
 
 
-def save_summary(original_word, summary, year, save_dir, filename):
+def save_summary(summary2save, save_dir):
     mkdir(save_dir)
-    with open(os.path.join(save_dir, filename + '.txt'), 'a', encoding='utf-8') as f:
-        f.write('\nplease manually correct the summaries below for the word: {} in year: {}\n'.format(original_word, year))
-        words = [w[1] for w in summary] # words are the neighbors
-        for w in words:
-            f.write('{}:\n'.format(w))
-        f.write('\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n')
-    f.close()
+    with open(os.path.join(save_dir, 'all_summaries.pickle'), 'wb') as handle:
+        pickle.dump(summary2save, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
 def plot_stabilities_over_time_heatmpap(words_batches, stabilities_over_time, mode, save_dir, batch_names, fig_name):
@@ -469,9 +469,8 @@ def plot_stabilities_over_time_heatmpap(words_batches, stabilities_over_time, mo
     plt.close()
 
 
-def get_average_stability_over_time(words_batches, stabilities_over_time, save_dir):
-    # get total average stability: average of all words across all time points
-    # get average stability per word: average of a certain word across all time points
+def get_stability_statistics_over_time(words_batches, stabilities_over_time, save_dir):
+    ''' Get max, min, and average stability across all words-times and per word '''
     all_words = []
     for batch in words_batches:
         for word in batch:
@@ -490,18 +489,24 @@ def get_average_stability_over_time(words_batches, stabilities_over_time, save_d
                     average_word[word] = [val]
     total_average = np.sum(np.array(averages)) / len(averages)
     print('total average stability (across all words; across all time points): {}'.format(total_average))
+    print('max stability attained (across all words; across all time points): {}'.format(np.max(np.array(averages))))
+    print('min stability attained (across all words; across all time points): {}'.format(np.min(np.array(averages))))
     print('saving average stability per word (across all time points):')
 
     mkdir(save_dir)
     with open(os.path.join(save_dir, 'average_stability.csv'), 'w', newline='', encoding='utf-8-sig') as csvfile:
-        fieldnames = ['word', 'avg. stability']
+        fieldnames = ['word', 'avg. stability', 'max stability', 'min stability']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
         writer.writeheader()
 
         for w in average_word:
             # print('word: {} - average stability: {}'.format(w, np.sum(average_word[w]) / len(average_word[w])))
-            writer.writerow({'word': '{}'.format(w), 'avg. stability': '{}'.format(np.sum(average_word[w]) / len(average_word[w]))})
+            writer.writerow({'word': '{}'.format(w),
+                             'avg. stability': '{}'.format(np.sum(average_word[w]) / len(average_word[w])),
+                             'max stability': '{}'.format(np.max(np.array(average_word[w]))),
+                             'min stability': '{}'.format(np.min(np.array(average_word[w])))
+                             })
 
 
 def plot_stabilities_over_time_lineplot(words_batches, stabilities_over_time, mode, save_dir, batch_names, fig_name):
@@ -649,6 +654,23 @@ if __name__ == '__main__':
     stabilities_over_time = {}
     results_dir = 'evaluate_stability/{}/'.format(mode)
 
+    # a dictionary mapping word in Arabic to a 'temporary name' in English
+    # to make it easier to save plots and retrieve them
+    # later on in latex (for reporting)
+    mapar2en = {
+        'الولايات المتحده الاميركيه': 'UnitedStatesofAmerica',
+        'اميركا': 'America',
+        'اسرائيل': 'Israel',
+        'فلسطيني': 'Palestinian',
+        'حزب الله': 'Hezbollah',
+        'المقاومه': 'Resistance',
+        'سوري': 'Syrian',
+        'منظمه التحرير الفلسطينيه': 'PalestinianLiberationOrganization',
+        'ايران': 'Iran',
+        'السعوديه': 'Saudiya'
+    }
+
+    summary2save = {}
     for i, path in enumerate(paths):
         if os.path.exists(path):
             dict_combined = os.path.join(path + 'k100/', 'stabilities_combined.pkl')
@@ -672,78 +694,70 @@ if __name__ == '__main__':
             for w in sentiment_words:
                 print('{}: {}'.format(w, stabilities_comb[w]))
 
-            # models = [] # to store loaded models inside an array to pass to the get_summaries method
-            # model1 = fasttext.load_model(os.path.join(path1, '{}'.format(models2load[0])))
-            # model2 = fasttext.load_model(os.path.join(path2, '{}'.format(models2load[1])))
-            #
-            # models.append(model1)
-            # models.append(model2)
-            # if len(models2load) > 2:
-            #     model3 = fasttext.load_model(os.path.join(path3, '{}'.format(models2load[2])))
-            #     models.append(model3)
-            #
-            # dir_name_matrices = '{}/linear_numsteps80000/matrices/'.format(path)
-            #
-            # years_checked = {}
-            # for z, w in enumerate(sentiment_words):
-            #
-            #     summary_v1, summary_v2, summary_v3 = get_contrastive_viewpoint_summary(w, n=20, k=100,
-            #                                                                models=models,
-            #                                                                mat_name='trans',
-            #                                                                dir_name_matrices=dir_name_matrices,
-            #                                                                save_dir=results_dir + 'summaries/',
-            #                                                                file_name='sentiment_keywords',
-            #                                                                viewpoints_names=viewpoints,
-            #                                                                thresh=0.5)
-            #     if w not in years_checked:
-            #         years_checked[w] = []
-            #
-            #     if years2load[0] not in years_checked[w]:
-            #         save_summary(original_word=w, summary=summary_v1, year=years2load[0], save_dir=results_dir + 'summaries/', filename='summaries_azarbonyad')
-            #         years_checked[w].append(years2load[0])
-            #
-            #     if years2load[1] not in years_checked[w]:
-            #         save_summary(original_word=w, summary=summary_v2, year=years2load[1], save_dir=results_dir + 'summaries/', filename='summaries_azarbonyad')
-            #         years_checked[w].append(years2load[1])
-            #
-            #     if summary_v3 != []:
-            #         if years2load[2] not in years_checked[w]:
-            #             save_summary(original_word=w, summary=summary_v3, year=years2load[2], save_dir=results_dir + 'summaries/', filename='summaries_azarbonyad')
-            #             years_checked[w].append(years2load[2])
+            '''
+            Assafir
+            total average stability (across all words; across all time points): 0.1346011641356865
+            max stability attained (across all words; across all time points): 0.36011528459299535
+            min stability attained (across all words; across all time points): -0.06546064090325365
+            
+            Nahar
+            total average stability (across all words; across all time points): 0.13681961021238465
+            max stability attained (across all words; across all time points): 0.39699742021961487
+            min stability attained (across all words; across all time points): -0.09811928204189617
+            
+            Hayat
+            total average stability (across all words; across all time points): 0.12923996344247993
+            max stability attained (across all words; across all time points): 0.32959239517878974
+            min stability attained (across all words; across all time points): -0.030361458580578475
+            '''
+            
+            models = [] # to store loaded models inside an array to pass to the get_summaries method
+            model1 = fasttext.load_model(os.path.join(path1, '{}'.format(models2load[0])))
+            model2 = fasttext.load_model(os.path.join(path2, '{}'.format(models2load[1])))
 
-    # a dictionary mapping word in Arabic to a 'temporary name' in English
-    # to make it easier to save plots and retrieve them
-    # later on in latex (for reporting)
-    mapar2en = {
-        'الولايات المتحده الاميركيه': 'UnitedStatesofAmerica',
-        'اميركا': 'America',
-        'اسرائيل': 'Israel',
-        'فلسطيني': 'Palestinian',
-        'حزب الله': 'Hezbollah',
-        'المقاومه': 'Resistance',
-        'سوري': 'Syrian',
-        'منظمه التحرير الفلسطينيه': 'PalestinianLiberationOrganization',
-        'ايران': 'Iran',
-        'السعوديه': 'Saudiya'
-    }
+            models.append(model1)
+            models.append(model2)
+            if len(models2load) > 2:
+                model3 = fasttext.load_model(os.path.join(path3, '{}'.format(models2load[2])))
+                models.append(model3)
+
+            dir_name_matrices = '{}/linear_numsteps80000/matrices/'.format(path)
+
+            for z, w in enumerate(sentiment_words):
+
+                if mode == 'd-nahar':
+                    summary2save = get_contrastive_viewpoint_summary(w, n=10, k=100, models=models,
+                                                                     mat_name='trans', dir_name_matrices=dir_name_matrices,
+                                                                     viewpoints_names=viewpoints,
+                                                                     summary2save=summary2save,
+                                                                     thresh=0.4)
+                elif mode == 'd-assafir':
+                    summary2save = get_contrastive_viewpoint_summary(w, n=10, k=100, models=models,
+                                                                     mat_name='trans', dir_name_matrices=dir_name_matrices,
+                                                                     viewpoints_names=viewpoints,
+                                                                     summary2save=summary2save,
+                                                                     thresh=0.4)
+                else:
+                    summary2save = get_contrastive_viewpoint_summary(w, n=10, k=100, models=models,
+                                                                     mat_name='trans', dir_name_matrices=dir_name_matrices,
+                                                                     viewpoints_names=viewpoints,
+                                                                     summary2save=summary2save,
+                                                                     thresh=0.4)
+
+                # will save that dictionary every time its updated so that we always keep the latest version
+                # save the dictionary of summaries as a pickle file for later loading
+                save_summary(summary2save=summary2save, save_dir=results_dir)
 
     words_batch1 = ['فلسطيني', 'منظمه التحرير الفلسطينيه']
     words_batch2 = ['السعوديه', 'الولايات المتحده الاميركيه', 'اميركا']
     words_batch3 = ['اسرائيل']
     words_batch4 = ['حزب الله', 'المقاومه', 'سوري',  'ايران']
-    words_batches = [words_batch1, words_batch2, words_batch3, words_batch4]
-    batch_names = ['palestine_related', 'america_related', 'israel_related', 'syrian_related']
-    # plot the stability as a function of time for each word
-    # for w in sentiment_words:
-    #     plot_stabilities_over_time(w, stabilities_over_time, mode, results_dir + 'stability_plots/', mapar2en[w])
+
+    words_batches = [words_batch1, words_batch2, words_batch3, words_batch4] # list of batches
+    batch_names = ['palestine_related', 'america_related', 'israel_related', 'syrian_related'] # list of names for each batch
 
     plot_stabilities_over_time_lineplot(words_batches, stabilities_over_time, mode, results_dir + 'stability_plots/', batch_names=batch_names, fig_name='stability_line')
     plot_stabilities_over_time_heatmpap(words_batches, stabilities_over_time, mode, results_dir + 'stability_plots/', batch_names=batch_names, fig_name='stability_heat')
-    get_average_stability_over_time(words_batches, stabilities_over_time, results_dir)
-
-    # plot_stabilities_over_time(words_batch1, stabilities_over_time, mode, results_dir + 'stability_plots/', 'palestine_related')
-    # plot_stabilities_over_time(words_batch2, stabilities_over_time, mode, results_dir + 'stability_plots/', 'america_related')
-    # plot_stabilities_over_time(words_batch3, stabilities_over_time, mode, results_dir + 'stability_plots/', 'israel_related')
-    # plot_stabilities_over_time(words_batch4, stabilities_over_time, mode, results_dir + 'stability_plots/', 'syrian_related')
+    get_stability_statistics_over_time(words_batches, stabilities_over_time, results_dir) # run this experiment before getting the summaries as they will help know the threshold
 
 
