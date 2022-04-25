@@ -302,7 +302,7 @@ def get_ranks(stability_combined, stability_neighbors, stability_linear):
 
 
 def get_contrastive_viewpoint_summary(w, n, k, models, mat_name, dir_name_matrices,
-                                      viewpoints_names, summary2save, thresh=0.5):
+                                      viewpoints_names, summaryforsaving, thresh=0.5):
     """ get a contrastive viewpoint summary of a word of length n. For a certain
         word:
         1. we get its top k nearest neighbors.
@@ -352,13 +352,12 @@ def get_contrastive_viewpoint_summary(w, n, k, models, mat_name, dir_name_matric
         all_summaries.append(summary3)
 
     # mkdir(save_dir)
-
-    if w not in summary2save:
-        summary2save[w] = {}
+    if w not in summaryforsaving:
+        summaryforsaving[w] = {}
     viewpoints_batch_name = '{}_{}'.format(viewpoints_names[0], viewpoints_names[1]) if len(viewpoints_names) < 3 else '{}_{}_{}'.format(viewpoints_names[0], viewpoints_names[1], viewpoints_names[2])
 
-    if viewpoints_batch_name not in summary2save[w]:
-        summary2save[w][viewpoints_batch_name] = {}
+    if viewpoints_batch_name not in summaryforsaving[w]:
+        summaryforsaving[w][viewpoints_batch_name] = {}
 
     # with open(os.path.join(save_dir, '{}_{}_summary.txt'.format(mapar2en[w], viewpoints_batch_name)), 'w', encoding='utf-8') as f:
     #     for i in range(len(all_summaries)):
@@ -370,12 +369,12 @@ def get_contrastive_viewpoint_summary(w, n, k, models, mat_name, dir_name_matric
     #             summary2save[w][viewpoints_batch_name][viewpoints_names[i]].append(s[1])
 
     for i in range(len(all_summaries)):
-        if viewpoints_names[i] not in summary2save[w][viewpoints_batch_name]:
-            summary2save[w][viewpoints_batch_name][viewpoints_names[i]] = []
+        if viewpoints_names[i] not in summaryforsaving[w][viewpoints_batch_name]:
+            summaryforsaving[w][viewpoints_batch_name][viewpoints_names[i]] = []
         for s in all_summaries[i]:
-            summary2save[w][viewpoints_batch_name][viewpoints_names[i]].append(s[1])
+            summaryforsaving[w][viewpoints_batch_name][viewpoints_names[i]].append(s[1])
 
-    return summary2save
+    return summaryforsaving
 
 
 def perform_paired_t_test(ranks_comb, ranks_neigh, ranks_lin, save_dir, file_name):
@@ -429,13 +428,13 @@ def read_keywords(file_path):
         words = f.readlines()
     words = [w[:-1] for w in words if '\n' in w]
     words = [w for w in words if w.strip() != '']
-    # words = [w.strip() for w in words]
+    words = [w.strip() for w in words]
     return words
 
 
-def save_summary(summary2save, save_dir):
+def save_summary(summary2save, save_dir, thresh):
     mkdir(save_dir)
-    with open(os.path.join(save_dir, 'all_summaries.pickle'), 'wb') as handle:
+    with open(os.path.join(save_dir, 'all_summaries_{}.pickle'.format(thresh)), 'wb') as handle:
         pickle.dump(summary2save, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
@@ -591,12 +590,13 @@ def plot_stabilities_over_time_lineplot(words_batches, stabilities_over_time, mo
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--models_path1', default='D:/fasttext_embeddings/ngrams4-size300-window5-mincount100-negative15-lr0.001/ngrams4-size300-window5-mincount100-negative15-lr0.001/', help='path to trained models files')
-    parser.add_argument('--models_path2', default='D:/fasttext_embeddings/ngrams4-size300-window5-mincount100-negative15-lr0.001/ngrams4-size300-window5-mincount100-negative15-lr0.001/', help='path to trained models files of viewpoint 2. If not None, then analysis will be synchronic, else, analysis will be diachronic')
+    parser.add_argument('--models_path1', default='E:/fasttext_embeddings/ngrams4-size300-window5-mincount100-negative15-lr0.001/ngrams4-size300-window5-mincount100-negative15-lr0.001/', help='path to trained models files')
+    parser.add_argument('--models_path2', default='E:/fasttext_embeddings/ngrams4-size300-window5-mincount100-negative15-lr0.001/ngrams4-size300-window5-mincount100-negative15-lr0.001/', help='path to trained models files of viewpoint 2. If not None, then analysis will be synchronic, else, analysis will be diachronic')
     parser.add_argument('--models_path3', default=None, help='path to trained models files of viewpoint 3. If not None, then analysis will be synchronic, else, analysis will be diachronic')
-    parser.add_argument('--keywords_path', default='from_DrFatima/sentiment_keywords.txt')
-    parser.add_argument("--mode", default="d-assafir", help="mode: \'d-archivename\' for diachronic, \'s\' for synchronic")
-
+    # parser.add_argument('--keywords_path', default='from_DrFatima/sentiment_keywords.txt')
+    parser.add_argument('--keywords_path', default='from_DrFatima/words_threshold.txt')
+    parser.add_argument("--mode", default="d-nahar", help="mode: \'d-archivename\' for diachronic, \'s\' for synchronic")
+    parser.add_argument("--threshold", default="0.1,0.2,0.3,0.4,0.5", help="threshold value(s) for generating contrastive viewpoint sumamries")
     args = parser.parse_args()
 
     path1 = args.models_path1
@@ -605,6 +605,14 @@ if __name__ == '__main__':
 
     # for sentiment
     sentiment_words = read_keywords(args.keywords_path)
+
+    # threshold value(s)
+    thresh = args.threshold
+    if "," in thresh:
+        thresholds = thresh.split(",")
+        thresholds = [float(t) for t in thresholds]
+    else:
+        thresholds = [float(thresh)]
 
     # absolute prefix of any path on the hpc cluster
     # prefix = '/scratch/7613491_hkg02/political_discourse_mining_hiyam/semantic_shifts_modified/'
@@ -670,7 +678,8 @@ if __name__ == '__main__':
         'السعوديه': 'Saudiya'
     }
 
-    summary2save = {}
+    # summary2save = {}
+    summaries2save = {}
     for i, path in enumerate(paths):
         if os.path.exists(path):
             dict_combined = os.path.join(path + 'k100/', 'stabilities_combined.pkl')
@@ -723,30 +732,48 @@ if __name__ == '__main__':
 
             dir_name_matrices = '{}/linear_numsteps80000/matrices/'.format(path)
 
-            for z, w in enumerate(sentiment_words):
+            # for z, w in enumerate(sentiment_words):
+            #     print('---- word: {} - timepoint: {} ----'.format(w, time_point))
+            for t in thresholds:
+                if t not in summaries2save:
+                    summaries2save[t] = {}
+                for z, w in enumerate(sentiment_words):
+                    print('---- word: {} - timepoint: {} ----'.format(w, time_point))
+                    print('threshold: {}'.format(t))
+                    # previous value was 0.4 (the max stability of all words over all time points)
+                    if mode == 'd-nahar':
 
-                if mode == 'd-nahar':
-                    summary2save = get_contrastive_viewpoint_summary(w, n=10, k=100, models=models,
-                                                                     mat_name='trans', dir_name_matrices=dir_name_matrices,
-                                                                     viewpoints_names=viewpoints,
-                                                                     summary2save=summary2save,
-                                                                     thresh=0.4)
-                elif mode == 'd-assafir':
-                    summary2save = get_contrastive_viewpoint_summary(w, n=10, k=100, models=models,
-                                                                     mat_name='trans', dir_name_matrices=dir_name_matrices,
-                                                                     viewpoints_names=viewpoints,
-                                                                     summary2save=summary2save,
-                                                                     thresh=0.4)
-                else:
-                    summary2save = get_contrastive_viewpoint_summary(w, n=10, k=100, models=models,
-                                                                     mat_name='trans', dir_name_matrices=dir_name_matrices,
-                                                                     viewpoints_names=viewpoints,
-                                                                     summary2save=summary2save,
-                                                                     thresh=0.4)
+                        # get old summary
+                        summary2save_old = summaries2save[t]
 
-                # will save that dictionary every time its updated so that we always keep the latest version
-                # save the dictionary of summaries as a pickle file for later loading
-                save_summary(summary2save=summary2save, save_dir=results_dir)
+                        # update summary
+                        summary2save = get_contrastive_viewpoint_summary(w, n=10, k=100, models=models,
+                                                                         mat_name='trans',
+                                                                         dir_name_matrices=dir_name_matrices,
+                                                                         viewpoints_names=viewpoints,
+                                                                         summaryforsaving=summary2save_old,
+                                                                         thresh=t)
+                        # save updated summary
+                        summaries2save[t] = summary2save
+
+                    elif mode == 'd-assafir':
+                        summary2save = get_contrastive_viewpoint_summary(w, n=10, k=100, models=models,
+                                                                         mat_name='trans',
+                                                                         dir_name_matrices=dir_name_matrices,
+                                                                         viewpoints_names=viewpoints,
+                                                                         summaryforsaving=summary2save,
+                                                                         thresh=t)
+                    else:
+                        summary2save = get_contrastive_viewpoint_summary(w, n=10, k=100, models=models,
+                                                                         mat_name='trans',
+                                                                         dir_name_matrices=dir_name_matrices,
+                                                                         viewpoints_names=viewpoints,
+                                                                         summaryforsaving=summary2save,
+                                                                         thresh=t)
+
+                    # will save that dictionary every time its updated so that we always keep the latest version
+                    # save the dictionary of summaries as a pickle file for later loading
+                    save_summary(summary2save=summaries2save[t], save_dir=results_dir, thresh=t)
 
     words_batch1 = ['فلسطيني', 'منظمه التحرير الفلسطينيه']
     words_batch2 = ['السعوديه', 'الولايات المتحده الاميركيه', 'اميركا']
