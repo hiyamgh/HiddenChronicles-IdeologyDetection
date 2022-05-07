@@ -242,8 +242,8 @@ if __name__ == '__main__':
     stabilities_over_time = {}
     summaries_over_time = {}
     results_dir = '{}/{}/'.format(args.out_dir, mode)
-    k = args.k # the k here is the length of the intersection for finding the score
-    n = args.n # the n here is the length of the summar for conrastive viewpoint summarization (not included in computing the intersection)
+    k = int(args.k) # the k here is the length of the intersection for finding the score
+    n = int(args.n) # the n here is the length of the summary for conrastive viewpoint summarization (not included in computing the intersection)
 
     for i, path in enumerate(years):
         models2load = dict_years[mode]['models'][i]
