@@ -438,7 +438,7 @@ def save_summary(summary2save, save_dir, thresh):
         pickle.dump(summary2save, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-def plot_stabilities_over_time_heatmpap(words_batches, stabilities_over_time, mode, save_dir, batch_names, fig_name):
+def plot_stabilities_over_time_heatmap(words_batches, stabilities_over_time, mode, save_dir, batch_names, fig_name):
     temp = np.empty([len(words_batches), len(stabilities_over_time)])
     stabilities = np.zeros_like(temp)
 
@@ -590,13 +590,15 @@ def plot_stabilities_over_time_lineplot(words_batches, stabilities_over_time, mo
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--models_path1', default='E:/fasttext_embeddings/ngrams4-size300-window5-mincount100-negative15-lr0.001/ngrams4-size300-window5-mincount100-negative15-lr0.001/', help='path to trained models files')
-    parser.add_argument('--models_path2', default='E:/fasttext_embeddings/ngrams4-size300-window5-mincount100-negative15-lr0.001/ngrams4-size300-window5-mincount100-negative15-lr0.001/', help='path to trained models files of viewpoint 2. If not None, then analysis will be synchronic, else, analysis will be diachronic')
+    parser.add_argument('--models_path1', default='D:/fasttext_embeddings/ngrams4-size300-window5-mincount100-negative15-lr0.001/ngrams4-size300-window5-mincount100-negative15-lr0.001/', help='path to trained models files')
+    parser.add_argument('--models_path2', default='D:/fasttext_embeddings/ngrams4-size300-window5-mincount100-negative15-lr0.001/ngrams4-size300-window5-mincount100-negative15-lr0.001/', help='path to trained models files of viewpoint 2. If not None, then analysis will be synchronic, else, analysis will be diachronic')
     parser.add_argument('--models_path3', default=None, help='path to trained models files of viewpoint 3. If not None, then analysis will be synchronic, else, analysis will be diachronic')
-    # parser.add_argument('--keywords_path', default='from_DrFatima/sentiment_keywords.txt')
-    parser.add_argument('--keywords_path', default='from_DrFatima/words_threshold.txt')
+    parser.add_argument('--keywords_path', default='from_DrFatima/sentiment_keywords.txt')
+    # parser.add_argument('--keywords_path', default='from_DrFatima/words_threshold.txt')
     parser.add_argument("--mode", default="d-nahar", help="mode: \'d-archivename\' for diachronic, \'s\' for synchronic")
     parser.add_argument("--threshold", default="0.1,0.2,0.3,0.4,0.5", help="threshold value(s) for generating contrastive viewpoint sumamries")
+    parser.add_argument("--k", default=100, help="number of nearest neighbors to consider when creating contrastive viewpoint summaries")
+    parser.add_argument("--cvs_len", default=10, help="length of the contrastive viewpoint summary") # cvs ==> contrastive viewpoint summary
     args = parser.parse_args()
 
     path1 = args.models_path1
@@ -613,6 +615,11 @@ if __name__ == '__main__':
         thresholds = [float(t) for t in thresholds]
     else:
         thresholds = [float(thresh)]
+
+    # number of nearest neighbors to include when creating contrastive viewpoint summaries
+    knn = int(args.k)
+    # length of the contrastive viewpoint summary
+    cvs_len = int(args.cvs_len)
 
     # absolute prefix of any path on the hpc cluster
     # prefix = '/scratch/7613491_hkg02/political_discourse_mining_hiyam/semantic_shifts_modified/'
@@ -666,8 +673,8 @@ if __name__ == '__main__':
     # to make it easier to save plots and retrieve them
     # later on in latex (for reporting)
     mapar2en = {
-        'الولايات المتحده الاميركيه': 'UnitedStatesofAmerica',
-        'اميركا': 'America',
+        'الولايات المتحدة الامريكية': 'UnitedStatesofAmerica',
+        'امريكا': 'America',
         'اسرائيل': 'Israel',
         'فلسطيني': 'Palestinian',
         'حزب الله': 'Hezbollah',
@@ -740,51 +747,30 @@ if __name__ == '__main__':
                 for z, w in enumerate(sentiment_words):
                     print('---- word: {} - timepoint: {} ----'.format(w, time_point))
                     print('threshold: {}'.format(t))
-                    # previous value was 0.4 (the max stability of all words over all time points)
-                    if mode == 'd-nahar':
+                    # previous value of threshold was 0.4 (the max stability of all words over all time points)
+                    # get old summary
+                    summary2save_old = summaries2save[t]
 
-                        # get old summary
-                        summary2save_old = summaries2save[t]
-
-                        # update summary
-                        summary2save = get_contrastive_viewpoint_summary(w, n=10, k=100, models=models,
-                                                                         mat_name='trans',
-                                                                         dir_name_matrices=dir_name_matrices,
-                                                                         viewpoints_names=viewpoints,
-                                                                         summaryforsaving=summary2save_old,
-                                                                         thresh=t)
-                        # save updated summary
-                        summaries2save[t] = summary2save
-
-                    elif mode == 'd-assafir':
-                        summary2save = get_contrastive_viewpoint_summary(w, n=10, k=100, models=models,
-                                                                         mat_name='trans',
-                                                                         dir_name_matrices=dir_name_matrices,
-                                                                         viewpoints_names=viewpoints,
-                                                                         summaryforsaving=summary2save,
-                                                                         thresh=t)
-                    else:
-                        summary2save = get_contrastive_viewpoint_summary(w, n=10, k=100, models=models,
-                                                                         mat_name='trans',
-                                                                         dir_name_matrices=dir_name_matrices,
-                                                                         viewpoints_names=viewpoints,
-                                                                         summaryforsaving=summary2save,
-                                                                         thresh=t)
+                    # update summary
+                    summary2save = get_contrastive_viewpoint_summary(w, n=cvs_len, k=knn, models=models, mat_name='trans', dir_name_matrices=dir_name_matrices,
+                                                                     viewpoints_names=viewpoints, summaryforsaving=summary2save_old, thresh=t)
+                    # save updated summary
+                    summaries2save[t] = summary2save
 
                     # will save that dictionary every time its updated so that we always keep the latest version
                     # save the dictionary of summaries as a pickle file for later loading
                     save_summary(summary2save=summaries2save[t], save_dir=results_dir, thresh=t)
 
-    words_batch1 = ['فلسطيني', 'منظمه التحرير الفلسطينيه']
-    words_batch2 = ['السعوديه', 'الولايات المتحده الاميركيه', 'اميركا']
-    words_batch3 = ['اسرائيل']
-    words_batch4 = ['حزب الله', 'المقاومه', 'سوري',  'ايران']
-
-    words_batches = [words_batch1, words_batch2, words_batch3, words_batch4] # list of batches
-    batch_names = ['palestine_related', 'america_related', 'israel_related', 'syrian_related'] # list of names for each batch
-
-    plot_stabilities_over_time_lineplot(words_batches, stabilities_over_time, mode, results_dir + 'stability_plots/', batch_names=batch_names, fig_name='stability_line')
-    plot_stabilities_over_time_heatmpap(words_batches, stabilities_over_time, mode, results_dir + 'stability_plots/', batch_names=batch_names, fig_name='stability_heat')
-    get_stability_statistics_over_time(words_batches, stabilities_over_time, results_dir) # run this experiment before getting the summaries as they will help know the threshold
+    # words_batch1 = ['فلسطيني', 'منظمه التحرير الفلسطينيه']
+    # words_batch2 = ['السعوديه', 'الولايات المتحده الاميركيه', 'اميركا']
+    # words_batch3 = ['اسرائيل']
+    # words_batch4 = ['حزب الله', 'المقاومه', 'سوري',  'ايران']
+    #
+    # words_batches = [words_batch1, words_batch2, words_batch3, words_batch4] # list of batches
+    # batch_names = ['palestine_related', 'america_related', 'israel_related', 'syrian_related'] # list of names for each batch
+    #
+    # plot_stabilities_over_time_lineplot(words_batches, stabilities_over_time, mode, results_dir + 'stability_plots/', batch_names=batch_names, fig_name='stability_line')
+    # plot_stabilities_over_time_heatmap(words_batches, stabilities_over_time, mode, results_dir + 'stability_plots/', batch_names=batch_names, fig_name='stability_heat')
+    # get_stability_statistics_over_time(words_batches, stabilities_over_time, results_dir) # run this experiment before getting the summaries as they will help know the threshold
 
 

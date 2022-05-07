@@ -8,7 +8,7 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=hkg02@mail.aub.edu
-#SBATCH --array=1-28%2
+#SBATCH --array=1-29%2
 
 module load python/3
 
@@ -25,7 +25,7 @@ USCOUNTER=1
 
 
 for k in ${neighs[@]}; do
-    for y in {1983..2012}; do
+    for y in {1983..2011}; do
         ycurr=$((y))
         yprev=$((y - 1))
         if [ $USCOUNTER -eq $SLURM_ARRAY_TASK_ID ]; then

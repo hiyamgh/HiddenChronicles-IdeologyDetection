@@ -14,5 +14,5 @@ module load python/3
 EMB_DIR1=/scratch/7613491_hkg02/political_discourse_mining_hiyam/Train_Word_Embedidng/fasttext/hayat/SGNS/ngrams4-size300-window5-mincount100-negative15-lr0.001/
 keywords_file=input/all_keywords3.txt
 
-python evaluate_stability.py --models_path1 $EMB_DIR1 --models_path2=$EMB_DIR1 --keywords_path ${keywords_file} --mode d-hayat
+python evaluate_stability.py --models_path1 $EMB_DIR1 --models_path2=$EMB_DIR1 --keywords_path ${keywords_file} --mode d-hayat --k 100 --cvs_len 30
 

@@ -8,7 +8,7 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=hkg02@mail.aub.edu
-#SBATCH --array=1-11%2
+#SBATCH --array=1-12%2
 
 module load python/3
 
@@ -22,7 +22,7 @@ USCOUNTER=1
 
 
 
-for y in {1989..2001}; do
+for y in {1989..2000}; do
     ycurr=$((y))
     yprev=$((y - 1))
     echo "$yprev vs $ycurr in $arch1 and $arch2"
