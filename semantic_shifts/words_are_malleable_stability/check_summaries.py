@@ -85,6 +85,9 @@ for mode in modes:
         df = pd.read_csv(os.path.join(path, 'summaries_threshold_{}.csv'.format(mapar2en[w])))
         df.to_excel(os.path.join(path, 'summaries_threshold_{}.xlsx'.format(mapar2en[w])), index=False)
 
+        # NOTE: I did the ocr_summary_corrections.xlsx because we wanted to see comparisons
+        # across source and time, and we cherry picked only the words of interest
+        # and only the years of interest
 
         # print('word = {} ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'.format(w))
         # for t in thresholds:
