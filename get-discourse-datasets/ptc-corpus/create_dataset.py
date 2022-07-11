@@ -4,7 +4,7 @@ import pandas as pd
 
 gold_label_files = ['dev-task-flc-tc.labels', 'train-task-flc-tc.labels']
 article_dirs = ['dev-articles/', 'train-articles/']
-dataset_names = ['dev-articles.csv', 'train-articles.csv']
+dataset_names = ['dev-articles', 'train-articles']
 labels_political_discourse = ['active', 'euphimism', 'details', 'exaggeration', 'bragging', 'litote', 'repetition',
                                   'metaphor', 'he said', 'apparent denial', 'apparent concession', 'blame transfer',
                                   'other kinds', 'opinion', 'irony']
@@ -58,4 +58,5 @@ for i, article_dir in enumerate(article_dirs):
     for label in labels_political_discourse:
         df[label] = ""
 
-    df.to_csv('{}'.format(dataset_names[i]), index=False)
+    df.to_csv('{}.csv'.format(dataset_names[i]), index=False)
+    df.to_excel('{}.xlsx'.format(dataset_names[i]), index=False)

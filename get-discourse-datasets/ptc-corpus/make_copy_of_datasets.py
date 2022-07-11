@@ -12,6 +12,6 @@ if __name__ == '__main__':
                                   'other kinds', 'opinion', 'irony']
 
     for file in os.listdir('.'):
-        if file.endswith('.csv'):
+        if file.endswith('.csv') or file.endswith('.xlsx'):
             shutil.copy(file, save_dir)
             print('copied the file {} to {}'.format(file, save_dir))
