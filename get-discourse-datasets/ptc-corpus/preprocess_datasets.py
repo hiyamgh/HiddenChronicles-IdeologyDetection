@@ -2,6 +2,7 @@ from dataset import *
 import os
 from sklearn.model_selection import train_test_split
 from googletrans import Translator
+import time
 
 
 def get_class_percentages(df_train, df_dev):
@@ -16,8 +17,10 @@ def get_class_percentages(df_train, df_dev):
 
 
 def translate_dataset(df):
-    df['span_ar'] = df.apply(lambda x: translator.translate(x['span'], dest='arc').text, axis=1)
-    df['context_ar'] = df.apply(lambda x: translator.translate(x['context'], dest='arc').text, axis=1)
+    # df = df[:100]
+    print('len of df: {}'.format(len(df)))
+    df['span_ar'] = df.apply(lambda x: translator.translate(x['span'], dest='ar').text, axis=1)
+    df['context_ar'] = df.apply(lambda x: translator.translate(x['context'], dest='ar').text, axis=1)
     return df
 
 
@@ -52,5 +55,11 @@ if __name__ == '__main__':
     print('\nAFTER train/test split:\n')
     get_class_percentages(df_train=df_train, df_dev=df_dev)
 
-    df_train.to_csv('df_train.csv', index=False)
-    df_dev.to_csv('df_dev.csv', index=False)
+    t1 = time.time()
+    df_train = translate_dataset(df_train)
+    df_dev = translate_dataset(df_dev)
+    t2 = time.time()
+
+    print('time taken: {} mins'.format((t2-t1)/60))
+    df_train.to_excel('df_train.xlsx', index=False, encoding='utf-8-sig')
+    df_dev.to_excel('df_dev.xlsx', index=False, encoding='utf-8-sig')
