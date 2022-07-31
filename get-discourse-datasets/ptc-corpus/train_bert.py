@@ -11,9 +11,14 @@ import numpy as np
 import torch
 from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
+from arabert.preprocess import ArabertPreprocessor
+import time
+import datetime
+
 
 from transformers import (
     WEIGHTS_NAME,
+    CONFIG_NAME,
     AdamW,
     BertConfig,
     BertForMaskedLM,
@@ -56,21 +61,43 @@ class InputFeatures:
 
 class DataProcessor:
 
+    def __init__(self, model_name):
+        self.labels = None
+        self.model_name = model_name
+
     def _read_dataset(self, df_path):
         df = pd.read_csv(df_path)
-        sentences = []
-        for i, row in df.iterrows():
-            sentence = row['context_ar']
-            label = row['label']
+        arabert_prep = ArabertPreprocessor(model_name=self.model_name)
+        if self.labels is None:
+            sentences = []
+            labels = set()
+            for i, row in df.iterrows():
+                sentence = row['context_ar']
+                # according to https://github.com/aub-mind/arabert#preprocessing
+                # It is recommended to apply our preprocessing function before training/testing on any dataset
+                sentence = arabert_prep.preprocess(sentence)
+                label = row['label']
 
-            sentences.append([sentence, label])
+                labels.add(label)
+                sentences.append([sentence, label])
+
+            self.labels = list(labels)
+        else:
+            sentences = []
+            for i, row in df.iterrows():
+                sentence = row['context_ar']
+                label = row['label']
+
+                sentences.append([sentence, label])
 
         return sentences
 
-    def _get_train_examples(self, df_path):
+    def get_train_examples(self, df_path):
+        print('reading the training dataset from {} ...'.format(df_path))
         return self._create_examples(self._read_dataset(df_path=df_path), "train")
 
-    def _get_test_examples(self, df_path):
+    def get_test_examples(self, df_path):
+        print('reading the testing dataset from {} ...'.format(df_path))
         return self._create_examples(self._read_dataset(df_path=df_path), "test")
 
     def _create_examples(self, data_tuples, set_type):
@@ -87,6 +114,10 @@ class DataProcessor:
 
     def _get_input_example(self, guid, sentence, label):
         return InputExample(text_a=sentence, label=label, guid=guid)
+
+    def get_labels(self):
+        """ gets the list of unique labels. Called only after calling _read_dataset()"""
+        return self.labels
 
 
 def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer):
@@ -209,6 +240,18 @@ def warmup_linear(x, warmup=0.002):
         return x / warmup
     return 1.0 - x
 
+
+def format_time(elapsed):
+    '''
+    Takes a time in seconds and returns a string hh:mm:ss
+    '''
+    # Round to the nearest second.
+    elapsed_rounded = int(round((elapsed)))
+
+    # Format as hh:mm:ss
+    return str(datetime.timedelta(seconds=elapsed_rounded))
+
+
 def main():
     parser = argparse.ArgumentParser()
 
@@ -218,7 +261,7 @@ def main():
                         type=str,
                         required=True,
                         help="The input data dir. Should contain the .tsv files (or other data files) for the task.")
-    parser.add_argument("--bert_model", default=None, type=str, required=True,
+    parser.add_argument("--bert_model", default="aubmindlab/bert-base-arabertv2", type=str, required=True,
                         help="Bert pre-trained model selected in the list: bert-base-uncased, "
                              "bert-large-uncased, bert-base-cased, bert-large-cased, bert-base-multilingual-uncased, "
                              "bert-base-multilingual-cased, bert-base-chinese.")
@@ -294,37 +337,18 @@ def main():
                              "0 (default value): dynamic loss scaling.\n"
                              "Positive power of 2: static loss scaling value.\n")
 
-    parser.add_argument("--test_set",
-                        default=None,
+    parser.add_argument("--train_set",
+                        default="df_train.xlsx",
                         type=str,
-                        help="Name of test set.")
+                        help="path to the training dataset.")
 
-    parser.add_argument("--binarize_labels",
-                        default=0,
-                        type=int,
-                        help="binarize_labels.")
+    parser.add_argument("--test_set",
+                        default="df_dev.xlsx",
+                        type=str,
+                        help="path to the testing dataset.")
 
-
-    parser.add_argument("--use_all_data",
-                        default=0,
-                        type=int,
-                        help="binarize_labels.")
 
     args = parser.parse_args()
-
-
-
-    processors = {
-        "ukp-sentence": UKPProcessor,
-        "ukp-topic-sentence": UKPProcessorTopicSentence,
-        "ukp-sentence-topic": UKPProcessorSentenceTopic,
-        "ibm-sentence": IBMProcessor,
-        "ibm-topic-sentence": IBMProcessorTopicSentence,
-        "ibm-concept-sentence": IBMProcessorConceptSentence,
-    }
-
-    binarize_labels = False if args.binarize_labels == 0 else True
-    use_all_data = False if args.use_all_data==0 else True
 
     if args.test_set is not None:
         logger.info("Test set: "+args.test_set)
@@ -365,10 +389,11 @@ def main():
 
     task_name = args.task_name.lower()
 
-    if task_name not in processors:
-        raise ValueError("Task not found: %s" % (task_name))
-
-    processor = processors[task_name](binarize_labels, use_all_data)
+    # if task_name not in processors:
+    #     raise ValueError("Task not found: %s" % (task_name))
+    #
+    # processor = processors[task_name](binarize_labels, use_all_data)
+    processor = DataProcessor(model_name=args.bert_model)
     label_list = processor.get_labels()
     num_labels = len(label_list)
 
@@ -377,15 +402,16 @@ def main():
     train_examples = None
     num_train_steps = None
     if args.do_train:
-        train_examples = processor.get_train_examples(args.data_dir, args.test_set)
+        train_examples = processor.get_train_examples(args.train_set)
         num_train_steps = int(
             len(train_examples) / args.train_batch_size / args.gradient_accumulation_steps * args.num_train_epochs)
 
     # Prepare model
-    model = BertForSequenceClassification.from_pretrained(args.bert_model,
-                                                          cache_dir=PYTORCH_PRETRAINED_BERT_CACHE / 'distributed_{}'.format(
-                                                              args.local_rank),
-                                                          num_labels=num_labels)
+    # model = BertForSequenceClassification.from_pretrained(args.bert_model,
+    #                                                       cache_dir=PYTORCH_PRETRAINED_BERT_CACHE / 'distributed_{}'.format(
+    #                                                           args.local_rank),
+    #                                                       num_labels=num_labels)
+    model = BertForSequenceClassification.from_pretrained(args.bert_model, num_labels=num_labels)
     if args.fp16:
         model.half()
     model.to(device)
@@ -433,12 +459,12 @@ def main():
         #                      warmup=args.warmup_proportion,
         #                      t_total=t_total)
 
-        optimizer = AdamW(optimizer_grouped_parameters,
-                             lr=args.learning_rate)
+        optimizer = AdamW(optimizer_grouped_parameters, lr=args.learning_rate)
 
     global_step = 0
     nb_tr_steps = 0
     tr_loss = 0
+    t1 = time.time()
     if args.do_train:
         with open(os.path.join(args.output_dir, "train_sentences.csv"), "w") as writer:
             for idx, example in enumerate(train_examples):
@@ -499,6 +525,9 @@ def main():
                 do_evaluation(processor, args, label_list, tokenizer, model, device, tr_loss, nb_tr_steps, global_step,
                               task_name, eval_results_filename, eval_prediction_filename)
 
+        elapsed = format_time(time.time() - t1)
+        print('time elapsed to complete training + validation: {}'.format(elapsed))
+
     if args.do_train and (args.local_rank == -1 or torch.distributed.get_rank() == 0):
         # Save a trained model
         model_to_save = model.module if hasattr(model, 'module') else model  # Only save the model it-self
@@ -525,9 +554,13 @@ def main():
         eval_prediction_filename = "test_predictions.txt"
         do_evaluation(processor, args, label_list, tokenizer, model, device, tr_loss, nb_tr_steps, global_step, task_name, eval_results_filename, eval_prediction_filename)
 
+    elapsed = format_time(time.time() - t1)
+    print('time elapsed to complete training + testing: {}'.format(elapsed))
+
+
 
 def do_evaluation(processor, args, label_list, tokenizer, model, device, tr_loss, nb_tr_steps, global_step, task_name, eval_results_filename, eval_prediction_filename):
-    eval_examples = processor.get_test_examples(args.data_dir, args.test_set)
+    eval_examples = processor.get_test_examples(args.test_set)
     eval_features = convert_examples_to_features(
         eval_examples, label_list, args.max_seq_length, tokenizer)
     logger.info("***** Running evaluation *****")
