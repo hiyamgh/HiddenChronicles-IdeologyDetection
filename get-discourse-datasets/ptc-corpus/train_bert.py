@@ -14,7 +14,7 @@ from torch.utils.data.distributed import DistributedSampler
 from arabert.preprocess import ArabertPreprocessor
 import time
 import datetime
-
+from sklearn.metrics import classification_report
 
 from transformers import (
     WEIGHTS_NAME,
@@ -67,7 +67,7 @@ class DataProcessor:
         self.model_name = model_name
 
     def _read_dataset(self, df_path):
-        df = pd.read_csv(df_path)
+        df = pd.read_csv(df_path) if '.csv' in df_path else pd.read_excel(df_path)
         arabert_prep = ArabertPreprocessor(model_name=self.model_name)
         if self.labels is None:
             sentences = []
@@ -270,7 +270,7 @@ def main():
                         default=None,
                         type=str,
                         help="The input data dir. Should contain the .tsv files (or other data files) for the task.")
-    parser.add_argument("--bert_model", default="bert-base-arabertv2", type=str,
+    parser.add_argument("--bert_model", default="aubmindlab/bert-base-arabertv2", type=str,
                         help="Bert pre-trained model selected in the list: bert-base-uncased, "
                              "bert-large-uncased, bert-base-cased, bert-large-cased, bert-base-multilingual-uncased, "
                              "bert-base-multilingual-cased, bert-base-chinese.")
@@ -364,12 +364,12 @@ def main():
                              "Positive power of 2: static loss scaling value.\n")
 
     parser.add_argument("--train_set",
-                        default="df_train.xlsx",
+                        default="df_train_single.xlsx",
                         type=str,
                         help="path to the training dataset.")
 
     parser.add_argument("--test_set",
-                        default="df_dev.xlsx",
+                        default="df_dev_single.xlsx",
                         type=str,
                         help="path to the testing dataset.")
 
@@ -429,10 +429,12 @@ def main():
     train_examples = None
     num_train_steps = None
     if args.do_train:
+        ttemp = time.time()
         train_examples = processor.get_train_examples(args.train_set)
+        # train_examples = train_examples[:100]
         num_train_steps = int(
             len(train_examples) / args.train_batch_size / args.gradient_accumulation_steps * args.num_train_epochs)
-
+        print('loaded training examples - took {}'.format(format_time(time.time() - ttemp)))
     # Prepare model
     # model = BertForSequenceClassification.from_pretrained(args.bert_model,
     #                                                       cache_dir=PYTORCH_PRETRAINED_BERT_CACHE / 'distributed_{}'.format(
@@ -442,6 +444,7 @@ def main():
     label_list = processor.get_labels() # we can call get_labels() because we called get_train_examples()
     num_labels = len(label_list)
     model = BertForSequenceClassification.from_pretrained(args.bert_model, num_labels=num_labels)
+    print('loaded BERT model for sequence classification ...')
     if args.fp16:
         model.half()
     model.to(device)
@@ -496,7 +499,7 @@ def main():
     tr_loss = 0
     t1 = time.time()
     if args.do_train:
-        with open(os.path.join(args.output_dir, "train_sentences.csv"), "w") as writer:
+        with open(os.path.join(args.output_dir, "train_sentences.csv"), "w", encoding="utf-8") as writer:
             for idx, example in enumerate(train_examples):
                 writer.write("%s\t%s\t%s\n" % (example.label, example.text_a, example.text_b))
 
@@ -521,12 +524,14 @@ def main():
 
         model.train()
         for epoch in trange(int(args.num_train_epochs), desc="Epoch"):
+            print('epoch: {}'.format(epoch))
             tr_loss = 0
             nb_tr_examples, nb_tr_steps = 0, 0
             for step, batch in enumerate(tqdm(train_dataloader, desc="Iteration")):
                 batch = tuple(t.to(device) for t in batch)
                 input_ids, input_mask, segment_ids, label_ids = batch
-                loss = model(input_ids, segment_ids, input_mask, label_ids)
+                outputs = model(input_ids, attention_mask=input_mask, token_type_ids=segment_ids, labels=label_ids)
+                loss = outputs.loss
                 if n_gpu > 1:
                     loss = loss.mean()  # mean() to average on multi-gpu.
                 if args.gradient_accumulation_steps > 1:
@@ -591,6 +596,7 @@ def main():
 
 def do_evaluation(processor, args, label_list, tokenizer, model, device, tr_loss, nb_tr_steps, global_step, task_name, eval_results_filename, eval_prediction_filename):
     eval_examples = processor.get_test_examples(args.test_set)
+    # eval_examples = eval_examples[:100]
     eval_features = convert_examples_to_features(
         eval_examples, label_list, args.max_seq_length, tokenizer)
     logger.info("***** Running evaluation *****")
@@ -610,6 +616,8 @@ def do_evaluation(processor, args, label_list, tokenizer, model, device, tr_loss
     nb_eval_steps, nb_eval_examples = 0, 0
 
     predicted_labels = []
+    predicted_labels_ints = []
+    gold_labels_ints = []
     for input_ids, input_mask, segment_ids, label_ids in tqdm(eval_dataloader, desc="Evaluating"):
         input_ids = input_ids.to(device)
         input_mask = input_mask.to(device)
@@ -617,14 +625,16 @@ def do_evaluation(processor, args, label_list, tokenizer, model, device, tr_loss
         label_ids = label_ids.to(device)
 
         with torch.no_grad():
-            logits = model(input_ids, segment_ids, input_mask)
+            outputs = model(input_ids, segment_ids, input_mask)
 
+        logits = outputs.logits
         logits = logits.detach().cpu().numpy()
         label_ids = label_ids.to('cpu').numpy()
         tmp_eval_accuracy = accuracy(logits, label_ids)
 
         for prediction in np.argmax(logits, axis=1):
             predicted_labels.append(label_list[prediction])
+            predicted_labels_ints.append(prediction)
 
         eval_accuracy += tmp_eval_accuracy
 
@@ -647,9 +657,10 @@ def do_evaluation(processor, args, label_list, tokenizer, model, device, tr_loss
             writer.write("%s = %s\n" % (key, str(result[key])))
         logger.info("\n\n\n")
 
+    # print(classification_report([e.label for e in eval_examples], predicted_labels, target_names=labels))
 
     output_pred_file = os.path.join(args.output_dir, eval_prediction_filename)
-    with open(output_pred_file, "w") as writer:
+    with open(output_pred_file, "w", encoding="utf-8") as writer:
         for idx, example in enumerate(eval_examples):
             gold_label = example.label
             pred_label = predicted_labels[idx]
