@@ -23,6 +23,7 @@ from transformers import (
     BertConfig,
     BertForMaskedLM,
     BertTokenizer,
+    AutoTokenizer,
     BertForSequenceClassification,
     PreTrainedModel,
     PreTrainedTokenizer,
@@ -256,24 +257,43 @@ def main():
     parser = argparse.ArgumentParser()
 
     ## Required parameters
+    # parser.add_argument("--data_dir",
+    #                     default=None,
+    #                     type=str,
+    #                     required=True,
+    #                     help="The input data dir. Should contain the .tsv files (or other data files) for the task.")
+    # parser.add_argument("--bert_model", default="aubmindlab/bert-base-arabertv2", type=str, required=True,
+    #                     help="Bert pre-trained model selected in the list: bert-base-uncased, "
+    #                          "bert-large-uncased, bert-base-cased, bert-large-cased, bert-base-multilingual-uncased, "
+    #                          "bert-base-multilingual-cased, bert-base-chinese.")
     parser.add_argument("--data_dir",
                         default=None,
                         type=str,
-                        required=True,
                         help="The input data dir. Should contain the .tsv files (or other data files) for the task.")
-    parser.add_argument("--bert_model", default="aubmindlab/bert-base-arabertv2", type=str, required=True,
+    parser.add_argument("--bert_model", default="bert-base-arabertv2", type=str,
                         help="Bert pre-trained model selected in the list: bert-base-uncased, "
                              "bert-large-uncased, bert-base-cased, bert-large-cased, bert-base-multilingual-uncased, "
                              "bert-base-multilingual-cased, bert-base-chinese.")
+
+    # parser.add_argument("--task_name",
+    #                     default=None,
+    #                     type=str,
+    #                     required=True,
+    #                     help="The name of the task to train.")
+    #
     parser.add_argument("--task_name",
-                        default=None,
+                        default="classification_arabert",
                         type=str,
-                        required=True,
                         help="The name of the task to train.")
+
+    # parser.add_argument("--output_dir",
+    #                     default=None,
+    #                     type=str,
+    #                     required=True,
+    #                     help="The output directory where the model predictions and checkpoints will be written.")
     parser.add_argument("--output_dir",
-                        default=None,
+                        default="bert_output/",
                         type=str,
-                        required=True,
                         help="The output directory where the model predictions and checkpoints will be written.")
 
     ## Other parameters
@@ -283,11 +303,17 @@ def main():
                         help="The maximum total input sequence length after WordPiece tokenization. \n"
                              "Sequences longer than this will be truncated, and sequences shorter \n"
                              "than this will be padded.")
+    # parser.add_argument("--do_train",
+    #                     action='store_true',
+    #                     help="Whether to run training.")
     parser.add_argument("--do_train",
-                        action='store_true',
+                        action='store_false',
                         help="Whether to run training.")
+    # parser.add_argument("--do_eval",
+    #                     action='store_true',
+    #                     help="Whether to run eval on the dev set.")
     parser.add_argument("--do_eval",
-                        action='store_true',
+                        action='store_false',
                         help="Whether to run eval on the dev set.")
     parser.add_argument("--do_lower_case",
                         action='store_true',
@@ -380,8 +406,8 @@ def main():
     if not args.do_train and not args.do_eval:
         raise ValueError("At least one of `do_train` or `do_eval` must be True.")
 
-    if os.path.exists(args.output_dir) and os.listdir(args.output_dir) and args.do_train:
-        raise ValueError("Output directory ({}) already exists and is not empty.".format(args.output_dir))
+    # if os.path.exists(args.output_dir) and os.listdir(args.output_dir) and args.do_train:
+    #     raise ValueError("Output directory ({}) already exists and is not empty.".format(args.output_dir))
     os.makedirs(args.output_dir, exist_ok=True)
 
     with open(os.path.join(args.output_dir, 'parameters.txt'), 'w') as fOut:
@@ -394,10 +420,11 @@ def main():
     #
     # processor = processors[task_name](binarize_labels, use_all_data)
     processor = DataProcessor(model_name=args.bert_model)
-    label_list = processor.get_labels()
-    num_labels = len(label_list)
+    # label_list = processor.get_labels()
+    # num_labels = len(label_list)
 
-    tokenizer = BertTokenizer.from_pretrained(args.bert_model, do_lower_case=args.do_lower_case)
+    # tokenizer = BertTokenizer.from_pretrained(args.bert_model, do_lower_case=args.do_lower_case)
+    tokenizer = BertTokenizer.from_pretrained(args.bert_model)
 
     train_examples = None
     num_train_steps = None
@@ -411,6 +438,9 @@ def main():
     #                                                       cache_dir=PYTORCH_PRETRAINED_BERT_CACHE / 'distributed_{}'.format(
     #                                                           args.local_rank),
     #                                                       num_labels=num_labels)
+
+    label_list = processor.get_labels() # we can call get_labels() because we called get_train_examples()
+    num_labels = len(label_list)
     model = BertForSequenceClassification.from_pretrained(args.bert_model, num_labels=num_labels)
     if args.fp16:
         model.half()
