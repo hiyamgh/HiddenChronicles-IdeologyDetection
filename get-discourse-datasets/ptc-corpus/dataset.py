@@ -75,7 +75,7 @@ def dataset_to_pandas(articles, ref_articles_id, ref_span_starts, ref_span_ends,
 
 
 def get_train_dev_files(articles, ref_articles_id, ref_span_starts, ref_span_ends, labels, train_file, dev_file,
-                        split_by_ids=False, dev_size=0.3, random_state=40, balance=False, shuffle=True):
+                        split_by_ids=False, dev_size=0.2, random_state=40, balance=False, shuffle=True):
     data = dataset_to_pandas(articles, ref_articles_id, ref_span_starts, ref_span_ends, labels)
     if split_by_ids:
         train_ids, dev_ids = train_test_split(data.article_id.unique(), test_size=dev_size, random_state=random_state)

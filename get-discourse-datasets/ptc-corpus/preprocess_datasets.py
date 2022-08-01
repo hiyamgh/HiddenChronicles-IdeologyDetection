@@ -5,6 +5,15 @@ from googletrans import Translator
 import time
 
 
+def convert_datasets_single_label_multiclass(df_train, df_test, dev_size=0.2, random_state=42):
+    df_combined = pd.concat([df_train, df_test])
+    # drop all dupliactes (sentences that have similar context are basically
+    # sentences with multiple labels - drop all of them)
+    df_combined = df_combined.drop_duplicates(subset='context', keep=False) # https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.drop_duplicates.html
+    df_train, df_test = train_test_split(df_combined, test_size=dev_size, random_state=random_state)
+    return df_train, df_test
+
+
 def get_class_percentages(df_train, df_dev):
     percentages_train = (df_train['label'].value_counts() / len(df_train)) * 100
     percentages_dev = (df_dev['label'].value_counts() / len(df_dev)) * 100
@@ -43,6 +52,11 @@ if __name__ == '__main__':
     df_dev = dataset_to_pandas(articles=dev_articles, ref_articles_id=dev_ref_articles_id,
                                  ref_span_starts=dev_ref_span_starts, ref_span_ends=dev_ref_span_ends,
                                  train_gold_labels=dev_labels)
+    print('\nBefore transforming to single label / multiclass')
+    print('df_train: {} / df_test: {}'.format(df_train.shape, df_dev.shape))
+    df_train, df_dev = convert_datasets_single_label_multiclass(df_train=df_train, df_test=df_dev)
+    print('\nAfter transforming to single label / multiclass')
+    print('df_train: {} / df_test: {}'.format(df_train.shape, df_dev.shape))
 
     # print class percentages in each dataset
     get_class_percentages(df_train=df_train, df_dev=df_dev)
@@ -61,5 +75,5 @@ if __name__ == '__main__':
     t2 = time.time()
 
     print('time taken: {} mins'.format((t2-t1)/60))
-    df_train.to_excel('df_train.xlsx', index=False, encoding='utf-8-sig')
-    df_dev.to_excel('df_dev.xlsx', index=False, encoding='utf-8-sig')
+    df_train.to_excel('df_train_single.xlsx', index=False, encoding='utf-8-sig')
+    df_dev.to_excel('df_dev_single.xlsx', index=False, encoding='utf-8-sig')
