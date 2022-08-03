@@ -1,6 +1,7 @@
 import torch
 from torchtext.legacy import data
 from torchtext.vocab import Vectors, FastText
+import fasttext
 import spacy
 import pandas as pd
 import numpy as np
@@ -101,8 +102,10 @@ class Dataset(object):
         if w2v_file:
             # vec = Vectors(w2v_file, cache='../', url='https://dl.fbaipublicfiles.com/fasttext/vectors-crawl/cc.ar.300.bin.gz')
             # vec = Vectors(w2v_file, cache='../')
-            vec = FastText(w2v_file, cache='../')
-            TEXT.build_vocab(train_data, vectors=vec)
+            # vec = FastText(w2v_file, cache='../')
+            ft = fasttext.load_model('../{}'.format(w2v_file))
+            word_vectors = torch.from_numpy(ft.get_input_matrix())
+            TEXT.build_vocab(train_data, vectors=Vectors(word_vectors))
             # TEXT.build_vocab(train_data, vectors=Vectors(w2v_file))
             # TEXT.build_vocab(train_data, vectors=w2v_file) # https://programs.wiki/wiki/torchtext-tutorial.html
         self.word_embeddings = TEXT.vocab.vectors
@@ -146,6 +149,6 @@ def evaluate_model(model, iterator):
 if __name__ == '__main__':
     cnf = Config()
     dt = Dataset(config=cnf, text_column='context_ar', label_column='label')
-    # dt.load_data(w2v_file='cc.ar.300.bin', train_file='df_train_single.xlsx', test_file='df_dev_single.xlsx')
+    dt.load_data(w2v_file='cc.ar.300.bin', train_file='df_train_single.xlsx', test_file='df_dev_single.xlsx')
     # https://dl.fbaipublicfiles.com/fasttext/vectors-wiki/wiki.ar.zip
-    dt.load_data(w2v_file='wiki.ar.vec', train_file='df_train_single.xlsx', test_file='df_dev_single.xlsx')
+    # dt.load_data(w2v_file='wiki.ar.vec', train_file='df_train_single.xlsx', test_file='df_dev_single.xlsx')
