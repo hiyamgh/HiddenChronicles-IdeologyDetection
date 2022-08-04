@@ -59,7 +59,16 @@ class Dataset(object):
         df = df[[self.text_column, self.label_column]]
         return df
 
-    def load_data(self, w2v_file, train_file, test_file=None, val_file=None):
+    def get_vocab(self, df_train):
+        target_vocab = set()
+        for i, row in df_train.iterrows():
+            sentence = row[self.text_column]
+            sentence = sentence.split(' ')
+            for token in sentence:
+                target_vocab.add(token)
+        return list(target_vocab)
+
+    def load_data(self, w2v_file, train_file, test_file=None, val_file=None, emb_dim=300):
         '''
         Loads the data from files
         Sets up iterators for training, validation and test data
@@ -103,13 +112,28 @@ class Dataset(object):
             # vec = Vectors(w2v_file, cache='../', url='https://dl.fbaipublicfiles.com/fasttext/vectors-crawl/cc.ar.300.bin.gz')
             # vec = Vectors(w2v_file, cache='../')
             # vec = FastText(w2v_file, cache='../')
-            ft = fasttext.load_model('../{}'.format(w2v_file))
-            word_vectors = torch.from_numpy(ft.get_input_matrix())
-            TEXT.build_vocab(train_data, vectors=Vectors(word_vectors))
+            target_vocab = self.get_vocab(df_train=train_df) # pass only the training data
+            print('length of target vocabulary: {}'.format(len(target_vocab)))
+            ft = fasttext.load_model('{}'.format(w2v_file))
+            # word_vectors = torch.from_numpy(ft.get_input_matrix())
+            matrix_len = len(target_vocab)
+            weights_matrix = np.zeros((matrix_len, 300))
+            words_found = 0
+
+            for i, word in enumerate(target_vocab):
+                try:
+                    weights_matrix[i] = ft[word]
+                    words_found += 1
+                except KeyError:
+                    weights_matrix[i] = np.random.normal(scale=0.6, size=(emb_dim,))
+            # TEXT.build_vocab(train_data, vectors=Vectors(word_vectors))
+
             # TEXT.build_vocab(train_data, vectors=Vectors(w2v_file))
             # TEXT.build_vocab(train_data, vectors=w2v_file) # https://programs.wiki/wiki/torchtext-tutorial.html
-        self.word_embeddings = TEXT.vocab.vectors
-        self.vocab = TEXT.vocab
+        # self.word_embeddings = TEXT.vocab.vectors
+        # self.vocab = TEXT.vocab
+
+        self.word_embeddings = weights_matrix
 
         self.train_iterator = data.BucketIterator(
             (train_data),
