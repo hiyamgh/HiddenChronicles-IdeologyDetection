@@ -1,69 +1,95 @@
 import os
 import torch
 import numpy as np
-import pickle as pkl
+import pickle
 from tqdm import tqdm
 import time
 from datetime import timedelta
-
+import pandas as pd
+from sklearn.model_selection import train_test_split
 
 MAX_VOCAB_SIZE = 10000  # 词表长度限制
 UNK, PAD = '<UNK>', '<PAD>'  # 未知字，padding符号
 
 
-def build_vocab(file_path, tokenizer, max_size, min_freq):
+def build_vocab(config):
     vocab_dic = {}
-    with open(file_path, 'r', encoding='UTF-8') as f:
-        for line in tqdm(f):
-            lin = line.strip()
-            if not lin:
-                continue
-            content = lin.split('\t')[0]
-            for word in tokenizer(content):
-                vocab_dic[word] = vocab_dic.get(word, 0) + 1
-        vocab_list = sorted([_ for _ in vocab_dic.items() if _[1] >= min_freq], key=lambda x: x[1], reverse=True)[:max_size]
-        vocab_dic = {word_count[0]: idx for idx, word_count in enumerate(vocab_list)}
-        vocab_dic.update({UNK: len(vocab_dic), PAD: len(vocab_dic) + 1})
+    tokenizer = lambda x: x.split(' ')
+    df = pd.read_csv(config.train_path) if '.csv' in config.train_path else pd.read_excel(config.train_path)
+    for _, row in df.iterrows():
+        line = row[config.text_column]
+        line = line.strip()
+
+        for word in tokenizer(line):
+            vocab_dic[word] = vocab_dic.get(word, 0) + 1
+    vocab_list = sorted([_ for _ in vocab_dic.items()], key=lambda x: x[1], reverse=True)
+    vocab_dic = {word_count[0]: idx for idx, word_count in enumerate(vocab_list)}
+    vocab_dic.update({UNK: len(vocab_dic), PAD: len(vocab_dic) + 1})
+
     return vocab_dic
 
 
-def build_dataset(config, ues_word):
-    if ues_word:
-        tokenizer = lambda x: x.split(' ')  # 以空格隔开，word-level
-    else:
-        tokenizer = lambda x: [y for y in x]  # char-level
-    if os.path.exists(config.vocab_path):
-        vocab = pkl.load(open(config.vocab_path, 'rb'))
-    else:
-        vocab = build_vocab(config.train_path, tokenizer=tokenizer, max_size=MAX_VOCAB_SIZE, min_freq=1)
-        pkl.dump(vocab, open(config.vocab_path, 'wb'))
-    print(f"Vocab size: {len(vocab)}")
+def get_word_embeddings(w2v, vocab):
+    embeddings = np.random.rand(len(vocab), w2v.get_input_matrix().shape[1]) # `.get_input_matrix()` is specific to fasttext
+    for word in vocab:
+        idx = vocab[word]
+        emb = w2v[word]
+        embeddings[idx] = emb
+    return embeddings
 
-    def load_dataset(path, pad_size=32):
+
+def build_dataset(config):
+
+    tokenizer = lambda x: x.split(' ')  # 以空格隔开，word-level
+    vocab = build_vocab(config)
+
+    def load_dataset(path, pad_size=32, df=None):
+
+        if df is None:
+            df = pd.read_csv(path) if '.csv' in path else pd.read_excel(path)
+
+        df = df[[config.text_column, config.label_column]]
+
+        if not os.path.isfile('labels_ids.txt'):
+            labels = list(set(df[config.label_column]))
+            labels2id = {label: i for i, label in enumerate(labels)}
+            with open('labels_ids.pkl', 'wb') as f:
+                pickle.dump(labels2id, f)
+        else:
+            with open('labels_ids.pkl', 'rb') as f:
+                labels2id = pickle.load(f)
+
         contents = []
-        with open(path, 'r', encoding='UTF-8') as f:
-            for line in tqdm(f):
-                lin = line.strip()
-                if not lin:
-                    continue
-                content, label = lin.split('\t')
-                words_line = []
-                token = tokenizer(content)
-                seq_len = len(token)
-                if pad_size:
-                    if len(token) < pad_size:
-                        token.extend([PAD] * (pad_size - len(token)))
-                    else:
-                        token = token[:pad_size]
-                        seq_len = pad_size
-                # word to id
-                for word in token:
-                    words_line.append(vocab.get(word, vocab.get(UNK)))
-                contents.append((words_line, int(label), seq_len))
-        return contents  # [([...], 0), ([...], 1), ...]
-    train = load_dataset(config.train_path, config.pad_size)
-    dev = load_dataset(config.dev_path, config.pad_size)
-    test = load_dataset(config.test_path, config.pad_size)
+        for i, row in df.iterrows():
+            sentence = row[config.text_column].strip()
+            label = row[config.label_column]
+            tokens = tokenizer(sentence)
+            words_line = []
+            if pad_size:
+                if len(tokens) < pad_size:
+                    tokens.extend([PAD] * (pad_size - len(tokens)))
+                else:
+                    tokens = tokens[:pad_size]
+
+            for word in tokens:
+                words_line.append(vocab.get(word, vocab.get(UNK)))
+
+            contents.append((words_line, labels2id[label]))
+        return contents
+
+    if config.dev_path is not None:
+        train = load_dataset(config.train_path, config.pad_size)
+        dev = load_dataset(config.dev_path, config.pad_size)
+        test = load_dataset(config.test_path, config.pad_size)
+    else:
+        # divide the training data into 80% training and 20% testing
+        print('as `validation_path` is set to None, training data will be split into 80% training and 20% validation - stratified')
+        df = pd.read_csv(config.train_path) if '.csv' in config.train_path else pd.read_excel(config.train_path)
+        df_train, df_val = train_test_split(df, test_size=0.20, random_state=42, stratify=list(df[config.label_column]))
+        train = load_dataset(config.train_path, config.pad_size, df_train)
+        dev = load_dataset(config.dev_path, config.pad_size, df_val)
+        test = load_dataset(config.test_path, config.pad_size)
+
     return vocab, train, dev, test
 
 
@@ -83,8 +109,9 @@ class DatasetIterater(object):
         y = torch.LongTensor([_[1] for _ in datas]).to(self.device)
 
         # pad前的长度(超过pad_size的设为pad_size)
-        seq_len = torch.LongTensor([_[2] for _ in datas]).to(self.device)
-        return (x, seq_len), y
+        # seq_len = torch.LongTensor([_[2] for _ in datas]).to(self.device)
+        # return (x, seq_len), y
+        return x, y
 
     def __next__(self):
         if self.residue and self.index == self.n_batches:
@@ -118,7 +145,7 @@ def build_iterator(dataset, config):
 
 
 def get_time_dif(start_time):
-    """获取已使用时间"""
+    """ get the time difference between given start time and current time """
     end_time = time.time()
     time_dif = end_time - start_time
     return timedelta(seconds=int(round(time_dif)))
@@ -133,12 +160,12 @@ if __name__ == "__main__":
     emb_dim = 300
     filename_trimmed_dir = "./THUCNews/data/embedding_SougouNews"
     if os.path.exists(vocab_dir):
-        word_to_id = pkl.load(open(vocab_dir, 'rb'))
+        word_to_id = pickle.load(open(vocab_dir, 'rb'))
     else:
         # tokenizer = lambda x: x.split(' ')  # 以词为单位构建词表(数据集中词之间以空格隔开)
         tokenizer = lambda x: [y for y in x]  # 以字为单位构建词表
         word_to_id = build_vocab(train_dir, tokenizer=tokenizer, max_size=MAX_VOCAB_SIZE, min_freq=1)
-        pkl.dump(word_to_id, open(vocab_dir, 'wb'))
+        pickle.dump(word_to_id, open(vocab_dir, 'wb'))
 
     embeddings = np.random.rand(len(word_to_id), emb_dim)
     f = open(pretrain_dir, "r", encoding='UTF-8')
@@ -192,15 +219,15 @@ if __name__ == "__main__":
 #         df = df[[self.text_column, self.label_column]]
 #         return df
 #
-#     def get_vocab(self, df_train):
-#         target_vocab = set()
-#         for i, row in df_train.iterrows():
-#             sentence = row[self.text_column]
-#             sentence = sentence.split(' ')
-#             for token in sentence:
-#                 target_vocab.add(token)
-#         return list(target_vocab)
-#
+    # def get_vocab(self, df_train):
+    #     target_vocab = set()
+    #     for i, row in df_train.iterrows():
+    #         sentence = row[self.text_column]
+    #         sentence = sentence.split(' ')
+    #         for token in sentence:
+    #             target_vocab.add(token)
+    #     return list(target_vocab)
+
 #     def load_data(self, w2v_file, train_file, test_file=None, val_file=None, emb_dim=300):
 #         '''
 #         Loads the data from files

@@ -2,9 +2,10 @@ import time
 import torch
 import numpy as np
 from train_eval import train, init_network
-from utils import Dataset, get_time_dif
+from utils import build_dataset, build_iterator, get_time_dif, get_word_embeddings
 from importlib import import_module
 import argparse
+import fasttext
 
 parser = argparse.ArgumentParser(description='Arabic Text Classification')
 parser.add_argument('--model', type=str, default='TextRNN', help='choose a model: TextCNN, TextRNN, FastText, TextRCNN, TextRNN_Att, DPCNN, Transformer')
@@ -13,7 +14,7 @@ parser.add_argument('--validation_path', type=str, default=None, help='path to v
 parser.add_argument('--testing_path', type=str, default='df_dev_single.xlsx', help='path to testing dataset')
 parser.add_argument('--text_column', type=str, default='context_ar', help='name of the col containing text data inside train/val/test files')
 parser.add_argument('--label_column', type=str, default='label', help='name of the col containing labels inside train/val/test files')
-parser.add_argument('--embedding', default='pre_trained', type=str, help='random or pre_trained')
+parser.add_argument('--embedding', default='../cc.ar.300.bin', type=str, help='random or path to pre_trained embedding')
 parser.add_argument('--max_sen_len', type=int, default=20, help='maximum length of sentence')
 parser.add_argument('--dropout', type=float, default=0.5)
 parser.add_argument('--require_improvement', type=int, default=1000)
@@ -31,42 +32,38 @@ class Config(object):
 
     """ Configuration parameters """
     # def __init__(self, dataset, embedding):
-    def __init__(self, args, embeddings):
-        # self.model_name = 'TextRNN'
-        # self.train_path = dataset + '/data/train.txt'
-        # self.dev_path = dataset + '/data/dev.txt'
-        # self.test_path = dataset + '/data/test.txt'
-        # self.class_list = [x.strip() for x in open(
-        #     dataset + '/data/class.txt', encoding='utf-8').readlines()]
-        # self.vocab_path = dataset + '/data/vocab.pkl'
+    def __init__(self, args):
+        self.model_name = args.model
+        self.train_path = args.training_path
+        self.dev_path = args.validation_path
+        self.test_path = args.testing_path
+        self.text_column = args.text_column
+        self.label_column = args.label_column
         self.save_path = '/saved_dict/' + args.model + '.ckpt'
         self.log_path = '/log/' + args.model
-        # self.embedding_pretrained = torch.tensor(
-        #     np.load(dataset + '/data/' + embedding)["embeddings"].astype('float32'))\
-        #     if embedding != 'random' else None
-        self.embedding_pretrained = embeddings
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
         self.dropout = args.dropout # 0.5
         self.require_improvement = args.require_improvement # 1000
-        # self.num_classes = len(self.class_list)
         self.num_classes = args.num_classes
-        # self.n_vocab = 0
+        self.n_vocab = 0
         self.num_epochs = args.num_epochs # 1000
         self.batch_size = args.batch_size # 32
         self.pad_size = args.pad_size # 32
         self.learning_rate = args.lr # 1e-3
-        # self.embed = self.embedding_pretrained.size(1)\
-        #     if self.embedding_pretrained is not None else 300
-        self.embed = self.embedding_pretrained.shape[1]
+
+        self.embedding_pretrained = None
+        self.embed = 300
+
         self.hidden_size = args.hidden_size # 128
         self.num_layers = args.num_layers # 2
 
 
 if __name__ == '__main__':
-    embedding = '../cc.ar.300.bin'
     if args.embedding == 'random':
-        embedding = 'random'
+        embeddings = None
+    else:
+        embeddings = args.embedding
     model_name = args.model  # 'TextRCNN'  # TextCNN, TextRNN, FastText, TextRCNN, TextRNN_Att, DPCNN, Transformer
     training_file = args.training_path
     validation_file = args.validation_path
@@ -74,11 +71,8 @@ if __name__ == '__main__':
     text_col = args.text_column
     label_col = args.label_column
 
-    dataset = Dataset(config=args, text_column=text_col, label_column=label_col)
-    dataset.load_data(w2v_file=embedding, train_file=training_file, test_file=testing_file, val_file=validation_file, emb_dim=300)
-
     x = import_module('models.' + model_name)
-    config = Config(args, dataset.word_embeddings)
+    config = Config(args)
 
     np.random.seed(1)
     torch.manual_seed(1)
@@ -87,21 +81,25 @@ if __name__ == '__main__':
 
     start_time = time.time()
     print("Loading data...")
-    # vocab, train_data, dev_data, test_data = build_dataset(config, args.word)
-    # train_iter = build_iterator(train_data, config)
-    # dev_iter = build_iterator(dev_data, config)
-    # test_iter = build_iterator(test_data, config)
-    train_iter = dataset.train_iterator
-    dev_iter = dataset.val_iterator
-    test_iter = dataset.test_iterator
+    vocab, train_data, dev_data, test_data = build_dataset(config)
+
+    # set these values as they were initially None
+    if embeddings is not None:
+        ft = fasttext.load_model(embeddings)
+        embeddings_mod = get_word_embeddings(w2v=ft, vocab=vocab)
+        config.embedding_pretrained = embeddings_mod
+        config.embed = embeddings_mod.shape[1]
+
+    train_iter = build_iterator(train_data, config)
+    dev_iter = build_iterator(dev_data, config)
+    test_iter = build_iterator(test_data, config)
     time_dif = get_time_dif(start_time)
     print("Time usage:", time_dif)
 
     # train
-    # config.n_vocab = len(vocab)
+    config.n_vocab = len(vocab)
     model = x.Model(config).to(config.device)
     if model_name != 'Transformer':
         init_network(model)
     print(model.parameters)
     train(config, model, train_iter, dev_iter, test_iter)
-    # train(args, model, train_iter, dev_iter, test_iter)
