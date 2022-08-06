@@ -43,7 +43,7 @@ def build_dataset(config):
     tokenizer = lambda x: x.split(' ')  # 以空格隔开，word-level
     vocab = build_vocab(config)
 
-    def load_dataset(path, pad_size=32, df=None):
+    def load_dataset(config, path, df=None):
 
         if df is None:
             df = pd.read_csv(path) if '.csv' in path else pd.read_excel(path)
@@ -65,32 +65,42 @@ def build_dataset(config):
             label = row[config.label_column]
             tokens = tokenizer(sentence)
             words_line = []
-            if pad_size:
-                if len(tokens) < pad_size:
-                    tokens.extend([PAD] * (pad_size - len(tokens)))
-                else:
-                    tokens = tokens[:pad_size]
+
+            if len(tokens) < config.max_sen_len:
+                tokens.extend([PAD] * (config.max_sen_len - len(tokens)))
+            else:
+                tokens = tokens[:config.max_sen_len]
 
             for word in tokens:
                 words_line.append(vocab.get(word, vocab.get(UNK)))
 
             contents.append((words_line, labels2id[label]))
-        return contents
+        return contents, labels2id
 
     if config.dev_path is not None:
-        train = load_dataset(config.train_path, config.pad_size)
-        dev = load_dataset(config.dev_path, config.pad_size)
-        test = load_dataset(config.test_path, config.pad_size)
+        # train, labels2id = load_dataset(config.train_path, config.pad_size)
+        # dev, _ = load_dataset(config.dev_path, config.pad_size)
+        # test, _ = load_dataset(config.test_path, config.pad_size)
+
+        train, labels2id = load_dataset(config, config.train_path, df=None)
+        dev, _ = load_dataset(config, config.dev_path, df=None)
+        test, _ = load_dataset(config, config.test_path, df=None)
     else:
         # divide the training data into 80% training and 20% testing
         print('as `validation_path` is set to None, training data will be split into 80% training and 20% validation - stratified')
         df = pd.read_csv(config.train_path) if '.csv' in config.train_path else pd.read_excel(config.train_path)
-        df_train, df_val = train_test_split(df, test_size=0.20, random_state=42, stratify=list(df[config.label_column]))
-        train = load_dataset(config.train_path, config.pad_size, df_train)
-        dev = load_dataset(config.dev_path, config.pad_size, df_val)
-        test = load_dataset(config.test_path, config.pad_size)
+        # df_train, df_val = train_test_split(df, test_size=0.20, random_state=42, stratify=list(df[config.label_column]))
+        df_train, df_val = train_test_split(df, test_size=0.10, random_state=42, stratify=list(df[config.label_column]))
 
-    return vocab, train, dev, test
+        # train, labels2id = load_dataset(config.train_path, config.pad_size, df_train)
+        # dev, _ = load_dataset(config.dev_path, config.pad_size, df_val)
+        # test, _ = load_dataset(config.test_path, config.pad_size)
+
+        train, labels2id = load_dataset(config, config.train_path, df=df_train)
+        dev, _ = load_dataset(config, config.dev_path, df=df_val)
+        test, _ = load_dataset(config, config.test_path, df=None)
+
+    return vocab, train, dev, test, labels2id
 
 
 class DatasetIterater(object):

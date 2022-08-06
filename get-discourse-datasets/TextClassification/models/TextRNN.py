@@ -9,20 +9,33 @@ import numpy as np
 class Model(nn.Module):
     def __init__(self, config):
         super(Model, self).__init__()
+        self.config = config
         if config.embedding_pretrained is not None:
-            self.embedding = nn.Embedding.from_pretrained(torch.from_numpy(config.embedding_pretrained), freeze=False)
+            # self.embedding = nn.Embedding.from_pretrained(torch.from_numpy(config.embedding_pretrained).long(), freeze=False)
+            self.embedding = nn.Embedding(self.config.n_vocab, self.config.embed)
+            self.embedding.weight = nn.Parameter(torch.from_numpy(self.config.embedding_pretrained), requires_grad=False)
         else:
-            self.embedding = nn.Embedding(config.n_vocab, config.embed, padding_idx=config.n_vocab - 1)
-        self.lstm = nn.LSTM(config.embed, config.hidden_size, config.num_layers,
-                            bidirectional=True, batch_first=True, dropout=config.dropout)
-        self.fc = nn.Linear(config.hidden_size * 2, config.num_classes)
+            self.embedding = nn.Embedding(self.config.n_vocab, self.config.embed, padding_idx=self.config.n_vocab - 1)
+        self.lstm = nn.LSTM(self.config.embed, self.config.hidden_size, self.config.num_layers,
+                            bidirectional=True, batch_first=True, dropout=self.config.dropout)
+        self.fc = nn.Linear(self.config.hidden_size * 2, self.config.num_classes)
 
     def forward(self, x):
-        x, _ = x
+        x = torch.tensor(x).long()
         out = self.embedding(x)  # [batch_size, seq_len, embeding]=[128, 32, 300]
         out, _ = self.lstm(out)
         out = self.fc(out[:, -1, :])  # 句子最后时刻的 hidden state
         return out
+    # def forward(self, x):
+    #     x, _ = x
+    #     embed = self.embedding(x)  # [batch_size, seq_len, embeding]=[64, 32, 64]
+    #     out, _ = self.lstm(embed)
+    #     out = torch.cat((embed, out), 2)
+    #     out = F.relu(out)
+    #     out = out.permute(0, 2, 1)
+    #     out = self.maxpool(out).squeeze()
+    #     out = self.fc(out)
+    #     return out
 
     '''变长RNN，效果差不多，甚至还低了点...'''
     # def forward(self, x):

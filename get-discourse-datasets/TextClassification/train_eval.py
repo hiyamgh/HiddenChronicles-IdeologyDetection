@@ -46,6 +46,7 @@ def train(config, model, train_iter, dev_iter, test_iter):
     flag = False  # Whether the record has not been improved for a long time
     mkdir(config.log_path)
     writer = SummaryWriter(log_dir=config.log_path + '/' + time.strftime('%m-%d_%H.%M', time.localtime()))
+    model = model.float()
     for epoch in range(config.num_epochs):
         print('Epoch [{}/{}]'.format(epoch + 1, config.num_epochs))
         # scheduler.step() # learning rate decay
@@ -64,7 +65,7 @@ def train(config, model, train_iter, dev_iter, test_iter):
                 if dev_loss < dev_best_loss:
                     dev_best_loss = dev_loss
                     mkdir(config.save_path)
-                    torch.save(model.state_dict(), config.save_path)
+                    torch.save(model.state_dict(), os.path.join(config.save_path, '{}.ckpt'.format(config.model_name)))
                     improve = '*'
                     last_improve = total_batch
                 else:
@@ -92,7 +93,7 @@ def train(config, model, train_iter, dev_iter, test_iter):
 def test(config, model, test_iter):
     # test
     mkdir(config.save_path)
-    model.load_state_dict(torch.load(config.save_path))
+    model.load_state_dict(torch.load(config.save_path + config.model_name + '.ckpt'))
     model.eval()
     start_time = time.time()
     test_acc, test_loss, test_report, test_confusion = evaluate(config, model, test_iter, test=True)
