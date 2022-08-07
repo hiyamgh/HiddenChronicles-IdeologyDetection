@@ -12,9 +12,9 @@ import torch
 from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 from arabert.preprocess import ArabertPreprocessor
+from sklearn import metrics
 import time
 import datetime
-from sklearn.metrics import classification_report
 
 from transformers import (
     WEIGHTS_NAME,
@@ -62,9 +62,11 @@ class InputFeatures:
 
 class DataProcessor:
 
-    def __init__(self, model_name):
+    def __init__(self, model_name, text_col, label_col):
         self.labels = None
         self.model_name = model_name
+        self.text_col = text_col
+        self.label_col = label_col
 
     def _read_dataset(self, df_path):
         df = pd.read_csv(df_path) if '.csv' in df_path else pd.read_excel(df_path)
@@ -73,11 +75,13 @@ class DataProcessor:
             sentences = []
             labels = set()
             for i, row in df.iterrows():
-                sentence = row['context_ar']
+                sentence = str(row[self.text_col])
+                if sentence.strip().isdigit():
+                    continue
                 # according to https://github.com/aub-mind/arabert#preprocessing
                 # It is recommended to apply our preprocessing function before training/testing on any dataset
                 sentence = arabert_prep.preprocess(sentence)
-                label = row['label']
+                label = row[self.label_col]
 
                 labels.add(label)
                 sentences.append([sentence, label])
@@ -86,8 +90,11 @@ class DataProcessor:
         else:
             sentences = []
             for i, row in df.iterrows():
-                sentence = row['context_ar']
-                label = row['label']
+                sentence = str(row[self.text_col])
+                label = row[self.label_col]
+
+                if sentence.strip().isdigit():
+                    continue
 
                 sentences.append([sentence, label])
 
@@ -211,7 +218,7 @@ def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer
 
     logger.info(":: Sentences longer than max_sequence_length: %d" % (tokens_a_longer_max_seq_length))
     logger.info(":: Num sentences: %d" % (len(examples)))
-    return features
+    return features, label_map
 
 
 def _truncate_seq_pair(tokens_a, tokens_b, max_length):
@@ -364,15 +371,22 @@ def main():
                              "Positive power of 2: static loss scaling value.\n")
 
     parser.add_argument("--train_set",
-                        default="df_train_single.xlsx",
+                        default="input/Discourse_Profiling/df_train_cleaned.xlsx",
+                        type=str,
+                        help="path to the training dataset.")
+
+    parser.add_argument("--dev_set",
+                        default="input/Discourse_Profiling/df_dev_cleaned.xlsx",
                         type=str,
                         help="path to the training dataset.")
 
     parser.add_argument("--test_set",
-                        default="df_dev_single.xlsx",
+                        default="input/Discourse_Profiling/df_test_cleaned.xlsx",
                         type=str,
                         help="path to the testing dataset.")
 
+    parser.add_argument("--text_column", default="Sentence_ar", type=str, help="Name of the column that contains text data")
+    parser.add_argument("--label_column", default="Label", type=str, help="Name of the column that contains the labels")
 
     args = parser.parse_args()
 
@@ -419,7 +433,7 @@ def main():
     #     raise ValueError("Task not found: %s" % (task_name))
     #
     # processor = processors[task_name](binarize_labels, use_all_data)
-    processor = DataProcessor(model_name=args.bert_model)
+    processor = DataProcessor(model_name=args.bert_model, text_col=args.text_column, label_col=args.label_column)
     # label_list = processor.get_labels()
     # num_labels = len(label_list)
 
@@ -504,7 +518,7 @@ def main():
                 writer.write("%s\t%s\t%s\n" % (example.label, example.text_a, example.text_b))
 
 
-        train_features = convert_examples_to_features(
+        train_features, label_map = convert_examples_to_features(
             train_examples, label_list, args.max_seq_length, tokenizer)
         logger.info("***** Running training *****")
         logger.info("  Labels = %s", ", ".join(label_list))
@@ -558,7 +572,7 @@ def main():
                 eval_results_filename = "test_results_epoch_%d.txt" % (epoch)
                 eval_prediction_filename = "test_predictions_epoch_%d.txt" % (epoch)
                 do_evaluation(processor, args, label_list, tokenizer, model, device, tr_loss, nb_tr_steps, global_step,
-                              task_name, eval_results_filename, eval_prediction_filename)
+                              task_name, eval_results_filename, eval_prediction_filename, mode='validation', label_map=label_map)
 
         elapsed = format_time(time.time() - t1)
         print('time elapsed to complete training + validation: {}'.format(elapsed))
@@ -587,17 +601,22 @@ def main():
     if args.do_eval and (args.local_rank==-1 or torch.distributed.get_rank()==0):
         eval_results_filename = "test_results.txt"
         eval_prediction_filename = "test_predictions.txt"
-        do_evaluation(processor, args, label_list, tokenizer, model, device, tr_loss, nb_tr_steps, global_step, task_name, eval_results_filename, eval_prediction_filename)
+        do_evaluation(processor, args, label_list, tokenizer, model, device, tr_loss, nb_tr_steps, global_step, task_name, eval_results_filename,
+                      eval_prediction_filename, mode='testing', label_map=label_map)
 
     elapsed = format_time(time.time() - t1)
     print('time elapsed to complete training + testing: {}'.format(elapsed))
 
 
 
-def do_evaluation(processor, args, label_list, tokenizer, model, device, tr_loss, nb_tr_steps, global_step, task_name, eval_results_filename, eval_prediction_filename):
-    eval_examples = processor.get_test_examples(args.test_set)
+def do_evaluation(processor, args, label_list, tokenizer, model, device, tr_loss, nb_tr_steps, global_step, task_name, eval_results_filename,
+                  eval_prediction_filename, mode, label_map):
+    if mode == 'validation':
+        eval_examples = processor.get_test_examples(args.dev_set)
+    else:
+        eval_examples = processor.get_test_examples(args.test_set)
     # eval_examples = eval_examples[:100]
-    eval_features = convert_examples_to_features(
+    eval_features, _ = convert_examples_to_features(
         eval_examples, label_list, args.max_seq_length, tokenizer)
     logger.info("***** Running evaluation *****")
     logger.info("  Num examples = %d", len(eval_examples))
@@ -661,15 +680,24 @@ def do_evaluation(processor, args, label_list, tokenizer, model, device, tr_loss
 
     output_pred_file = os.path.join(args.output_dir, eval_prediction_filename)
     with open(output_pred_file, "w", encoding="utf-8") as writer:
+        y_test, y_pred = [], []
         for idx, example in enumerate(eval_examples):
             gold_label = example.label
             pred_label = predicted_labels[idx]
+
+            y_test.append(label_map[gold_label])
+            y_pred.append(label_map[pred_label])
 
             text_a = example.text_a.replace("\n", " ")
             text_b = example.text_b.replace("\n", " ") if example.text_b is not None else "None"
 
             writer.write("%s\t%s\t%s\t%s\n" % (gold_label, pred_label, text_a, text_b))
 
+        report = metrics.classification_report(y_test, y_pred, target_names=list(label_map.keys()), digits=4)
+        confusion = metrics.confusion_matrix(y_test, y_pred)
+
+        print(report)
+        print(confusion)
 
 if __name__=="__main__":
     main()

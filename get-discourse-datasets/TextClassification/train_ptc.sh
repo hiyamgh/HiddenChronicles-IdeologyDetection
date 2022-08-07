@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #SBATCH --job-name=trainptc
 #SBATCH --account=hkg02
-#SBATCH --partition=gpu
+#SBATCH --partition=medium
 
 #SBATCH --mem=16000
 #SBATCH --nodes=1
@@ -13,7 +13,6 @@
 module load java/java8
 module load python/3
 module load python/pytorch
-module load cuda
 
 python train_bert.py
 
