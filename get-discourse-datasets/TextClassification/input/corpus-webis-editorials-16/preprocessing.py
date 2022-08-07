@@ -4,8 +4,9 @@ from sklearn.model_selection import train_test_split
 from googletrans import Translator
 import time
 import re
+import nltk
+nltk.download('stopwords')
 from nltk.corpus import stopwords
-
 
 def get_class_percentages(df, label_col, mode):
     percentages = (df[label_col].value_counts() / len(df)) * 100
