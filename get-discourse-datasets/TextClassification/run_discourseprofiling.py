@@ -11,9 +11,9 @@ parser = argparse.ArgumentParser(description='Arabic Text Classification')
 # parser.add_argument('--model', type=str, default='TextRNN', help='choose a model: TextCNN, TextRNN, FastText, TextRCNN, TextRNN_Att, DPCNN, Transformer')
 # parser.add_argument('--model', type=str, default='TextCNN', help='choose a model: TextCNN, TextRNN, FastText, TextRCNN, TextRNN_Att, DPCNN, Transformer')
 parser.add_argument('--model', type=str, default='TextRNN', help='choose a model: TextCNN, TextRNN, FastText, TextRCNN, TextRNN_Att, DPCNN, Transformer')
-parser.add_argument('--training_path', type=str, default='input/df_train.xlsx', help='path to training dataset')
-parser.add_argument('--validation_path', type=str, default='input/df_dev.xlsx', help='path to validation dataset')
-parser.add_argument('--testing_path', type=str, default='input/df_test.xlsx', help='path to testing dataset')
+parser.add_argument('--training_path', type=str, default='input/df_train_cleaned.xlsx', help='path to training dataset')
+parser.add_argument('--validation_path', type=str, default='input/df_dev_cleaned.xlsx', help='path to validation dataset')
+parser.add_argument('--testing_path', type=str, default='input/df_test_cleaned.xlsx', help='path to testing dataset')
 parser.add_argument('--text_column', type=str, default='Sentence_ar', help='name of the col containing text data inside train/val/test files')
 parser.add_argument('--label_column', type=str, default='Label', help='name of the col containing labels inside train/val/test files')
 parser.add_argument('--embedding', default='../cc.ar.300.bin', type=str, help='random or path to pre_trained embedding')
@@ -122,7 +122,7 @@ if __name__ == '__main__':
     # train
     config.n_vocab = len(vocab)
     model = x.Model(config).to(config.device)
-    # if model_name != 'Transformer':
-    #     init_network(model)
+    if model_name != 'Transformer':
+        init_network(model)
     print(model.parameters)
     train(config, model, train_iter, dev_iter, test_iter)

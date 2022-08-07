@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #SBATCH --job-name=cl_discp
 #SBATCH --account=hkg02
-#SBATCH --partition=normal
+#SBATCH --partition=medium
 #SBATCH --mem=16000
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
@@ -10,5 +10,6 @@
 #SBATCH --mail-user=hkg02@mail.aub.edu
 
 module load python/3
+module load python/pytorch
 
 python run_discourseprofiling.py --model TextRNN
