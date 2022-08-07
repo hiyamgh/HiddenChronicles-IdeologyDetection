@@ -17,8 +17,11 @@ def build_vocab(config):
     tokenizer = lambda x: x.split(' ')
     df = pd.read_csv(config.train_path) if '.csv' in config.train_path else pd.read_excel(config.train_path)
     for _, row in df.iterrows():
-        line = row[config.text_column]
+        line = str(row[config.text_column])
         line = line.strip()
+
+        if line.isdigit():
+            continue
 
         for word in tokenizer(line):
             vocab_dic[word] = vocab_dic.get(word, 0) + 1
@@ -61,7 +64,9 @@ def build_dataset(config):
 
         contents = []
         for i, row in df.iterrows():
-            sentence = row[config.text_column].strip()
+            sentence = str(row[config.text_column]).strip()
+            if sentence.isdigit():
+                continue
             label = row[config.label_column]
             tokens = tokenizer(sentence)
             words_line = []
