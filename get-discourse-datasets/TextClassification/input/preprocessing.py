@@ -4,6 +4,7 @@ from sklearn.model_selection import train_test_split
 from googletrans import Translator
 import time
 import re
+from nltk.corpus import stopwords
 
 
 def get_class_percentages(df, label_col, mode):
@@ -19,28 +20,30 @@ def translate_dataset(df, text_col):
     return df
 
 
-def get_cleaned(text):
-    s = re.sub(r'\s*[A-Za-z]+\b', '', text)
-    s = re.sub(" \d+", " ", s)
-    s = re.sub(r'\b\d+(?:\.\d+)?\s+', '', s)
-    s = re.sub('[()]', '', s) # remove paranthesis
-    s = re.sub(r'(?:\-|\s|(\d+))(?=[^><]*?<\/u>)', '', s)
-    s = re.sub(r'[^\w]', ' ', s)
-    s = re.sub(' +', ' ', s)  # remove multiple spaces
-    return s
-
-
-
 def clean_data(df, text_col):
 
     def get_cleaned(text):
         s = re.sub(r'\s*[A-Za-z]+\b', '', text)
         s = re.sub(" \d+", " ", s)
         s = re.sub(r'\b\d+(?:\.\d+)?\s+', '', s)
-        s = re.sub(' +', ' ', s) # remove multiple spaces
+        s = re.sub('[()]', '', s)  # remove paranthesis
+        s = re.sub(r'(?:\-|\s|(\d+))(?=[^><]*?<\/u>)', '', s)
+        s = re.sub(r'[^\w]', ' ', s)
+        s = re.sub(r'\b(\w+\s*)\1{1,}', '\\1', s) # remove consecutive identical words
+        s = re.sub(' +', ' ', s)  # remove multiple spaces
+        s = s.strip()
+        tokens = [w for w in s.split(' ')]
+        s = ' '.join([t for t in tokens if t not in stopwords_list])
+        return s
+
+    df[text_col] = df.apply(lambda x: get_cleaned(x[text_col]), axis=1)
+    return df
 
 
 if __name__ == '__main__':
+    stopwords_list = stopwords.words('arabic')
+    # for w in stopwords_list:
+    #     print(w)
     # text = 'سيتم تضمين أسهم الاتصالات الثلاثة - Verizon Communications Inc (VZ.N) و AT&T Inc (T.N) و CenturyLink Inc (CTL.N) - قطاع خدمات الاتصالات S&P 500 الجديد يوم الاثنين ، إلى جانب كبار الشخصيات بما في ذلك Netflix Inc (NFLX.O) و Alphabet Inc (GOOGL.O) و Facebook Inc (FB.O).'
     # print(get_cleaned(text))
 
@@ -68,6 +71,28 @@ if __name__ == '__main__':
         get_class_percentages(df_train, label_col='Label', mode='train')
         get_class_percentages(df_dev, label_col='Label', mode='dev')
         get_class_percentages(df_test, label_col='Label', mode='test')
+
+        df_train = clean_data(df_train, text_col='Sentence_ar')
+        df_dev = clean_data(df_dev, text_col='Sentence_ar')
+        df_test = clean_data(df_test, text_col='Sentence_ar')
+
+        # remove the 'No_class' instances as most of them are meaningless
+        print('Before dropping:')
+        print('df_train.shape: {}'.format(df_train.shape))
+        print('df_dev.shape: {}'.format(df_dev.shape))
+        print('df_test.shape: {}'.format(df_test.shape))
+        df_train = df_train[df_train.Label != 'No_class']
+        df_dev = df_dev[df_dev.Label != 'No_class']
+        df_test = df_test[df_test.Label != 'No_class']
+        print('After dropping')
+        print('df_train.shape: {}'.format(df_train.shape))
+        print('df_dev.shape: {}'.format(df_dev.shape))
+        print('df_test.shape: {}'.format(df_test.shape))
+
+        # save cleaned data frames
+        df_train.to_excel('df_train_cleaned.xlsx', index=False)
+        df_dev.to_excel('df_dev_cleaned.xlsx', index=False)
+        df_test.to_excel('df_test_cleaned.xlsx', index=False)
 
     else:
         df = pd.read_csv('NewsDiscourse_politicaldiscourse.csv')
