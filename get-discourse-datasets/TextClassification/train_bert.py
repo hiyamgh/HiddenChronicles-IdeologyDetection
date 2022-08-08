@@ -338,7 +338,8 @@ def main():
                         type=float,
                         help="The initial learning rate for Adam.")
     parser.add_argument("--num_train_epochs",
-                        default=3.0,
+                        # default=3.0,
+                        default=2.0,
                         type=float,
                         help="Total number of training epochs to perform.")
     parser.add_argument("--warmup_proportion",
@@ -371,17 +372,20 @@ def main():
                              "Positive power of 2: static loss scaling value.\n")
 
     parser.add_argument("--train_set",
-                        default="input/Discourse_Profiling/df_train_cleaned.xlsx",
+                        # default="input/Discourse_Profiling/df_train_cleaned.xlsx",
+                        default="input/corpus-webis-editorials-16/df_train.xlsx",
                         type=str,
                         help="path to the training dataset.")
 
     parser.add_argument("--dev_set",
-                        default="input/Discourse_Profiling/df_dev_cleaned.xlsx",
+                        # default="input/Discourse_Profiling/df_dev_cleaned.xlsx",
+                        default="input/corpus-webis-editorials-16/df_dev.xlsx",
                         type=str,
                         help="path to the training dataset.")
 
     parser.add_argument("--test_set",
-                        default="input/Discourse_Profiling/df_test_cleaned.xlsx",
+                        # default="input/Discourse_Profiling/df_test_cleaned.xlsx",
+                        default="input/corpus-webis-editorials-16/df_test.xlsx",
                         type=str,
                         help="path to the testing dataset.")
 
@@ -615,7 +619,7 @@ def do_evaluation(processor, args, label_list, tokenizer, model, device, tr_loss
         eval_examples = processor.get_test_examples(args.dev_set)
     else:
         eval_examples = processor.get_test_examples(args.test_set)
-    # eval_examples = eval_examples[:100]
+    eval_examples = eval_examples
     eval_features, _ = convert_examples_to_features(
         eval_examples, label_list, args.max_seq_length, tokenizer)
     logger.info("***** Running evaluation *****")
@@ -693,7 +697,7 @@ def do_evaluation(processor, args, label_list, tokenizer, model, device, tr_loss
 
             writer.write("%s\t%s\t%s\t%s\n" % (gold_label, pred_label, text_a, text_b))
 
-        report = metrics.classification_report(y_test, y_pred, target_names=list(label_map.keys()), digits=4)
+        report = metrics.classification_report(y_test, y_pred, target_names=list(label_map.keys()), labels=list(range(len(label_map)+1)), digits=4)
         confusion = metrics.confusion_matrix(y_test, y_pred)
 
         print(report)
