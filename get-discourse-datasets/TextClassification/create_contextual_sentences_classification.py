@@ -31,7 +31,7 @@ if __name__ == '__main__':
             if count == 0:
                 print('processing for keyword {} in {}-{}'.format(keyword, year, archive))
             if '+' in keyword:
-                with open(os.path.join(path, '{}.txt'.format(year)), 'r', encoding='utf-8') as f:
+                with open(os.path.join(path, '{}.txt'.format(year)), 'r', encoding='latin-1') as f:
                     lines = f.readlines()
                     for line in lines:
                         tokens = line.strip().split(' ')
@@ -48,7 +48,7 @@ if __name__ == '__main__':
                                                                                    (count / len(lines)) * 100))
                 f.close()
             else:
-                with open(os.path.join(path, '{}.txt'.format(year)), 'r', encoding='utf-8') as f:
+                with open(os.path.join(path, '{}.txt'.format(year)), 'r', encoding='latin-1') as f:
                     lines = f.readlines()
                     for line in lines:
                         tokens = line.strip().split(' ')
