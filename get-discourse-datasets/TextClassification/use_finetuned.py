@@ -60,15 +60,14 @@ class DataProcessor:
         self.labels = None
         self.model_name = model_name
         self.text_col = text_col
+        self.AraBertProcessor = None
 
     def _read_dataset(self, df_path):
         df = pd.read_csv(df_path) if '.csv' in df_path else pd.read_excel(df_path)
         arabert_prep = ArabertPreprocessor(model_name=self.model_name)
+        self.AraBertProcessor = arabert_prep
         sentences = []
-        count = 0
         for i, row in df.iterrows():
-            if count == 1000:
-                break
             sentence = str(row[self.text_col])
             if sentence.strip().isdigit():
                 continue
@@ -76,7 +75,6 @@ class DataProcessor:
             # It is recommended to apply our preprocessing function before training/testing on any dataset
             sentence = arabert_prep.preprocess(sentence)
             sentences.append(sentence)
-            count += 1
 
         return sentences
 
@@ -244,7 +242,8 @@ def main():
                              "bert-large-uncased, bert-base-cased, bert-large-cased, bert-base-multilingual-uncased, "
                              "bert-base-multilingual-cased, bert-base-chinese.")
     parser.add_argument("--state_dict_path", default="bert_output/corpus-webis-editorials-16/pytorch_model.bin")
-    #
+    # parser.add_argument("--state_dict_path", default="bert_output/pytorch_model.bin")
+
     parser.add_argument("--task_name",
                         default="classification_arabert",
                         type=str,
@@ -352,10 +351,6 @@ def main():
 
     tokenizer = BertTokenizer.from_pretrained(args.bert_model)
 
-    # label_list = processor.get_labels()  # we can call get_labels() because we called get_train_examples()
-    # num_labels = len(label_list)
-
-    # model = BertForSequenceClassification.from_pretrained(args.bert_model, num_labels=num_labels)
     config = BertConfig.from_pretrained(args.bert_model, num_labels=8)
     model = BertForSequenceClassification.from_pretrained(args.bert_model, config=config)
     model.load_state_dict(torch.load(args.state_dict_path))
@@ -389,6 +384,9 @@ def do_evaluation(processor, args, label_list, tokenizer, model, device, task_na
                   eval_prediction_filename, mode, label_map):
 
     eval_examples = processor.get_test_examples(args.test_set)
+
+    # get the AraBertProcessor after reading tetsing examples
+    AraBertProcessor = processor.AraBertProcessor
 
     eval_features, _ = convert_examples_to_features(
         eval_examples, label_list, args.max_seq_length, tokenizer)
@@ -442,14 +440,14 @@ def do_evaluation(processor, args, label_list, tokenizer, model, device, task_na
             text_b = example.text_b.replace("\n", " ") if example.text_b is not None else "None"
 
             # writer.write("%s\t%s\t%s\t%s\n" % (gold_label, pred_label, text_a, text_b))
-            writer.write("%s\t%s\t%s\n" % (pred_label, tokenizer.unpreprocess(text_a), text_b))
+            writer.write("%s\t%s\t%s\n" % (pred_label, AraBertProcessor.unpreprocess(text_a), text_b))
 
-            sentences.append(tokenizer.unpreprocess(text_a))
+            sentences.append(AraBertProcessor.unpreprocess(text_a))
             predictions.append(pred_label)
         test_df['Sentence'] = sentences
         test_df['Prediction'] = predictions
 
-        test_df.to_excel(os.path.join(args.output_dir, args.test_set.split('/')[-1]))
+        test_df.to_excel(os.path.join(args.output_dir, args.test_set.split('/')[-1]), index=False)
 
 
 if __name__ == '__main__':
