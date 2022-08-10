@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#SBATCH --job-name=testft07
+#SBATCH --job-name=testft05
 #SBATCH --account=hkg02
 #SBATCH --partition=normal
 
@@ -14,5 +14,5 @@ module load java/java8
 module load python/3
 module load python/pytorch
 
-python use_finetuned.py --test_set testing_datasets_discourse/nahar/df_test_2007.xlsx
+python use_finetuned.py --test_set testing_datasets_discourse/nahar/df_test_2005.xlsx
 
