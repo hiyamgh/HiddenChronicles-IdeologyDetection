@@ -160,6 +160,54 @@ def to_one_hot(y, num_classes=None):
     return one_hot
 
 
+def label_distribution_per_cluster_time(usages, clusterings):
+    usage_types_by_labels_by_time = {}
+    # usages_out[w][1] + [context],
+    # usages_out[w][2] + [pos_in_context],
+    # usages_out[w][3] + [decade]
+    # usages_out[w][4] + [pred_label]
+    for w in clusterings:
+        usage_types_by_labels_by_time[w] = {}
+        for i, pred_label in enumerate(usages[w][4]):
+            year = usages[w][3][i]
+            if year not in usage_types_by_labels_by_time[w]:
+                usage_types_by_labels_by_time[w][year] = {}
+
+            cluster_label = clusterings[w].labels_[i]
+            if cluster_label not in usage_types_by_labels_by_time[w][year]:
+                usage_types_by_labels_by_time[w][year][cluster_label] = []
+            usage_types_by_labels_by_time[w][year][cluster_label].append(pred_label)
+
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    for w in usage_types_by_labels_by_time:
+
+        data = np.array([[20, 40, 30, 20], [20, 40, 30, 20], [20, 40, 30, 20]]) # usage type 1, each year
+        data2 = np.array([[90, 10], [90, 10], [90, 10]]) # usage type 2, each year
+        # x = [str(y) for y in usage_types_by_labels_by_time[w].keys()] # years
+        x = ['2020', '2025', '2030']
+        x_pos = np.arange(len(x))
+
+        fig, ax = plt.subplots()
+        for i in range(data.shape[1]):
+            bottom = np.sum(data[:, 0:i], axis=1)
+            erzeugung = ax.bar(x_pos - 0.2, data[:, i], bottom=bottom, width=0.3, label=f"label {i}")
+        ax.bar_label(erzeugung, padding=3)
+
+        for i in range(data2.shape[1]):
+            bottom = np.sum(data2[:, 0:i], axis=1)
+            verbrauch = ax.bar(x_pos + 0.2, data2[:, i], bottom=bottom, width=0.3, label=f"label {i}")
+        ax.bar_label(verbrauch, padding=3)
+        ax.set_xticks(x_pos)
+        ax.set_xticklabels(x)
+        ax.margins(y=0.1)  # some extra padding to place the bar labels
+        fig.tight_layout()
+        plt.show()
+
+    return usage_types_by_labels_by_time
+
+
 def usage_distribution(predictions, time_labels):
     """
 
@@ -241,22 +289,28 @@ def make_usage_matrices_(dict_path, mode='concat', usages_out=None, ndims=768):
     if usages_out is None:
         usages_out = {}
         for w in usages_in:
-            usages_out[w] = (np.empty((0, ndims)), [], [], [])
+            # usages_out[w] = (np.empty((0, ndims)), [], [], [])
+            usages_out[w] = (np.empty((0, ndims)), [], [], [], [])
     else:
         for w in usages_in:
             if w not in usages_out:
-                usages_out[w] = (np.empty((0, ndims)), [], [], [])
+                # usages_out[w] = (np.empty((0, ndims)), [], [], [])
+                usages_out[w] = (np.empty((0, ndims)), [], [], [], [])
 
     for w in tqdm(usages_in):
-        for (vec, context, pos_in_context, decade) in usages_in[w]:
-            if mode == 'sum':
-                vec = np.sum(vec.reshape((-1, ndims))[1:, :], axis=1)
-            usages_out[w] = (
-                np.row_stack((usages_out[w][0], vec)),
-                usages_out[w][1] + [context],
-                usages_out[w][2] + [pos_in_context],
-                usages_out[w][3] + [decade]
-            )
+        if w != 'سوري':
+            print('processing usages for word: {}'.format(w))
+            for (vec, context, pos_in_context, decade, pred_label) in usages_in[w]:
+                if mode == 'sum':
+                    vec = np.sum(vec.reshape((-1, ndims))[1:, :], axis=1)
+                usages_out[w] = (
+                    np.row_stack((usages_out[w][0], vec)),
+                    usages_out[w][1] + [context],
+                    usages_out[w][2] + [pos_in_context],
+                    usages_out[w][3] + [decade],
+                    usages_out[w][4] +[pred_label]
+                )
+            print(usages_out[w][0].shape)
 
     return usages_out
 
@@ -304,12 +358,15 @@ def obtain_clusterings(usages, out_path, method='kmeans', k_range=np.arange(2, 1
     """
     clusterings = {}  # dictionary mapping lemmas to their best clustering
     for w in tqdm(usages):
-        print(w)
-        Uw, _, _, _ = usages[w]
-        clusterings[w] = cluster_usages(Uw, method, k_range, criterion)
+        if w != 'سوري':
+            print(w)
+            Uw, _, _, _, _ = usages[w]
+            clusterings[w] = cluster_usages(Uw, method, k_range, criterion)
 
     with open(out_path, 'wb') as f:
         pickle.dump(clusterings, file=f)
+
+    label_distribution_per_cluster_time(usages, clusterings)
 
     return clusterings
 
@@ -323,8 +380,13 @@ def plot_usage_distribution(usages, clusterings, out_dir, normalized=False):
     :param out_dir: output directory for plots
     :param normalized: whether to normalize usage distributions
     """
+    mapping = {
+        'مقاومه': 'Mukawama',
+        'سوري': 'Syrian',
+        'اسرائيل': 'Israel'
+    }
     for word in clusterings:
-        _, _, _, t_labels = usages[word]
+        _, _, _, t_labels, pred_labels = usages[word]
         best_model = clusterings[word]
 
         # create usage distribution based on clustering results
@@ -339,16 +401,20 @@ def plot_usage_distribution(usages, clusterings, out_dir, normalized=False):
                 y=usage_distr[i, :],
                 name='usage {}'.format(ascii_uppercase[i])
             ))
-        layout = go.Layout(title=word,
+        layout = go.Layout(title=mapping[word],
                            xaxis=dict(
                                ticktext=list(np.arange(1910, 2009, 10)),
                                tickvals=list(np.arange(10))),
                            barmode='stack')
 
         fig = go.Figure(data=data, layout=layout)
-        pio.write_image(fig, '{}/{}_{}.pdf'.format(
+        # pio.write_image(fig, '{}/{}_{}.pdf'.format(
+        #     out_dir,
+        #     mapping[word],
+        #     'prob' if normalized else 'freq'))
+        pio.write_image(fig, '{}_{}.pdf'.format(
             out_dir,
-            word,
+            mapping[word],
             'prob' if normalized else 'freq'))
 
 

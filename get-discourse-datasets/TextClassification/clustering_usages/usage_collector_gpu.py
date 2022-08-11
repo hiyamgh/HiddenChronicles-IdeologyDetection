@@ -190,5 +190,5 @@ if __name__ == '__main__':
                       df_path='../bert_predictions/nahar/',
                       text_column='Sentence',
                       prediction_column='Prediction',
-                      output_path='usages_nahar.pkl',
+                      output_path='usages_nahar_gpu.pkl',
                       buffer_size=1024)
