@@ -24,4 +24,4 @@ clusterings = obtain_clusterings(
     criterion='silhouette'
 )
 
-plot_usage_distribution(usages, clusterings, '', normalized=True)
+# plot_usage_distribution(usages, clusterings, '', normalized=True)

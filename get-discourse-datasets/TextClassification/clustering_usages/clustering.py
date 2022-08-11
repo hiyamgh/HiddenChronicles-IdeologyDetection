@@ -18,6 +18,7 @@ from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score, calinski_harabasz_score
 from sklearn.mixture import GaussianMixture
 from transformers import BertTokenizer
+from collections import Counter
 
 FIGURE_EIGHT_FIELDS = ['lemma', 'id_a', 'id_b', 'cluster_a', 'cluster_b', 'time_a', 'time_b', 'a', 'b']
 FIGURE_EIGHT_FIELDS_TEST = ['fieldname_gold', 'fieldname_gold_reason', '_golden']
@@ -178,32 +179,39 @@ def label_distribution_per_cluster_time(usages, clusterings):
                 usage_types_by_labels_by_time[w][year][cluster_label] = []
             usage_types_by_labels_by_time[w][year][cluster_label].append(pred_label)
 
-    import matplotlib.pyplot as plt
-    import numpy as np
-
     for w in usage_types_by_labels_by_time:
-
-        data = np.array([[20, 40, 30, 20], [20, 40, 30, 20], [20, 40, 30, 20]]) # usage type 1, each year
-        data2 = np.array([[90, 10], [90, 10], [90, 10]]) # usage type 2, each year
-        # x = [str(y) for y in usage_types_by_labels_by_time[w].keys()] # years
-        x = ['2020', '2025', '2030']
-        x_pos = np.arange(len(x))
-
-        fig, ax = plt.subplots()
-        for i in range(data.shape[1]):
-            bottom = np.sum(data[:, 0:i], axis=1)
-            erzeugung = ax.bar(x_pos - 0.2, data[:, i], bottom=bottom, width=0.3, label=f"label {i}")
-        ax.bar_label(erzeugung, padding=3)
-
-        for i in range(data2.shape[1]):
-            bottom = np.sum(data2[:, 0:i], axis=1)
-            verbrauch = ax.bar(x_pos + 0.2, data2[:, i], bottom=bottom, width=0.3, label=f"label {i}")
-        ax.bar_label(verbrauch, padding=3)
-        ax.set_xticks(x_pos)
-        ax.set_xticklabels(x)
-        ax.margins(y=0.1)  # some extra padding to place the bar labels
-        fig.tight_layout()
-        plt.show()
+        for year in usage_types_by_labels_by_time[w]:
+            for cluster_label in usage_types_by_labels_by_time[w][year]:
+                print('word: {} - year: {} - cluster label: {}'.format(w, year, cluster_label))
+                listoflabels = usage_types_by_labels_by_time[w][year][cluster_label]
+                c = Counter(listoflabels)
+                print([(i, c[i] / len(listoflabels) * 100.0) for i, count in c.most_common()])
+    # import matplotlib.pyplot as plt
+    # import numpy as np
+    #
+    # for w in usage_types_by_labels_by_time:
+    #
+    #     data = np.array([[20, 40, 30, 20], [20, 40, 30, 20], [20, 40, 30, 20]]) # usage type 1, each year
+    #     data2 = np.array([[90, 10], [90, 10], [90, 10]]) # usage type 2, each year
+    #     # x = [str(y) for y in usage_types_by_labels_by_time[w].keys()] # years
+    #     x = ['2020', '2025', '2030']
+    #     x_pos = np.arange(len(x))
+    #
+    #     fig, ax = plt.subplots()
+    #     for i in range(data.shape[1]):
+    #         bottom = np.sum(data[:, 0:i], axis=1)
+    #         erzeugung = ax.bar(x_pos - 0.2, data[:, i], bottom=bottom, width=0.3, label=f"label {i}")
+    #     ax.bar_label(erzeugung, padding=3)
+    #
+    #     for i in range(data2.shape[1]):
+    #         bottom = np.sum(data2[:, 0:i], axis=1)
+    #         verbrauch = ax.bar(x_pos + 0.2, data2[:, i], bottom=bottom, width=0.3, label=f"label {i}")
+    #     ax.bar_label(verbrauch, padding=3)
+    #     ax.set_xticks(x_pos)
+    #     ax.set_xticklabels(x)
+    #     ax.margins(y=0.1)  # some extra padding to place the bar labels
+    #     fig.tight_layout()
+    #     plt.show()
 
     return usage_types_by_labels_by_time
 
