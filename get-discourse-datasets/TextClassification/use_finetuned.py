@@ -250,7 +250,7 @@ def main():
                         help="The name of the task to train.")
 
     parser.add_argument("--output_dir",
-                        default="bert_predictions/nahar/",
+                        default="bert_predictions2/nahar/",
                         type=str,
                         help="The output directory where the model predictions and checkpoints will be written.")
 
