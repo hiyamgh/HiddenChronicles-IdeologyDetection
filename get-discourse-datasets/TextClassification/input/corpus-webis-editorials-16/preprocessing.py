@@ -55,6 +55,7 @@ if __name__ == '__main__':
     label_column = 'Label'
     translator = Translator()
 
+    print('shape of df before dropping the `no-unit` class: {}'.format(df.shape))
     # remove the class `no-unit` as it is not needed
     df = df[df.Label != 'no-unit']
     df = df[[text_column, label_column]]
@@ -67,6 +68,18 @@ if __name__ == '__main__':
     t2 = time.time()
     print('time taken to translate: {} mins'.format((t2 - t1) / 60))
     df.to_excel('Argumentation_all_classes_translated.xlsx', index=False)
+
+    # df = pd.read_excel('Argumentation_all_classes_translated.xlsx')
+    # text_column = 'Sentence'
+    # label_column = 'Label'
+
+    label2count = dict(df[label_column].value_counts())
+    for k in label2count:
+        print('{}: {}'.format(k, label2count[k]))
+
+    print('shape of df before dropping the `other`, `par-sep` and `continued` classes: {}'.format(df.shape))
+    df = df[~df[label_column].isin(['other', 'par-sep', 'continued'])]
+    print('shape of df before dropping the `other`, `par-sep` and `continued` classes: {}'.format(df.shape))
 
     # split dataset into 80% training, 10% development, 10% testing
     df_train, df_test = train_test_split(df, test_size=0.1, random_state=42, stratify=list(df[label_column]))
