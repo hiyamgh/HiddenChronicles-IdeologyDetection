@@ -241,7 +241,7 @@ def main():
                         help="Bert pre-trained model selected in the list: bert-base-uncased, "
                              "bert-large-uncased, bert-base-cased, bert-large-cased, bert-base-multilingual-uncased, "
                              "bert-base-multilingual-cased, bert-base-chinese.")
-    parser.add_argument("--state_dict_path", default="bert_output/corpus-webis-editorials-16/pytorch_model.bin")
+    parser.add_argument("--state_dict_path", default="bert_output4/corpus-webis-editorials-16/pytorch_model.bin")
     # parser.add_argument("--state_dict_path", default="bert_output/pytorch_model.bin")
 
     parser.add_argument("--task_name",
@@ -250,7 +250,7 @@ def main():
                         help="The name of the task to train.")
 
     parser.add_argument("--output_dir",
-                        default="bert_predictions2/nahar/",
+                        default="bert_predictions4/nahar/",
                         type=str,
                         help="The output directory where the model predictions and checkpoints will be written.")
 
@@ -351,7 +351,7 @@ def main():
 
     tokenizer = BertTokenizer.from_pretrained(args.bert_model)
 
-    config = BertConfig.from_pretrained(args.bert_model, num_labels=8)
+    config = BertConfig.from_pretrained(args.bert_model, num_labels=5)
     model = BertForSequenceClassification.from_pretrained(args.bert_model, config=config)
     model.load_state_dict(torch.load(args.state_dict_path))
     print('loaded BERT model for sequence classification ...')
