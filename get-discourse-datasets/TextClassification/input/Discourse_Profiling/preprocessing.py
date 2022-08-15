@@ -14,6 +14,13 @@ def get_class_percentages(df, label_col, mode):
     print('shape of df: {}'.format(df.shape))
 
 
+def get_class_counts(df, label_col, mode):
+    counts = df[label_col].value_counts()
+    print('\ncounts in {} data:\n'.format(mode))
+    print(counts)
+    print('shape of df: {}'.format(df.shape))
+
+
 def translate_dataset(df, text_col):
     print('len of df: {}'.format(len(df)))
     df[text_col + '_ar'] = df.apply(lambda x: translator.translate(x[text_col], dest='ar').text, axis=1)
@@ -71,6 +78,12 @@ if __name__ == '__main__':
         get_class_percentages(df_train, label_col='Label', mode='train')
         get_class_percentages(df_dev, label_col='Label', mode='dev')
         get_class_percentages(df_test, label_col='Label', mode='test')
+
+        print('???????????????????????????????????????????????????')
+        get_class_counts(df_train, label_col='Label', mode='train')
+        get_class_counts(df_dev, label_col='Label', mode='dev')
+        get_class_counts(df_test, label_col='Label', mode='test')
+        print('???????????????????????????????????????????????????')
 
         df_train = clean_data(df_train, text_col='Sentence_ar')
         df_dev = clean_data(df_dev, text_col='Sentence_ar')
