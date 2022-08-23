@@ -551,6 +551,21 @@ def main():
                              "0 (default value): dynamic loss scaling.\n"
                              "Positive power of 2: static loss scaling value.\n")
 
+    parser.add_argument('--N_iteration', type=int, default=1000,
+                        help='number of examples per class in support')
+
+    parser.add_argument('--Inner_epochs', type=int, default=4,
+                        help='number of inner gradient updates')
+
+    parser.add_argument('--N_shot', type=int, default=5,
+                        help='number of meta-train iterations')
+
+    parser.add_argument('--N_query', type=int, default=3,
+                        help='number of meta-train iterations')
+
+    parser.add_argument('--N_task', type=int, default=1,
+                        help='meta batch size')
+
     parser.add_argument("--train_set",
                         default="input/FAKES/feature_extraction_train_updated_updated.csv",
                         type=str,
@@ -565,7 +580,6 @@ def main():
                         default="input/FAKES/feature_extraction_test_updated.csv",
                         type=str,
                         help="path to the testing dataset.")
-
 
     parser.add_argument('--server_ip', type=str, default='', help="Can be used for distant debugging.")
     parser.add_argument('--server_port', type=str, default='', help="Can be used for distant debugging.")
@@ -682,15 +696,15 @@ def main():
     num_train_optimization_steps = None
     proto_hidden = 100
 
-    Inner_epochs = 4 # number of inner gradient updates
+    Inner_epochs = args.Inner_epochs # number of inner gradient updates
 
     # N_iteration = 2000 # number of meta train iterations
-    N_iteration = 1  # number of meta train iterations
+    N_iteration = args.N_iteration  # number of meta train iterations
 
-    N_shot = 5 # number of examples per class in the support set
-    N_query = 3 # number of examples per class in the query set
+    N_shot = args.N_shot # number of examples per class in the support set
+    N_query = args.N_query # number of examples per class in the query set
     # N_task = 5 # meta_batch_size: number of tasks to sample **per meta iteration**
-    N_task = 1  # meta_batch_size: number of tasks to sample **per meta iteration**
+    N_task = args.N_task  # meta_batch_size: number of tasks to sample **per meta iteration**
     N_class = num_labels # number of classes in each task
     train_batch_s = 1 # ??
     Is_reptile = args.is_reptile
@@ -858,8 +872,8 @@ def main():
                     stack_weight = torch.empty(stack_shape)
                     for i in range(len(weight_list)):
                         stack_weight[i,:] = weight_list[i] 
-                    # new_weight_dict[name] = torch.mean(stack_weight, dim=0).cuda()
-                        new_weight_dict[name] = torch.mean(stack_weight, dim=0)
+                    new_weight_dict[name] = torch.mean(stack_weight, dim=0).cuda()
+                    # new_weight_dict[name] = torch.mean(stack_weight, dim=0)
                     new_weight_dict[name] = weight_before[name]+(new_weight_dict[name]-weight_before[name])/args.inner_learning_rate*args.outer_learning_rate
             else:
                 for name in weight_before: 
@@ -869,8 +883,8 @@ def main():
                     stack_weight = torch.empty(stack_shape)
                     for i in range(len(weight_list)):
                         stack_weight[i,:] = weight_list[i]
-                    # new_weight_dict[name] = torch.mean(stack_weight, dim=0).cuda()
-                    new_weight_dict[name] = torch.mean(stack_weight, dim=0)
+                    new_weight_dict[name] = torch.mean(stack_weight, dim=0).cuda()
+                    # new_weight_dict[name] = torch.mean(stack_weight, dim=0)
                     new_weight_dict[name] = weight_before[name]+new_weight_dict[name]/args.inner_learning_rate*args.outer_learning_rate
             model.load_state_dict(new_weight_dict)
             # ###MAML code
@@ -1034,10 +1048,12 @@ def main():
                 logger.info("  %s = %s", key, str(result[key]))
                 writer.write("%s = %s\n" % (key, str(result[key])))
         model.load_state_dict(weight_before)
-            
-        for id, acc in loss_list.items():
-            print("Task id: ", id, " ---- acc: ", acc)
-        print("Average acc is: ", np.mean(list(loss_list.values())))
+
+        print('\nClassification report:\n{}\n'.format(classification_report(all_label_ids.numpy(), preds, target_names=label_list)))
+        print('\nConfusion Matrix\n{}\n'.format(confusion_matrix(all_label_ids.numpy(), preds)))
+        # for id, acc in loss_list.items():
+        #     print("Task id: ", id, " ---- acc: ", acc)
+        # print("Average acc is: ", np.mean(list(loss_list.values())))
 
 
 if __name__ == "__main__":

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#SBATCH --job-name=ft-dp
+#SBATCH --job-name=ft-FN1
 #SBATCH --account=hkg02
 #SBATCH --partition=gpu
 
@@ -24,5 +24,9 @@ echo "----------------------------------"
 
 nvidia-smi
 
-python train_bert.py --train_set input/Discourse_Profiling/df_train_cleaned.xlsx --dev_set input/Discourse_Profiling/df_dev_cleaned.xlsx --test_set input/Discourse_Profiling/df_test_cleaned.xlsx --text_column Sentence_ar --label_column Label --output_dir bert_output4/Discourse_Profiling/
+df_train=input/FAKES/feature_extraction_train_updated_updated.csv
+df_dev=input/FAKES/feature_extraction_dev_updated_updated.csv
+df_test=input/FAKES/feature_extraction_test_updated.csv
+
+python run_classifier_maml.py --train_set $df_train  --dev_set $df_dev --test_set $df_test --N_shot 5 --output_dir bert_output4/FOMAML/FAKES1/
 
