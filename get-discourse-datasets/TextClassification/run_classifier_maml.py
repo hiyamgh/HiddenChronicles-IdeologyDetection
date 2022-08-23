@@ -35,7 +35,7 @@ from tqdm import tqdm, trange
 
 from torch.nn import CrossEntropyLoss, MSELoss
 # from scipy.stats import pearsonr, spearmanr
-from sklearn.metrics import matthews_corrcoef, f1_score
+from sklearn.metrics import f1_score
 from sklearn.metrics import precision_score, recall_score, classification_report, confusion_matrix, accuracy_score
 
 from copy import deepcopy
@@ -852,7 +852,6 @@ def main():
                 # task_rewards[task_id].append(task_acc - last_observation[task_id])
                 # last_observation[task_id] = task_acc
 
-
                 if not Is_reptile:
                     for name in weight_after:
                         tmp_fomaml_var[name] = weight_after[name] - last_backup[name]
@@ -871,8 +870,11 @@ def main():
                     stack_shape = [len(weight_list)] + weight_shape
                     stack_weight = torch.empty(stack_shape)
                     for i in range(len(weight_list)):
-                        stack_weight[i,:] = weight_list[i] 
-                    new_weight_dict[name] = torch.mean(stack_weight, dim=0).cuda()
+                        stack_weight[i,:] = weight_list[i]
+                    if device == "gpu":
+                        new_weight_dict[name] = torch.mean(stack_weight, dim=0).cuda()
+                    else:
+                        new_weight_dict[name] = torch.mean(stack_weight, dim=0)
                     # new_weight_dict[name] = torch.mean(stack_weight, dim=0)
                     new_weight_dict[name] = weight_before[name]+(new_weight_dict[name]-weight_before[name])/args.inner_learning_rate*args.outer_learning_rate
             else:
@@ -883,7 +885,11 @@ def main():
                     stack_weight = torch.empty(stack_shape)
                     for i in range(len(weight_list)):
                         stack_weight[i,:] = weight_list[i]
-                    new_weight_dict[name] = torch.mean(stack_weight, dim=0).cuda()
+                    if device == "gpu":
+                        new_weight_dict[name] = torch.mean(stack_weight, dim=0).cuda()
+                    else:
+                        new_weight_dict[name] = torch.mean(stack_weight, dim=0)
+                    # new_weight_dict[name] = torch.mean(stack_weight, dim=0).cuda()
                     # new_weight_dict[name] = torch.mean(stack_weight, dim=0)
                     new_weight_dict[name] = weight_before[name]+new_weight_dict[name]/args.inner_learning_rate*args.outer_learning_rate
             model.load_state_dict(new_weight_dict)
