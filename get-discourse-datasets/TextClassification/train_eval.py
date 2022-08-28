@@ -6,7 +6,7 @@ from sklearn import metrics
 import time
 from datetime import timedelta
 from tensorboardX import SummaryWriter
-from utils import get_time_dif
+from utils_fasttext import get_time_dif
 import os
 
 
@@ -51,7 +51,7 @@ def train(config, model, train_iter, dev_iter, test_iter):
         print('Epoch [{}/{}]'.format(epoch + 1, config.num_epochs))
         # scheduler.step() # learning rate decay
         for i, (trains, labels) in enumerate(train_iter):
-            outputs = model(trains.float())
+            outputs = model(trains[0].float())
             model.zero_grad()
             loss = F.cross_entropy(outputs, labels)
             loss.backward()
@@ -114,7 +114,7 @@ def evaluate(config, model, data_iter, test=False):
     labels_all = np.array([], dtype=int)
     with torch.no_grad():
         for texts, labels in data_iter:
-            outputs = model(texts)
+            outputs = model(texts[0])
             loss = F.cross_entropy(outputs, labels)
             loss_total += loss
             labels = labels.data.cpu().numpy()
