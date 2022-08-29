@@ -3,11 +3,13 @@
 #SBATCH --account=hkg02
 #SBATCH --partition=gpu
 
-#SBATCH --mem=16000
+#SBATCH --mem=120000
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=1
 #SBATCH --gres=gpu:v100d32q:1
+#SBATCH --exclude=onode12,anode08
+
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=hkg02@mail.aub.edu
 #SBATCH --time=0-06:00:00
@@ -28,5 +30,5 @@ df_train=input/FAKES/feature_extraction_train_updated_updated.csv
 df_dev=input/FAKES/feature_extraction_dev_updated_updated.csv
 df_test=input/FAKES/feature_extraction_test_updated.csv
 
-python run_classifier_maml.py --train_set $df_train  --dev_set $df_dev --test_set $df_test --N_shot 5 --output_dir bert_output4/FOMAML/FAKES1/
+python run_bert_maml.py --inner_iters 10 --inner_batch 20 --num_shots 15 --meta_batch 5 --meta_iters 600 --train_set $df_train  --dev_set $df_dev --test_set $df_test --output_dir bert_output4/FOMAML/FAKES1-GPU/
 

@@ -57,8 +57,13 @@ from transformers import (
     get_linear_schedule_with_warmup,
 )
 
+# logger = logging.getLogger(__name__)
+# os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+
+logging.basicConfig(format='%(message)s', #"format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
+                    datefmt='%m/%d/%Y %H:%M:%S',
+                    level=logging.INFO)
 logger = logging.getLogger(__name__)
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 
 class InputExample(object):
@@ -813,6 +818,20 @@ def main():
                         loss = loss_fct(logits.view(-1), support_labels.view(-1))
 
                     preds = logits.detach().cpu().numpy()
+
+                    print('hello')
+
+                    result = compute_metrics(task_name, np.argmax(preds, axis=1), support_labels.detach().cpu().numpy())
+                    task_acc = result['acc']
+                    task_f1 = result['f1']
+                    task_prec = result['precision']
+                    task_rec = result['recall']
+                    print('epoch: {}, accuracy: {}, precision: {}, recall: {}, f1: {}, loss: {}'.format(epoch, task_acc,
+                                                                                                        task_prec,
+                                                                                                        task_rec,
+                                                                                                        task_f1, loss))
+
+
                     if epoch % 10 == 0:
                         result = compute_metrics(task_name, np.argmax(preds, axis=1), support_labels.detach().cpu().numpy())
                         task_acc = result['acc']
@@ -820,6 +839,7 @@ def main():
                         task_prec = result['precision']
                         task_rec = result['recall']
                         print('epoch: {}, accuracy: {}, precision: {}, recall: {}, f1: {}, loss: {}'.format(epoch, task_acc, task_prec, task_rec, task_f1, loss))
+
                     # logger.info("Batch %d ,Accuracy: %s", step,result["acc"])
 
                     if n_gpu > 1:
@@ -875,7 +895,7 @@ def main():
                         new_weight_dict[name] = torch.mean(stack_weight, dim=0)
                     # new_weight_dict[name] = torch.mean(stack_weight, dim=0).cuda()
                     # new_weight_dict[name] = torch.mean(stack_weight, dim=0)
-                    new_weight_dict[name] = weight_before[name]+new_weight_dict[name]/args.inner_learning_rate*args.outer_learning_rate
+                    new_weight_dict[name] = weight_before[name].to(device)+new_weight_dict[name].to(device)/args.inner_learning_rate*args.outer_learning_rate
             model.load_state_dict(new_weight_dict)
             # ###MAML code
             # update_lr = 5e-2
