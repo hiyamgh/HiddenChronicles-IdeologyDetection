@@ -51,7 +51,7 @@ def train(config, model, train_iter, dev_iter, test_iter):
         print('Epoch [{}/{}]'.format(epoch + 1, config.num_epochs))
         # scheduler.step() # learning rate decay
         for i, (trains, labels) in enumerate(train_iter):
-            outputs = model(trains[0].float())
+            outputs = model(trains.float())
             model.zero_grad()
             loss = F.cross_entropy(outputs, labels)
             loss.backward()

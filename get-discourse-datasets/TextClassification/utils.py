@@ -52,8 +52,8 @@ def build_dataset(config, ues_word):
             content = line.strip()
             if not line:
                 continue
-            if label not in class_list:
-                class_list.append(label)
+            if str(label) not in class_list:
+                class_list.append(str(label))
             # content, label = lin.split('\t')
             words_line = []
             token = tokenizer(content)
@@ -99,9 +99,7 @@ class DatasetIterater(object):
         x = torch.LongTensor([_[0] for _ in datas]).to(self.device)
         y = torch.LongTensor([_[1] for _ in datas]).to(self.device)
 
-        # pad前的长度(超过pad_size的设为pad_size)
-        seq_len = torch.LongTensor([_[2] for _ in datas]).to(self.device)
-        return (x, seq_len), y
+        return x, y
 
     def __next__(self):
         if self.residue and self.index == self.n_batches:

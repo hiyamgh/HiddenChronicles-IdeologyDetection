@@ -1,7 +1,6 @@
 # coding: UTF-8
 import torch
 import torch.nn as nn
-import numpy as np
 import time
 import torch
 import numpy as np
@@ -10,8 +9,19 @@ from utils import build_dataset, build_iterator, get_time_dif
 from importlib import import_module
 import argparse
 import fasttext
-from utils import build_dataset
+from utils import build_dataset, build_iterator
 import random
+from tqdm import tqdm, trange
+from copy import deepcopy
+import torch.nn.functional as F
+from sklearn.metrics import f1_score, precision_score, recall_score, classification_report, confusion_matrix, accuracy_score
+import logging
+import os
+
+logging.basicConfig(format='%(message)s', #"format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
+                    datefmt='%m/%d/%Y %H:%M:%S',
+                    level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 class Config(object):
@@ -122,6 +132,47 @@ def _mini_batches(samples, batch_size, num_batches, replacement):
                 return
 
 
+def _to_tensor(datas, device):
+    x = torch.LongTensor([_[0] for _ in datas]).to(device)
+    y = torch.LongTensor([_[1] for _ in datas]).to(device)
+
+    return x, y
+
+
+def compute_metrics(preds, labels):
+    # check if binary or multiclass classification
+    if len(list(set(labels))) == 2:
+        accuracy = accuracy_score(labels, preds)
+        f1 = f1_score(labels, preds)
+        precision = precision_score(labels, preds)
+        recall = recall_score(labels, preds)
+        return {
+            "acc": accuracy,
+            "precision": precision,
+            "recall": recall,
+            "f1": f1,
+            "acc_and_f1": (accuracy + f1) / 2,
+        }
+    else:
+        accuracy = accuracy_score(y_true=labels, y_pred=preds)
+        f1 = f1_score(y_true=labels, y_pred=preds, average="macro")
+        precision = precision_score(y_true=labels, y_pred=preds, average="macro")
+        recall = recall_score(y_true=labels, y_pred=preds, average="macro")
+        return {
+            "acc": accuracy,
+            "precision": precision,
+            "recall": recall,
+            "f1": f1,
+            "acc_and_f1": (accuracy + f1) / 2,
+        }
+
+
+def mkdir(folder):
+    """ create the directory, if it doesn't already exist """
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+
+
 def main():
     parser = argparse.ArgumentParser(description='Arabic Text Classification')
     parser.add_argument('--model', type=str, default='TextRNN',
@@ -157,20 +208,23 @@ def main():
     parser.add_argument('--inner_iters', type=int, default=20, help='inner iterations')
     parser.add_argument('--inner_batch', type=int, default=5, help='inner batch size')
     parser.add_argument('--num_shots', type=int, default=5, help='number of examples per class')
-    parser.add_argument('--meta_batch', type=int, default=1, help='meta training batch size')
+    parser.add_argument('--meta_batch', type=int, default=5, help='meta training batch size')
     parser.add_argument('--meta_iters', type=int, default=700, help='meta-training iterations')
     parser.add_argument("--is_reptile", default=False, type=bool, help="whether use reptile or fomaml method")
+    parser.add_argument("--no_cuda", action='store_true', help="Whether not to use CUDA when available")
+    parser.add_argument("--inner_learning_rate", default=2e-6, type=float, help="The inner learning rate for Adam")
+    parser.add_argument("--outer_learning_rate", default=1e-5, type=float, help="The meta learning rate for Adam, actual learning rate!")
+    parser.add_argument("--FSL_learning_rate", default=2e-5, type=float, help="The FSL learning rate for Adam!")
+    parser.add_argument("--FSL_epochs", default=1, type=int, help="The FSL learning epochs for training!")
+    parser.add_argument("--do_train", action='store_false', help="Whether to run training.")
+    parser.add_argument("--do_eval", action='store_false', help="Whether to run eval on the dev set.")
+    parser.add_argument("--local_rank", type=int, default=-1, help="local_rank for distributed training on gpus")
+
     args = parser.parse_args()
 
     model_name = args.model  # 'TextRCNN'  # TextCNN, TextRNN, FastText, TextRCNN, TextRNN_Att, DPCNN, Transformer
     print('running FOMAML with {} as a base model ...'.format(model_name))
-    training_file = args.training_path
-    validation_file = args.validation_path
-    testing_file = args.testing_path
-    text_col = args.text_column
-    label_col = args.label_column
 
-    x = import_module('models.' + model_name)
     config = Config(args)
 
     np.random.seed(1)
@@ -193,7 +247,162 @@ def main():
     Is_reptile = args.is_reptile
 
     num_train_optimization_steps = meta_iters * (num_shots) * N_class * meta_batch
+    model = RNNModel(config).to(config.device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate)
 
+    device = torch.device("cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu")
+    n_gpu = torch.cuda.device_count()
+
+    # logger.info("device: {} n_gpu: {}, distributed training: {}, 16-bits training: {}".format(
+    #     device, n_gpu, bool(args.local_rank != -1), args.fp16))
+
+    logger.info("device: {} n_gpu: {}".format(device, n_gpu))
+
+    if args.do_train:
+        for epoch in trange(int(meta_iters), desc="Iterations"):  # meta-training
+            weight_before = deepcopy(model.state_dict())
+            update_vars = []
+            fomaml_vars = []
+
+            for _ in range(meta_batch):  # N_task is meta_batch_size
+
+                # here, we sample a mini-dataset, from which we sample examples per class in the inner loop
+                # https://github.com/openai/supervised-reptile/blob/8f2b71c67a31c1a605ced0cecb76db876b607a7a/supervised_reptile/reptile.py#L65
+
+                mini_dataset = _sample_mini_dataset(dataset=train_data, num_classes=N_class, num_shots=num_shots)
+
+                for batch in _mini_batches(samples=mini_dataset, batch_size=inner_batch, num_batches=inner_iters, replacement=False):  # for inner number of updates -- this is the inner loop over mini batches
+                    # https://github.com/openai/supervised-reptile/blob/8f2b71c67a31c1a605ced0cecb76db876b607a7a/supervised_reptile/reptile.py#L66
+
+                    inputs, labels = _to_tensor(datas=batch, device=config.device)
+
+                    last_backup = deepcopy(model.state_dict())
+
+                    model.train()
+
+                    outputs = model(inputs.float())
+                    model.zero_grad()
+                    loss = F.cross_entropy(outputs, labels)
+                    loss.backward()
+                    optimizer.step()
+                    optimizer.zero_grad()
+
+                    if epoch % 10 == 0:
+                        true = labels.data.cpu()
+                        predic = torch.max(outputs.data, 1)[1].cpu()
+
+                        result = compute_metrics(preds=predic, labels=true)
+                        task_acc = result['acc']
+                        task_f1 = result['f1']
+                        task_prec = result['precision']
+                        task_rec = result['recall']
+                        print('epoch: {}, accuracy: {}, precision: {}, recall: {}, f1: {}, loss: {}'.format(epoch, task_acc,
+                                                                                                            task_prec,
+                                                                                                            task_rec,
+                                                                                                            task_f1, loss))
+
+                weight_after = deepcopy(model.state_dict())
+                update_vars.append(weight_after)
+                tmp_fomaml_var = {}
+
+                if not Is_reptile:
+                    for name in weight_after:
+                        tmp_fomaml_var[name] = weight_after[name] - last_backup[name]
+                    fomaml_vars.append(tmp_fomaml_var)
+                model.load_state_dict(
+                    weight_before)  # here we are: https://github.com/openai/supervised-reptile/blob/8f2b71c67a31c1a605ced0cecb76db876b607a7a/supervised_reptile/reptile.py#L72
+
+            new_weight_dict = {}
+            # print(weight_before)
+            if Is_reptile:
+                for name in weight_before:
+                    weight_list = [tmp_weight_dict[name] for tmp_weight_dict in update_vars]
+                    weight_shape = list(weight_list[0].size())
+                    stack_shape = [len(weight_list)] + weight_shape
+                    stack_weight = torch.empty(stack_shape)
+                    for i in range(len(weight_list)):
+                        stack_weight[i, :] = weight_list[i]
+                    if device == "gpu":
+                        new_weight_dict[name] = torch.mean(stack_weight, dim=0).cuda()
+                    else:
+                        new_weight_dict[name] = torch.mean(stack_weight, dim=0)
+                    # new_weight_dict[name] = torch.mean(stack_weight, dim=0)
+                    new_weight_dict[name] = weight_before[name] + (new_weight_dict[name] - weight_before[
+                        name]) / args.inner_learning_rate * args.outer_learning_rate
+            else:
+                for name in weight_before:
+                    weight_list = [tmp_weight_dict[name] for tmp_weight_dict in fomaml_vars]
+                    weight_shape = list(weight_list[0].size())
+                    stack_shape = [len(weight_list)] + weight_shape
+                    stack_weight = torch.empty(stack_shape)
+                    for i in range(len(weight_list)):
+                        stack_weight[i, :] = weight_list[i]
+                    if device == "gpu":
+                        new_weight_dict[name] = torch.mean(stack_weight, dim=0).cuda()
+                    else:
+                        new_weight_dict[name] = torch.mean(stack_weight, dim=0)
+                    # new_weight_dict[name] = torch.mean(stack_weight, dim=0).cuda()
+                    # new_weight_dict[name] = torch.mean(stack_weight, dim=0)
+                    new_weight_dict[name] = weight_before[name] + new_weight_dict[name] / args.inner_learning_rate * args.outer_learning_rate
+            model.load_state_dict(new_weight_dict)
+
+    if args.do_train and (args.local_rank == -1 or torch.distributed.get_rank() == 0) :
+        mkdir(config.save_path)
+        torch.save(model.state_dict(), os.path.join(config.save_path, '{}.ckpt'.format(config.model_name)))
+
+    model.to(device)
+
+    Meta_optimizer = torch.optim.Adam(model.parameters(), lr=args.FSL_learning_rate)
+
+    if args.do_eval and (args.local_rank == -1 or torch.distributed.get_rank() == 0):
+        if args.do_train:
+            weight_before = deepcopy(model.state_dict())
+            model.train()
+        else:
+            model = RNNModel(config).to(config.device)
+            model.load_state_dict(torch.load(config.save_path + config.model_name + '.ckpt'))
+            weight_before = deepcopy(model.state_dict())
+
+            model.train()
+
+        mini_dataset = _sample_mini_dataset(dataset=dev_data, num_classes=N_class, num_shots=num_shots)
+
+        for batch in _mini_batches(samples=mini_dataset, batch_size=inner_batch, num_batches=inner_iters, replacement=False):
+
+            inputs, labels = _to_tensor(datas=batch, device=config.device)
+
+            outputs = model(inputs.float())
+            model.zero_grad()
+            loss = F.cross_entropy(outputs, labels)
+            loss.backward()  # calculate gradients and update weights
+            Meta_optimizer.step()
+            Meta_optimizer.zero_grad()
+
+        model.eval()
+        eval_dataloader = build_iterator(dataset=test_data, config=config)
+
+        loss_total = 0
+        predict_all = np.array([], dtype=int)
+        labels_all = np.array([], dtype=int)
+        with torch.no_grad():
+            for texts, labels in eval_dataloader:
+                outputs = model(texts)
+                loss = F.cross_entropy(outputs, labels)
+                loss_total += loss
+                labels = labels.data.cpu().numpy()
+                predic = torch.max(outputs.data, 1)[1].cpu().numpy()
+                labels_all = np.append(labels_all, labels)
+                predict_all = np.append(predict_all, predic)
+
+        result = compute_metrics(preds=predict_all, labels=labels_all)
+        report = classification_report(labels_all, predict_all, target_names=config.class_list, digits=4)
+        confusion = confusion_matrix(labels_all, predict_all)
+
+        print('Results:')
+        for k, v in result.items():
+            print('{}: {:.5f}'.format(k, v))
+        print('\nClassification report:\n{}'.format(report))
+        print('\nConfusion matrix:\n{}'.format(confusion))
 
 if __name__ == '__main__':
     main()
