@@ -76,9 +76,9 @@ class Config(object):
         self.pad_size = None
 
 
-class RNNModel(nn.Module):
+class TextRNN(nn.Module):
     def __init__(self, config):
-        super(RNNModel, self).__init__()
+        super(TextRNN, self).__init__()
         if config.embedding_pretrained is not None:
             self.embedding = nn.Embedding.from_pretrained(config.embedding_pretrained, freeze=False)
         else:
@@ -92,6 +92,142 @@ class RNNModel(nn.Module):
         out, _ = self.lstm(out)
         out = self.fc(out[:, -1, :])  # 句子最后时刻的 hidden state
         return out
+
+
+class TextRNN_Att(nn.Module):
+    def __init__(self, config):
+        super(TextRNN_Att, self).__init__()
+        if config.embedding_pretrained is not None:
+            self.embedding = nn.Embedding.from_pretrained(config.embedding_pretrained, freeze=False)
+        else:
+            self.embedding = nn.Embedding(config.n_vocab, config.embed, padding_idx=config.n_vocab - 1)
+        self.lstm = nn.LSTM(config.embed, config.hidden_size, config.num_layers,
+                            bidirectional=True, batch_first=True, dropout=config.dropout)
+        self.tanh1 = nn.Tanh()
+        # self.u = nn.Parameter(torch.Tensor(config.hidden_size * 2, config.hidden_size * 2))
+        self.w = nn.Parameter(torch.zeros(config.hidden_size * 2))
+        self.tanh2 = nn.Tanh()
+        self.fc1 = nn.Linear(config.hidden_size * 2, config.hidden_size2)
+        self.fc = nn.Linear(config.hidden_size2, config.num_classes)
+
+    def forward(self, x):
+        # x, _ = x
+        # emb = self.embedding(x)  # [batch_size, seq_len, embeding]=[128, 32, 300]
+        emb = self.embedding(x.long())  # [batch_size, seq_len, embeding]=[128, 32, 300]
+        H, _ = self.lstm(emb)  # [batch_size, seq_len, hidden_size * num_direction]=[128, 32, 256]
+
+        M = self.tanh1(H)  # [128, 32, 256]
+        # M = torch.tanh(torch.matmul(H, self.u))
+        alpha = F.softmax(torch.matmul(M, self.w), dim=1).unsqueeze(-1)  # [128, 32, 1]
+        out = H * alpha  # [128, 32, 256]
+        out = torch.sum(out, 1)  # [128, 256]
+        out = F.relu(out)
+        out = self.fc1(out)
+        out = self.fc(out)  # [128, 64]
+        return out
+
+
+class TextRCNN(nn.Module):
+    def __init__(self, config):
+        super(TextRCNN, self).__init__()
+        if config.embedding_pretrained is not None:
+            self.embedding = nn.Embedding.from_pretrained(config.embedding_pretrained, freeze=False)
+        else:
+            self.embedding = nn.Embedding(config.n_vocab, config.embed, padding_idx=config.n_vocab - 1)
+        self.lstm = nn.LSTM(config.embed, config.hidden_size, config.num_layers,
+                            bidirectional=True, batch_first=True, dropout=config.dropout)
+        self.maxpool = nn.MaxPool1d(config.pad_size)
+        self.fc = nn.Linear(config.hidden_size * 2 + config.embed, config.num_classes)
+
+    def forward(self, x):
+        # x, _ = x
+        # embed = self.embedding(x)  # [batch_size, seq_len, embeding]=[64, 32, 64]
+        embed = self.embedding(x.long())  # [batch_size, seq_len, embeding]=[64, 32, 64]
+        out, _ = self.lstm(embed)
+        out = torch.cat((embed, out), 2)
+        out = F.relu(out)
+        out = out.permute(0, 2, 1)
+        out = self.maxpool(out).squeeze()
+        out = self.fc(out)
+        return out
+
+
+class TextCNN(nn.Module):
+    def __init__(self, config):
+        super(TextCNN, self).__init__()
+        if config.embedding_pretrained is not None:
+            self.embedding = nn.Embedding.from_pretrained(config.embedding_pretrained, freeze=False)
+        else:
+            self.embedding = nn.Embedding(config.n_vocab, config.embed, padding_idx=config.n_vocab - 1)
+        self.convs = nn.ModuleList(
+            [nn.Conv2d(1, config.num_filters, (k, config.embed)) for k in config.filter_sizes])
+        self.dropout = nn.Dropout(config.dropout)
+        self.fc = nn.Linear(config.num_filters * len(config.filter_sizes), config.num_classes)
+
+    def conv_and_pool(self, x, conv):
+        x = F.relu(conv(x)).squeeze(3)
+        x = F.max_pool1d(x, x.size(2)).squeeze(2)
+        return x
+
+    def forward(self, x):
+        # out = self.embedding(x[0])
+        out = self.embedding(x.long())
+        out = out.unsqueeze(1)
+        out = torch.cat([self.conv_and_pool(out, conv) for conv in self.convs], 1)
+        out = self.dropout(out)
+        out = self.fc(out)
+        return out
+
+
+class DPCNN(nn.Module):
+    def __init__(self, config):
+        super(DPCNN, self).__init__()
+        if config.embedding_pretrained is not None:
+            self.embedding = nn.Embedding.from_pretrained(config.embedding_pretrained, freeze=False)
+        else:
+            self.embedding = nn.Embedding(config.n_vocab, config.embed, padding_idx=config.n_vocab - 1)
+        self.conv_region = nn.Conv2d(1, config.num_filters, (3, config.embed), stride=1)
+        self.conv = nn.Conv2d(config.num_filters, config.num_filters, (3, 1), stride=1)
+        self.max_pool = nn.MaxPool2d(kernel_size=(3, 1), stride=2)
+        self.padding1 = nn.ZeroPad2d((0, 0, 1, 1))  # top bottom
+        self.padding2 = nn.ZeroPad2d((0, 0, 0, 1))  # bottom
+        self.relu = nn.ReLU()
+        self.fc = nn.Linear(config.num_filters, config.num_classes)
+
+    def forward(self, x):
+        # x = x[0]
+        x = x.long()
+        x = self.embedding(x)
+        x = x.unsqueeze(1)  # [batch_size, 250, seq_len, 1]
+        x = self.conv_region(x)  # [batch_size, 250, seq_len-3+1, 1]
+
+        x = self.padding1(x)  # [batch_size, 250, seq_len, 1]
+        x = self.relu(x)
+        x = self.conv(x)  # [batch_size, 250, seq_len-3+1, 1]
+        x = self.padding1(x)  # [batch_size, 250, seq_len, 1]
+        x = self.relu(x)
+        x = self.conv(x)  # [batch_size, 250, seq_len-3+1, 1]
+        while x.size()[2] > 2:
+            x = self._block(x)
+        x = x.squeeze()  # [batch_size, num_filters(250)]
+        x = self.fc(x)
+        return x
+
+    def _block(self, x):
+        x = self.padding2(x)
+        px = self.max_pool(x)
+
+        x = self.padding1(px)
+        x = F.relu(x)
+        x = self.conv(x)
+
+        x = self.padding1(x)
+        x = F.relu(x)
+        x = self.conv(x)
+
+        # Short Cut
+        x = x + px
+        return x
 
 
 def _sample_mini_dataset(dataset, num_classes, num_shots):
@@ -175,8 +311,12 @@ def mkdir(folder):
 
 def main():
     parser = argparse.ArgumentParser(description='Arabic Text Classification')
-    parser.add_argument('--model', type=str, default='TextRNN',
+
+
+    parser.add_argument('--model', type=str, default='DPCNN',
                         help='choose a model: TextCNN, TextRNN, FastText, TextRCNN, TextRNN_Att, DPCNN, Transformer')
+
+
     parser.add_argument('--training_path', type=str, default='input/FAKES/feature_extraction_train_updated_updated.csv',
                         help='path to training dataset')
     parser.add_argument('--validation_path', type=str, default='input/FAKES/feature_extraction_dev_updated_updated.csv',
@@ -196,7 +336,7 @@ def main():
     parser.add_argument('--max_sen_len', type=int, default=512, help='maximum length of sentence')
     parser.add_argument('--dropout', type=float, default=0.5)
     parser.add_argument('--require_improvement', type=int, default=1000)
-    parser.add_argument('--num_epochs', type=int, default=100, help='number of epochs')
+    parser.add_argument('--num_epochs', type=int, default=1, help='number of epochs')
     parser.add_argument('--batch_size', type=int, default=32, help='number of batches')
     parser.add_argument('--pad_size', type=int, default=None)
     parser.add_argument('--lr', type=float, default=1e-3)
@@ -209,7 +349,7 @@ def main():
     parser.add_argument('--inner_batch', type=int, default=5, help='inner batch size')
     parser.add_argument('--num_shots', type=int, default=5, help='number of examples per class')
     parser.add_argument('--meta_batch', type=int, default=5, help='meta training batch size')
-    parser.add_argument('--meta_iters', type=int, default=700, help='meta-training iterations')
+    parser.add_argument('--meta_iters', type=int, default=1, help='meta-training iterations')
     parser.add_argument("--is_reptile", default=False, type=bool, help="whether use reptile or fomaml method")
     parser.add_argument("--no_cuda", action='store_true', help="Whether not to use CUDA when available")
     parser.add_argument("--inner_learning_rate", default=2e-6, type=float, help="The inner learning rate for Adam")
@@ -247,7 +387,17 @@ def main():
     Is_reptile = args.is_reptile
 
     num_train_optimization_steps = meta_iters * (num_shots) * N_class * meta_batch
-    model = RNNModel(config).to(config.device)
+    if model_name == 'TextRNN':
+        model = TextRNN(config).to(config.device)
+    elif model_name == 'TextRNN_Att':
+        model = TextRNN_Att(config).to(config.device)
+    elif model_name == 'TextRCNN':
+        model = TextRCNN(config).to(config.device)
+    elif model_name == 'TextCNN':
+        model = TextCNN(config).to(config.device)
+    else:
+        model = DPCNN(config).to(config.device)
+
     optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate)
 
     device = torch.device("cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu")
