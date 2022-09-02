@@ -1,0 +1,4 @@
+--inner_iters 10 --inner_batch 10 --num_shots 16 --meta_batch 5 --meta_iters 1000
+--inner_iters 8 --inner_batch 10 --num_shots 16 --meta_batch 5 --meta_iters 1000  
+--inner_iters 5 --inner_batch 10 --num_shots 16 --meta_batch 5 --meta_iters 1000  
+--inner_iters 3 --inner_batch 10 --num_shots 16 --meta_batch 5 --meta_iters 1000  

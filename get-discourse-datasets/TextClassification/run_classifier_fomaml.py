@@ -1,14 +1,9 @@
 # coding: UTF-8
-import torch
 import torch.nn as nn
 import time
 import torch
 import numpy as np
-from train_eval import train, init_network
-from utils import build_dataset, build_iterator, get_time_dif
-from importlib import import_module
 import argparse
-import fasttext
 from utils import build_dataset, build_iterator
 import random
 from tqdm import tqdm, trange
@@ -30,9 +25,9 @@ class Config(object):
     # def __init__(self, dataset, embedding):
     def __init__(self, args):
         self.model_name = args.model
-        self.train_path = args.training_path
-        self.dev_path = args.validation_path
-        self.test_path = args.testing_path
+        self.train_path = args.train_set
+        self.dev_path = args.dev_set
+        self.test_path = args.test_set
         self.text_column = args.text_column
         self.label_column = args.label_column
         self.save_path = 'saved_dict/'
@@ -313,15 +308,15 @@ def main():
     parser = argparse.ArgumentParser(description='Arabic Text Classification')
 
 
-    parser.add_argument('--model', type=str, default='DPCNN',
+    parser.add_argument('--model', type=str, default='TextCNN',
                         help='choose a model: TextCNN, TextRNN, FastText, TextRCNN, TextRNN_Att, DPCNN, Transformer')
 
 
-    parser.add_argument('--training_path', type=str, default='input/FAKES/feature_extraction_train_updated_updated.csv',
+    parser.add_argument('--train_set', type=str, default='input/FAKES/feature_extraction_train_updated_updated.csv',
                         help='path to training dataset')
-    parser.add_argument('--validation_path', type=str, default='input/FAKES/feature_extraction_dev_updated_updated.csv',
+    parser.add_argument('--dev_set', type=str, default='input/FAKES/feature_extraction_dev_updated_updated.csv',
                         help='path to validation dataset')
-    parser.add_argument('--testing_path', type=str, default='input/FAKES/feature_extraction_test_updated.csv',
+    parser.add_argument('--test_set', type=str, default='input/FAKES/feature_extraction_test_updated.csv',
                         help='path to testing dataset')
     parser.add_argument('--text_column', type=str, default='article_content',
                         help='name of the col containing text data inside train/val/test files')
@@ -334,10 +329,10 @@ def main():
     parser.add_argument('--fasttext', default=0, type=int,
                         help='whether to use fasttext embeddings or not. 0=False, 1=True')
     parser.add_argument('--max_sen_len', type=int, default=512, help='maximum length of sentence')
+    parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--dropout', type=float, default=0.5)
     parser.add_argument('--require_improvement', type=int, default=1000)
     parser.add_argument('--num_epochs', type=int, default=1, help='number of epochs')
-    parser.add_argument('--batch_size', type=int, default=32, help='number of batches')
     parser.add_argument('--pad_size', type=int, default=None)
     parser.add_argument('--lr', type=float, default=1e-3)
     parser.add_argument('--hidden_size', type=int, default=128, help='number of nodes in hidden layer')
@@ -477,8 +472,7 @@ def main():
                     else:
                         new_weight_dict[name] = torch.mean(stack_weight, dim=0)
                     # new_weight_dict[name] = torch.mean(stack_weight, dim=0)
-                    new_weight_dict[name] = weight_before[name] + (new_weight_dict[name] - weight_before[
-                        name]) / args.inner_learning_rate * args.outer_learning_rate
+                    new_weight_dict[name] = weight_before[name].to(device) + (new_weight_dict[name].to(device) - weight_before[name].to(device)) / args.inner_learning_rate * args.outer_learning_rate
             else:
                 for name in weight_before:
                     weight_list = [tmp_weight_dict[name] for tmp_weight_dict in fomaml_vars]
@@ -493,7 +487,7 @@ def main():
                         new_weight_dict[name] = torch.mean(stack_weight, dim=0)
                     # new_weight_dict[name] = torch.mean(stack_weight, dim=0).cuda()
                     # new_weight_dict[name] = torch.mean(stack_weight, dim=0)
-                    new_weight_dict[name] = weight_before[name] + new_weight_dict[name] / args.inner_learning_rate * args.outer_learning_rate
+                    new_weight_dict[name] = weight_before[name].to(device) + new_weight_dict[name].to(device) / args.inner_learning_rate * args.outer_learning_rate
             model.load_state_dict(new_weight_dict)
 
     if args.do_train and (args.local_rank == -1 or torch.distributed.get_rank() == 0) :

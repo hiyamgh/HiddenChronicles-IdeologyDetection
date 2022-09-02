@@ -1,0 +1,37 @@
+#!/bin/bash -l
+
+#SBATCH --job-name=TxtCNN-FKSR # Job name
+#SBATCH --partition=gpu # Partition
+#SBATCH --nodes=1 # Number of nodes
+#SBATCH --gres=gpu:1 # Number of GPUs
+#SBATCH --ntasks-per-node=1  # Number of tasks
+#SBATCH --output=job.%j.out # Stdout (%j=jobId)
+#SBATCH --error=job.%j.err # Stderr (%j=jobId)
+#SBATCH --time=18:00:00 # Walltime
+#SBATCH -A p118
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=hkg02@mail.aub.edu
+#SBATCH --array=1-4%4
+
+# Load any necessary modules, in this case OpenMPI with CUDA
+module purge
+module load Python/3.6.8-GCCcore-8.2.0
+module load PyTorch/1.9.1-fosscuda-2020b
+module load SciPy-bundle/2020.11-fosscuda-2020b
+
+
+nvcc --version
+
+echo "----------------------------------"
+
+nvidia-smi
+
+df_train=input/FAKES/feature_extraction_train_updated_updated.csv
+df_dev=input/FAKES/feature_extraction_dev_updated_updated.csv
+df_test=input/FAKES/feature_extraction_test_updated.csv
+
+shared="--train_set $df_train --dev_set $df_dev --test_set $df_test"
+
+echo ${SLURM_ARRAY_TASK_ID}
+echo $(head -n $SLURM_ARRAY_TASK_ID cls_arglist.txt | tail -n 1)
+python run_classifier_fomaml.py --model TextCNN $(head -n $SLURM_ARRAY_TASK_ID cls_arglist.txt | tail -n 1) $shared
