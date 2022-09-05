@@ -1,0 +1,5 @@
+data/1982.txt
+data/1983.txt
+data/1984.txt
+data/1985.txt
+data/1986.txt
