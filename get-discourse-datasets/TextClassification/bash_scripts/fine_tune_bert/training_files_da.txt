@@ -1,5 +1,5 @@
-data/1982.txt
-data/1983.txt
-data/1984.txt
-data/1985.txt
-data/1986.txt
+/onyx/data/p118/data/1982.txt
+/onyx/data/p118/data/1983.txt
+/onyx/data/p118/data/1984.txt
+/onyx/data/p118/data/1985.txt
+/onyx/data/p118/data/1986.txt
