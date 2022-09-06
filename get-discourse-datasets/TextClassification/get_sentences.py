@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import random
 import argparse
+import json
 
 # 1982 - 1987: -----------------------------------------------------------
 # 1982 Seige of Beirut: حصار بيروت
@@ -18,6 +19,22 @@ import argparse
 # Sentiment Analysis --> https://github.com/SamsungLabs/NB-MLM
 #
 # check out google scholar: https://scholar.google.com/scholar?hl=en&as_sdt=0%2C5&q=fine+tune+bert+domain+adaptation+mlm&btnG=
+
+
+def samples2json(keywords, years, sentences):
+    samples = {}
+    for i, line in enumerate(sentences):
+        splitline = line.split(' ')
+        for j in range(0, len(splitline), 10):
+            splitted = splitline[j: j + 10]
+            batch = ' '.join(splitted)
+            if i not in samples:
+                samples[i] = {}
+            samples[i]['sentence_{}'.format(j)] = batch
+        samples[i]['keywords'] = keywords[i]
+        samples[i]['year'] = years[i]
+        samples[i]['label'] = ''
+    return samples
 
 
 if __name__ == '__main__':
@@ -66,24 +83,29 @@ if __name__ == '__main__':
                 if len(sentences) > 0:
                     print('average number of tokens per sentence: {}'.format(
                         sum([len(line.strip().split(' ')) for line in sentences]) / len(sentences)))
+
+                idxs_normal = [i for i in range(len(sentences)) if len(sentences[i]) <= 512]
+                sentences_n = [sentences[i] for i in idxs_normal]
+                keywords_n = [keywords[i] for i in idxs_normal]
+                years_n = [years[i] for i in idxs_normal]
+
                 random.seed(42)
-                if len(sentences) < 50:
-                    random_idxs = [i for i in range(len(sentences))]  # just get them all
+                if len(sentences_n) < 50:
+                    random_idxs = [i for i in range(len(sentences_n))]  # just get them all
                 else:
-                    random_idxs = random.sample([i for i in range(len(sentences))], k=50)
+                    random_idxs = random.sample([i for i in range(len(sentences_n))], k=50)
                 rand_keywords, rand_years, rand_sentences = [], [], []
                 for ridx in random_idxs:
-                    rand_keywords.append(keywords[ridx])
-                    rand_years.append(years[ridx])
-                    rand_sentences.append(sentences[ridx])
-                df['keywords'] = rand_keywords
-                df['year'] = rand_years
-                df['sentence'] = rand_sentences
+                    rand_keywords.append(keywords_n[ridx])
+                    rand_years.append(years_n[ridx])
+                    rand_sentences.append(sentences_n[ridx])
+
+                samples = samples2json(keywords=rand_keywords, years=rand_years, sentences=rand_sentences)
                 if not os.path.exists(save_dir):
                     os.makedirs(save_dir)
-                # df.to_csv(os.path.join(save_dir, '{}_{}.csv'.format(group_names[i], file_name[:-4])), encoding='utf-8-sig', index=False)
-                df.to_excel(os.path.join(save_dir, '{}_{}.xlsx'.format(group_names[i], file_name[:-4])),
-                            encoding='utf-8-sig', index=False)
+                with open(os.path.join(save_dir, '{}_{}.json'.format(group_names[i], file_name[:-4])), 'w', encoding='utf-8') as fp:
+                    json.dump(samples, fp, indent=4, ensure_ascii=False)
+
                 print('---------------------------------------')
             else:
                 print('No such file or directory: {}'.format(os.path.join(directory, file_name)))
