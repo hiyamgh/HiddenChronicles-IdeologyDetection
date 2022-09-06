@@ -18,6 +18,7 @@ module purge
 module load Python/3.6.8-GCCcore-8.2.0
 module load PyTorch/1.9.1-fosscuda-2020b
 module load SciPy-bundle/2020.11-fosscuda-2020b
+module load Java/11.0.2
 
 
 nvcc --version
@@ -27,15 +28,17 @@ echo "----------------------------------"
 nvidia-smi
 
 train_set=$(head -n $SLURM_ARRAY_TASK_ID training_files_da.txt | tail -n 1)
-test_set=data/1987.txt
+test_set=/onyx/data/p118/data/1987.txt
 firstjob=1
 echo "SLURM ARRAY TASK ID: $SLURM_ARRAY_TASK_ID"
 
 if [ $SLURM_ARRAY_TASK_ID -eq $firstjob ];
     then
         echo "first job"
+        echo "python fine_tuning_domain_adaptation.py --train_data_file $train_set --eval_data_file $test_set"
         python fine_tuning_domain_adaptation.py --train_data_file $train_set --eval_data_file $test_set
     else
         echo "not first job"
+        echo "python fine_tuning_domain_adaptation.py --train_data_file $train_set --eval_data_file $test_set --should_continue"
         python fine_tuning_domain_adaptation.py --train_data_file $train_set --eval_data_file $test_set --should_continue
 fi

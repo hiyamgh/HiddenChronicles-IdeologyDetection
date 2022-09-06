@@ -71,6 +71,7 @@ MODEL_CLASSES = {
 
 class TextDataset(Dataset):
     def __init__(self, tokenizer: PreTrainedTokenizer, args, file_path: str, block_size=512):
+        file_path = file_path.rstrip()
         assert os.path.isfile(file_path)
 
         block_size = block_size - (tokenizer.max_len - tokenizer.max_len_single_sentence)
@@ -112,6 +113,7 @@ class TextDataset(Dataset):
 
 class LineByLineTextDataset(Dataset):
     def __init__(self, tokenizer: PreTrainedTokenizer, args, file_path: str, block_size=512):
+        file_path = file_path.rstrip()
         assert os.path.isfile(file_path)
         # Here, we do not cache the features, operating under the assumption
         # that we will soon use fast multithreaded tokenizers from the
