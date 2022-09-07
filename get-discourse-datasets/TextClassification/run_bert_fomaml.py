@@ -18,23 +18,18 @@
 from __future__ import absolute_import, division, print_function
 
 import argparse
-import csv
 import logging
 import os
 import random
-import sys
-import math
 
 import numpy as np
 import torch
 from torch import optim
 from torch.utils.data import (DataLoader, RandomSampler, SequentialSampler,
                               TensorDataset)
-from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm, trange
 
 from torch.nn import CrossEntropyLoss, MSELoss, BCELoss
-# from scipy.stats import pearsonr, spearmanr
 from sklearn.metrics import f1_score
 from sklearn.metrics import precision_score, recall_score, classification_report, confusion_matrix, accuracy_score
 

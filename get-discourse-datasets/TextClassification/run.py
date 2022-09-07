@@ -2,7 +2,7 @@ import time
 import torch
 import numpy as np
 from train_eval import train, init_network
-from utils import build_dataset, build_iterator, get_time_dif, get_word_embeddings
+from utils_fasttext import build_dataset, build_iterator, get_time_dif, get_word_embeddings
 from importlib import import_module
 import argparse
 import fasttext
