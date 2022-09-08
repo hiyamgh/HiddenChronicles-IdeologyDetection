@@ -1,0 +1,18 @@
+#!/bin/bash -l
+
+#SBATCH --job-name=preproc # Job name
+#SBATCH --partition=cpu # Partition
+#SBATCH --nodes=1 # Number of nodes
+#SBATCH --ntasks-per-node=1  # Number of tasks
+#SBATCH --output=job.%j.out # Stdout (%j=jobId)
+#SBATCH --error=job.%j.err # Stderr (%j=jobId)
+#SBATCH --time=6:00:00 # Walltime
+#SBATCH -A p118
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=hkg02@mail.aub.edu
+
+# Load any necessary modules, in this case OpenMPI with CUDA
+module purge
+module load Python/3.6.8-GCCcore-8.2.0
+
+python preprocess_datasets.py
