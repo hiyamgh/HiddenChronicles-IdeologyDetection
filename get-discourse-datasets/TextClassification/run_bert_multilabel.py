@@ -6,6 +6,7 @@ import pandas as pd
 import argparse
 import random
 from tqdm import tqdm, trange
+import json
 
 import numpy as np
 import torch
@@ -17,6 +18,7 @@ import time
 import datetime
 from torch.nn import BCEWithLogitsLoss
 from metrics_multilabel import AUC, AccuracyThresh, MultiLabelReport, ClassReport
+from sklearn.metrics import f1_score, classification_report
 
 from transformers import (
     WEIGHTS_NAME,
@@ -71,24 +73,49 @@ class DataProcessor:
         self.text_col = text_col
 
     def _read_dataset(self, df_path):
-        df = pd.read_csv(df_path) if '.csv' in df_path else pd.read_excel(df_path)
-        arabert_prep = ArabertPreprocessor(model_name=self.model_name)
+        if '.csv' in df_path or '.xlsx' in df_path:
+            df = pd.read_csv(df_path) if '.csv' in df_path else pd.read_excel(df_path)
+            # df = df.iloc[:30]
+            arabert_prep = ArabertPreprocessor(model_name=self.model_name)
 
-        sentences = []
-        labels = set()
-        for i, row in df.iterrows():
-            sentence = str(row[self.text_col])
-            if sentence.strip().isdigit():
-                continue
-            # according to https://github.com/aub-mind/arabert#preprocessing
-            # It is recommended to apply our preprocessing function before training/testing on any dataset
-            sentence = arabert_prep.preprocess(sentence)
-            label = row[[col for col in df.columns if col != self.text_col]]
-            label = [np.float(x) for x in list(label)]
+            sentences = []
+            for i, row in df.iterrows():
+                sentence = str(row[self.text_col])
+                if sentence.strip().isdigit():
+                    continue
+                # according to https://github.com/aub-mind/arabert#preprocessing
+                # It is recommended to apply our preprocessing function before training/testing on any dataset
+                sentence = arabert_prep.preprocess(sentence)
+                label = row[[col for col in df.columns if col != self.text_col]]
+                label = [np.float(x) for x in list(label)]
 
-            sentences.append([sentence, label])
+                sentences.append([sentence, label])
 
-        return sentences
+            return sentences
+        else:
+            list_of_paths = df_path.split(';')
+            sentences = []
+            arabert_prep = ArabertPreprocessor(model_name=self.model_name)
+            for df_path in list_of_paths:
+                with open(df_path, 'r', encoding='utf-8') as json_file:
+                    data = json.load(json_file)
+                json_file.close()
+                for k in data:
+                    sentence_full = ''
+                    label = ''
+                    if data[k]['label'].strip() != "":
+                        for sentence in data[k]:
+                            if data[k][sentence].strip().isdigit():
+                                continue
+                            if sentence not in ['keywords', 'year', 'label']:
+                                sentence_full += data[k][sentence] + ' '
+                            if sentence == 'label':
+                                label_list = [e for e in data[k][sentence].split(";") if e.strip() != ""]
+                                all_labels = self.get_labels()
+                                label = [1.0 if l in label_list else 0.0 for l in all_labels]
+                        sentence_full = arabert_prep.preprocess(sentence_full)
+                        sentences.append([sentence_full, label])
+            return sentences
 
     def get_train_examples(self, df_path):
         print('reading the training dataset from {} ...'.format(df_path))
@@ -306,17 +333,17 @@ def main():
 
     ## Other parameters
     parser.add_argument("--max_seq_length",
-                        default=128,
+                        default=512,
                         type=int,
                         help="The maximum total input sequence length after WordPiece tokenization. \n"
                              "Sequences longer than this will be truncated, and sequences shorter \n"
                              "than this will be padded.")
-    # parser.add_argument("--do_train",
-    #                     action='store_true',
-    #                     help="Whether to run training.")
     parser.add_argument("--do_train",
-                        action='store_false',
+                        action='store_true',
                         help="Whether to run training.")
+    # parser.add_argument("--do_train",
+    #                     action='store_false',
+    #                     help="Whether to run training.")
     # parser.add_argument("--do_eval",
     #                     action='store_true',
     #                     help="Whether to run eval on the dev set.")
@@ -339,7 +366,8 @@ def main():
                         type=float,
                         help="The initial learning rate for Adam.")
     parser.add_argument("--num_train_epochs",
-                        default=3.0,
+                        # default=3.0,
+                        default=1.0,
                         # default=2.0,
                         type=float,
                         help="Total number of training epochs to perform.")
@@ -380,13 +408,14 @@ def main():
 
     parser.add_argument("--dev_set",
                         # default="input/Discourse_Profiling/df_dev_cleaned.xlsx",
-                        default="input/ptc_corpus/df_dev_multi.xlsx",
+                        default="sentences/group_0_1982.json;sentences/group_0_1984.json;sentences/group_0_1985.json;sentences/group_0_1986.json",
                         type=str,
                         help="path to the training dataset.")
 
     parser.add_argument("--test_set",
                         # default="input/Discourse_Profiling/df_test_cleaned.xlsx",
-                        default="input/ptc_corpus/df_dev_multi.xlsx",
+                        # default="input/ptc_corpus/df_dev_multi.xlsx",
+                        default="sentences/group_0_1982.json;sentences/group_0_1984.json;sentences/group_0_1985.json;sentences/group_0_1986.json",
                         type=str,
                         help="path to the testing dataset.")
 
@@ -434,15 +463,7 @@ def main():
 
     task_name = args.task_name.lower()
 
-    # if task_name not in processors:
-    #     raise ValueError("Task not found: %s" % (task_name))
-    #
-    # processor = processors[task_name](binarize_labels, use_all_data)
     processor = DataProcessor(model_name=args.bert_model, text_col=args.text_column)
-    # label_list = processor.get_labels()
-    # num_labels = len(label_list)
-
-    # tokenizer = BertTokenizer.from_pretrained(args.bert_model, do_lower_case=args.do_lower_case)
     tokenizer = BertTokenizer.from_pretrained(args.bert_model)
 
     train_examples = None
@@ -454,11 +475,6 @@ def main():
         num_train_steps = int(
             len(train_examples) / args.train_batch_size / args.gradient_accumulation_steps * args.num_train_epochs)
         print('loaded training examples - took {}'.format(format_time(time.time() - ttemp)))
-    # Prepare model
-    # model = BertForSequenceClassification.from_pretrained(args.bert_model,
-    #                                                       cache_dir=PYTORCH_PRETRAINED_BERT_CACHE / 'distributed_{}'.format(
-    #                                                           args.local_rank),
-    #                                                       num_labels=num_labels)
 
     label_list = processor.get_labels() # we can call get_labels() because we called get_train_examples()
     num_labels = len(label_list)
@@ -581,7 +597,7 @@ def main():
                 eval_results_filename = "test_results_epoch_%d.txt" % (epoch)
                 eval_prediction_filename = "test_predictions_epoch_%d.txt" % (epoch)
                 do_evaluation(processor, args, label_list, tokenizer, model, device, tr_loss, nb_tr_steps, global_step,
-                              task_name, eval_results_filename, eval_prediction_filename, mode='validation', label_map=label_map)
+                              task_name, eval_results_filename, eval_prediction_filename, mode='validation')
 
         elapsed = format_time(time.time() - t1)
         print('time elapsed to complete training + validation: {}'.format(elapsed))
@@ -625,7 +641,7 @@ def do_evaluation(processor, args, label_list, tokenizer, model, device, tr_loss
     else:
         eval_examples = processor.get_test_examples(args.test_set)
     eval_examples = eval_examples
-    eval_features, _ = convert_examples_to_features(
+    eval_features = convert_examples_to_features(
         eval_examples, label_list, args.max_seq_length, tokenizer)
     logger.info("***** Running evaluation *****")
     logger.info("  Num examples = %d", len(eval_examples))
@@ -640,10 +656,10 @@ def do_evaluation(processor, args, label_list, tokenizer, model, device, tr_loss
     eval_dataloader = DataLoader(eval_data, sampler=eval_sampler, batch_size=args.eval_batch_size)
 
     model.eval()
-    eval_accuracy = 0, 0
+    eval_accuracy = 0
     nb_eval_steps, nb_eval_examples = 0, 0
 
-    outputs, targets = [], []
+    preds, targets = [], []
     for input_ids, input_mask, segment_ids, label_ids in tqdm(eval_dataloader, desc="Evaluating"):
         input_ids = input_ids.to(device)
         input_mask = input_mask.to(device)
@@ -654,13 +670,21 @@ def do_evaluation(processor, args, label_list, tokenizer, model, device, tr_loss
             outputs = model(input_ids, segment_ids, input_mask)
 
         logits = outputs.logits
+
+        preds.append(logits)
+        targets.append(label_ids)
+
+        acc = AccuracyThresh(thresh=0.5)
+        acc(logits=logits, target=label_ids)
+        tmp_eval_accuracy = acc.value()
+
         logits = logits.detach().cpu().numpy()
         label_ids = label_ids.to('cpu').numpy()
-        tmp_eval_accuracy = AccuracyThresh(thresh=0.5)(logits=logits, target=label_ids)
+        # tmp_eval_accuracy = AccuracyThresh(thresh=0.5)(logits=logits, target=label_ids)
 
 
-        outputs.append(logits)
-        targets.append(label_ids)
+        # preds.append(logits)
+        # targets.append(label_ids)
 
         eval_accuracy += tmp_eval_accuracy
 
@@ -683,41 +707,21 @@ def do_evaluation(processor, args, label_list, tokenizer, model, device, tr_loss
             writer.write("%s = %s\n" % (key, str(result[key])))
         logger.info("\n\n\n")
 
-    outputs = torch.cat(outputs, dim=0).cpu().detach()
+    preds = torch.cat(preds, dim=0).cpu().detach()
     targets = torch.cat(targets, dim=0).cpu().detach()
-    loss = BCEWithLogitsLoss()(target=targets, output=outputs)
+    loss = BCEWithLogitsLoss()(targets.float(), preds.float())
+
     valid_loss = loss.item()
     print("------------- valid result --------------")
-    acc = AccuracyThresh(thresh=0.5)(logits=outputs, target=targets).value()
-    # auc = AUC(average='micro', task_type='binary').value()
-    classrep = ClassReport(target_names=processor.get_labels())
+    # https://stackoverflow.com/questions/48987959/classification-metrics-cant-handle-a-mix-of-continuous-multioutput-and-multi-la
+    y_pred = (preds.sigmoid().data.cpu().detach().numpy() > 0.5).astype(int)
+    y_true = targets.cpu().numpy()
+    report = classification_report(y_true=y_true, y_pred=y_pred, target_names=processor.get_labels())
 
-    print('accuracy: {}'.format(acc))
-    print('classification report: \n{}'.format(classrep))
+    print('accuracy: {}'.format(eval_accuracy))
+    print('loss: {}'.format(valid_loss))
+    print('classification report: \n{}'.format(report))
 
-
-    # print(classification_report([e.label for e in eval_examples], predicted_labels, target_names=labels))
-
-    # output_pred_file = os.path.join(args.output_dir, eval_prediction_filename)
-    # with open(output_pred_file, "w", encoding="utf-8") as writer:
-    #     y_test, y_pred = [], []
-    #     for idx, example in enumerate(eval_examples):
-    #         gold_label = example.label
-    #         pred_label = predicted_labels[idx]
-    #
-    #         y_test.append(label_map[gold_label])
-    #         y_pred.append(label_map[pred_label])
-    #
-    #         text_a = example.text_a.replace("\n", " ")
-    #         text_b = example.text_b.replace("\n", " ") if example.text_b is not None else "None"
-    #
-    #         writer.write("%s\t%s\t%s\t%s\n" % (gold_label, pred_label, text_a, text_b))
-    #
-    #     report = metrics.classification_report(y_test, y_pred, target_names=list(label_map.keys()), labels=list(range(len(label_map)+1)), digits=4)
-    #     confusion = metrics.confusion_matrix(y_test, y_pred)
-    #
-    #     print(report)
-    #     print(confusion)
 
 if __name__=="__main__":
     main()
