@@ -36,10 +36,6 @@ from transformers import (
     get_linear_schedule_with_warmup,
 )
 
-# from transformers import BertTokenizer
-# from transformers import BertForSequenceClassification
-# from pytorch_pretrained_bert.optimization import BertAdam
-# from pytorch_pretrained_bert.file_utils import PYTORCH_PRETRAINED_BERT_CACHE, WEIGHTS_NAME, CONFIG_NAME
 
 
 logging.basicConfig(format='%(message)s', #"format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
@@ -73,10 +69,10 @@ class DataProcessor:
         self.text_col = text_col
 
     def _read_dataset(self, df_path):
+        arabert_prep = ArabertPreprocessor(model_name=self.model_name)
         if '.csv' in df_path or '.xlsx' in df_path:
             df = pd.read_csv(df_path) if '.csv' in df_path else pd.read_excel(df_path)
             # df = df.iloc[:30]
-            arabert_prep = ArabertPreprocessor(model_name=self.model_name)
 
             sentences = []
             for i, row in df.iterrows():
@@ -95,7 +91,6 @@ class DataProcessor:
         else:
             list_of_paths = df_path.split(';')
             sentences = []
-            arabert_prep = ArabertPreprocessor(model_name=self.model_name)
             for df_path in list_of_paths:
                 with open(df_path, 'r', encoding='utf-8') as json_file:
                     data = json.load(json_file)
@@ -292,42 +287,25 @@ def main():
     parser = argparse.ArgumentParser()
 
     ## Required parameters
-    # parser.add_argument("--data_dir",
-    #                     default=None,
-    #                     type=str,
-    #                     required=True,
-    #                     help="The input data dir. Should contain the .tsv files (or other data files) for the task.")
-    # parser.add_argument("--bert_model", default="aubmindlab/bert-base-arabertv2", type=str, required=True,
-    #                     help="Bert pre-trained model selected in the list: bert-base-uncased, "
-    #                          "bert-large-uncased, bert-base-cased, bert-large-cased, bert-base-multilingual-uncased, "
-    #                          "bert-base-multilingual-cased, bert-base-chinese.")
-    parser.add_argument("--data_dir",
-                        default=None,
-                        type=str,
-                        help="The input data dir. Should contain the .tsv files (or other data files) for the task.")
+
     parser.add_argument("--bert_model", default="aubmindlab/bert-base-arabertv2", type=str,
                         help="Bert pre-trained model selected in the list: bert-base-uncased, "
                              "bert-large-uncased, bert-base-cased, bert-large-cased, bert-base-multilingual-uncased, "
                              "bert-base-multilingual-cased, bert-base-chinese.")
 
-    # parser.add_argument("--task_name",
-    #                     default=None,
-    #                     type=str,
-    #                     required=True,
-    #                     help="The name of the task to train.")
-    #
+    parser.add_argument("--model_name_or_path", default="aubmindlab/bert-base-arabertv2", type=str,
+                        help="The model checkpoint for weights initialization.")
+
+    # parser.add_argument("--model_name_or_path", default="E:/checkpoint-99900/", type=str,
+    #                     help="The model checkpoint for weights initialization.")
+
     parser.add_argument("--task_name",
                         default="classification_arabert",
                         type=str,
                         help="The name of the task to train.")
 
-    # parser.add_argument("--output_dir",
-    #                     default=None,
-    #                     type=str,
-    #                     required=True,
-    #                     help="The output directory where the model predictions and checkpoints will be written.")
     parser.add_argument("--output_dir",
-                        default="bert_output/",
+                        default="bert_multilabel/",
                         type=str,
                         help="The output directory where the model predictions and checkpoints will be written.")
 
@@ -338,15 +316,13 @@ def main():
                         help="The maximum total input sequence length after WordPiece tokenization. \n"
                              "Sequences longer than this will be truncated, and sequences shorter \n"
                              "than this will be padded.")
-    parser.add_argument("--do_train",
-                        action='store_true',
-                        help="Whether to run training.")
     # parser.add_argument("--do_train",
     #                     action='store_false',
     #                     help="Whether to run training.")
-    # parser.add_argument("--do_eval",
-    #                     action='store_true',
-    #                     help="Whether to run eval on the dev set.")
+    parser.add_argument("--do_train",
+                        action='store_true',
+                        help="Whether to run training.")
+
     parser.add_argument("--do_eval",
                         action='store_false',
                         help="Whether to run eval on the dev set.")
@@ -367,8 +343,7 @@ def main():
                         help="The initial learning rate for Adam.")
     parser.add_argument("--num_train_epochs",
                         # default=3.0,
-                        default=1.0,
-                        # default=2.0,
+                        default=4.0,
                         type=float,
                         help="Total number of training epochs to perform.")
     parser.add_argument("--warmup_proportion",
@@ -401,27 +376,21 @@ def main():
                              "Positive power of 2: static loss scaling value.\n")
 
     parser.add_argument("--train_set",
-                        # default="input/Discourse_Profiling/df_train_cleaned.xlsx",
-                        default="input/ptc_corpus/df_dev_multi.xlsx",
+                        default="input/ptc_corpus/df_train_multi.xlsx",
                         type=str,
                         help="path to the training dataset.")
 
     parser.add_argument("--dev_set",
-                        # default="input/Discourse_Profiling/df_dev_cleaned.xlsx",
-                        default="sentences/group_0_1982.json;sentences/group_0_1984.json;sentences/group_0_1985.json;sentences/group_0_1986.json",
+                        default="sentences/group_0_1982.json;sentences/group_0_1984.json;sentences/group_0_1985.json;sentences/group_0_1986.json;sentences/group_1_1982.json;sentences/group_1_1983.json;sentences/group_1_1984.json;sentences/group_1_1986.json;sentences/group_1_1987.json;",
                         type=str,
                         help="path to the training dataset.")
 
     parser.add_argument("--test_set",
-                        # default="input/Discourse_Profiling/df_test_cleaned.xlsx",
-                        # default="input/ptc_corpus/df_dev_multi.xlsx",
-                        default="sentences/group_0_1982.json;sentences/group_0_1984.json;sentences/group_0_1985.json;sentences/group_0_1986.json",
+                        default="sentences/group_0_1987.json;sentences/group_1_1985.json",
                         type=str,
                         help="path to the testing dataset.")
 
     parser.add_argument("--text_column", default="context_ar", type=str, help="Name of the column that contains text data")
-    # parser.add_argument("--label_column", default="Label", type=str, help="Name of the column that contains the labels")
-
     args = parser.parse_args()
 
     if args.test_set is not None:
@@ -478,7 +447,7 @@ def main():
 
     label_list = processor.get_labels() # we can call get_labels() because we called get_train_examples()
     num_labels = len(label_list)
-    model = BertForSequenceClassification.from_pretrained(args.bert_model, num_labels=num_labels)
+    model = BertForSequenceClassification.from_pretrained(args.model_name_or_path, num_labels=num_labels)
     print('loaded BERT model for sequence classification ...')
     if args.fp16:
         model.half()
