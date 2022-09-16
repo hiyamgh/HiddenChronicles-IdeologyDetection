@@ -36,6 +36,7 @@ from sklearn.metrics import precision_score, recall_score, classification_report
 from copy import deepcopy
 from arabert.preprocess import ArabertPreprocessor
 import pandas as pd
+import json
 
 
 from transformers import (
@@ -103,22 +104,48 @@ class Webis16Processor:
         self.train_labels, self.dev_labels, self.test_labels = [], [], []
 
     def _read_dataset(self, df_path):
-        df = pd.read_csv(df_path) if '.csv' in df_path else pd.read_excel(df_path)
         arabert_prep = ArabertPreprocessor(model_name=self.model_name)
+        if '.csv' in df_path or '.xlsx' in df_path:
+            df = pd.read_csv(df_path) if '.csv' in df_path else pd.read_excel(df_path)
+            arabert_prep = ArabertPreprocessor(model_name=self.model_name)
 
-        sentences = []
-        for i, row in df.iterrows():
-            sentence = str(row[self.text_col])
-            if sentence.strip().isdigit():
-                continue
-            # according to https://github.com/aub-mind/arabert#preprocessing
-            # It is recommended to apply our preprocessing function before training/testing on any dataset
-            sentence = arabert_prep.preprocess(sentence)
-            label = str(row[self.label_col])
+            sentences = []
+            for i, row in df.iterrows():
+                sentence = str(row[self.text_col])
+                if sentence.strip().isdigit():
+                    continue
+                # according to https://github.com/aub-mind/arabert#preprocessing
+                # It is recommended to apply our preprocessing function before training/testing on any dataset
+                sentence = arabert_prep.preprocess(sentence)
+                label = str(row[self.label_col])
 
-            sentences.append([sentence, label])
+                sentences.append([sentence, label])
 
-        return sentences
+            return sentences
+        else:
+            list_of_paths = df_path.split(';')
+            sentences = []
+            for df_path in list_of_paths:
+                with open(df_path, 'r', encoding='utf-8') as json_file:
+                    data = json.load(json_file)
+                json_file.close()
+                for k in data:
+                    sentence_full = ''
+                    label = ''
+                    if data[k]['label'].strip() != "":
+                        for sentence in data[k]:
+                            if data[k][sentence].strip().isdigit():
+                                continue
+                            if sentence not in ['keywords', 'year', 'label']:
+                                sentence_full += data[k][sentence] + ' '
+                            # if sentence == 'label':
+                                # label_list = [e for e in data[k][sentence].split(";") if e.strip() != ""]
+                                # all_labels = self.get_labels()
+                                # label = [1.0 if l in label_list else 0.0 for l in all_labels]
+
+                        sentence_full = arabert_prep.preprocess(sentence_full)
+                        sentences.append([sentence_full, data[k]['label'].strip()])
+            return sentences
 
     def get_train_examples(self, df_path):
         print('reading the training dataset from {} ...'.format(df_path))
@@ -179,6 +206,10 @@ class Webis16Processor:
 
 
 class DiscourseProfilingProcessor(Webis16Processor):
+    def __init__(self, model_name):
+        Webis16Processor.__init__(self, model_name)
+        self.text_col = "Sentence_ar"
+        self.label_col = "Label"
 
     def get_labels(self):
         return ["Cause_Specific", "Distant_Anecdotal", "Main_Consequence", "Distant_Expectations_Consequences", "Main",
@@ -367,30 +398,31 @@ def simple_accuracy(preds, labels):
 
 def acc_and_f1(preds, labels):
     # check if binary or multiclass classification
-    if len(list(set(labels))) == 2:
-        accuracy = accuracy_score(labels, preds)
-        f1 = f1_score(labels, preds)
-        precision = precision_score(labels, preds)
-        recall = recall_score(labels, preds)
-        return {
-            "acc": accuracy,
-            "precision": precision,
-            "recall": recall,
-            "f1": f1,
-            "acc_and_f1": (accuracy + f1) / 2,
-        }
-    else:
-        accuracy = accuracy_score(y_true=labels, y_pred=preds)
-        f1 = f1_score(y_true=labels, y_pred=preds, average="macro")
-        precision = precision_score(y_true=labels, y_pred=preds, average="macro")
-        recall = recall_score(y_true=labels, y_pred=preds, average="macro")
-        return {
-            "acc": accuracy,
-            "precision": precision,
-            "recall": recall,
-            "f1": f1,
-            "acc_and_f1": (accuracy + f1) / 2,
-        }
+    # if len(list(set(labels))) == 2:
+    #     accuracy = accuracy_score(labels, preds)
+    #     f1 = f1_score(labels, preds)
+    #     precision = precision_score(labels, preds)
+    #     recall = recall_score(labels, preds)
+    #     return {
+    #         "acc": accuracy,
+    #         "precision": precision,
+    #         "recall": recall,
+    #         "f1": f1,
+    #         "acc_and_f1": (accuracy + f1) / 2,
+    #     }
+    # else:
+
+    accuracy = accuracy_score(y_true=labels, y_pred=preds)
+    f1 = f1_score(y_true=labels, y_pred=preds, average="macro")
+    precision = precision_score(y_true=labels, y_pred=preds, average="macro")
+    recall = recall_score(y_true=labels, y_pred=preds, average="macro")
+    return {
+        "acc": accuracy,
+        "precision": precision,
+        "recall": recall,
+        "f1": f1,
+        "acc_and_f1": (accuracy + f1) / 2,
+    }
 
 
 def get_train_prob(reward_prob, K, epsilon):
@@ -427,6 +459,7 @@ def accuracy(pred, label):
 
 
 def main():
+
     parser = argparse.ArgumentParser()
 
     ## Required parameters
@@ -434,27 +467,20 @@ def main():
                         # default=None,
                         default="data/",
                         type=str,
-                        # required=True,
-                        required=False,
                         help="The input data dir. Should contain the .tsv files (or other data files) for the task.")
-    parser.add_argument("--bert_model", default="bert-base-uncased", type=str,
-                        # required=True,
+    parser.add_argument("--bert_model", default="aubmindlab/bert-base-arabertv2", type=str,
                         help="Bert pre-trained model selected in the list: bert-base-uncased, "
-                        "bert-large-uncased, bert-base-cased, bert-large-cased, bert-base-multilingual-uncased, "
-                        "bert-base-multilingual-cased, bert-base-chinese.")
+                             "bert-large-uncased, bert-base-cased, bert-large-cased, bert-base-multilingual-uncased, "
+                             "bert-base-multilingual-cased, bert-base-chinese.")
     parser.add_argument("--task_name",
                         # default=None,
-                        default="fakes",
+                        default="discourse_profiling",
                         type=str,
-                        # required=True,
-                        required=False,
                         help="The name of the task to train.")
     parser.add_argument("--output_dir",
                         # default=None,
-                        default="bert_output/",
+                        default="bert_output_discp/",
                         type=str,
-                        # required=True,
-                        required=False,
                         help="The output directory where the model predictions and checkpoints will be written.")
 
     ## Other parameters
@@ -511,11 +537,11 @@ def main():
     parser.add_argument("--FSL_learning_rate",
                         default=2e-5,
                         type=float,
-                        help="The FSL learning rate for Adam!")           
+                        help="The FSL learning rate for Adam!")
     parser.add_argument("--FSL_epochs",
                         default=1,
                         type=int,
-                        help="The FSL learning epochs for training!")                    
+                        help="The FSL learning epochs for training!")
     parser.add_argument("--num_train_epochs",
                         default=2.0,
                         type=float,
@@ -565,30 +591,22 @@ def main():
                         help='meta-training iterations')
 
     parser.add_argument("--train_set",
-                        default="input/FAKES/feature_extraction_train_updated_updated.csv",
+                        default="input/Discourse_Profiling/df_train_cleaned.xlsx",
                         type=str,
                         help="path to the training dataset.")
 
     parser.add_argument("--dev_set",
-                        default="input/FAKES/feature_extraction_dev_updated_updated.csv",
+                        default="input/Discourse_Profiling/df_dev_cleaned.xlsx",
                         type=str,
                         help="path to the training dataset.")
 
     parser.add_argument("--test_set",
-                        default="input/FAKES/feature_extraction_test_updated.csv",
+                        default="sentences/labels_discourse_profiling/group_0_1982.json;sentences/labels_discourse_profiling/group_0_1984.json;sentences/labels_discourse_profiling/group_0_1985.json;sentences/labels_discourse_profiling/group_0_1986.json;sentences/labels_discourse_profiling/group_0_1987.json;sentences/labels_discourse_profiling/group_1_1982.json;sentences/labels_discourse_profiling/group_1_1983.json;sentences/labels_discourse_profiling/group_1_1984.json",
                         type=str,
                         help="path to the testing dataset.")
 
-    parser.add_argument('--server_ip', type=str, default='', help="Can be used for distant debugging.")
-    parser.add_argument('--server_port', type=str, default='', help="Can be used for distant debugging.")
-    args = parser.parse_args()
 
-    if args.server_ip and args.server_port:
-        # Distant debugging - see https://code.visualstudio.com/docs/python/debugging#_attach-to-a-local-script
-        import ptvsd
-        print("Waiting for debugger attach")
-        ptvsd.enable_attach(address=(args.server_ip, args.server_port), redirect_output=True)
-        ptvsd.wait_for_attach()
+    args = parser.parse_args()
 
     processors = {
         "ptc": PTCProcessor,
