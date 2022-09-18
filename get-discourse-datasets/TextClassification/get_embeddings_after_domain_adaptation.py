@@ -315,8 +315,9 @@ if __name__ == '__main__':
                         help='Paths to each of the time period specific corpus separated by ;',
                         # default='/onyx/data/p118/data/1982.txt;/onyx/data/p118/data/1983.txt;/onyx/data/p118/data/1984.txt;/onyx/data/p118/data/1985.txt;/onyx/data/p118/data/1986.txt')
                         # default='E:/nahar/1982.txt;E:/nahar/1983.txt;E:/nahar/1984.txt;E:/nahar/1985.txt;E:/nahar/1986.txt')
-                        default='C:/Users/96171/Downloads/LiverpoolFC_2013.txt')
-                        # default='C:/Users/96171/Downloads/1982.txt',)
+                        # default='C:/Users/96171/Downloads/LiverpoolFC_2013.txt')
+                        # default='C:/Users/96171/Downloads/
+                        default='/scratch/7613491_hkg02/political_discourse_mining_hiyam/Train_Word_Embedidng/fasttext/data/nahar/1982.txt;/scratch/7613491_hkg02/political_discourse_mining_hiyam/Train_Word_Embedidng/fasttext/data/nahar/1983.txt;/scratch/7613491_hkg02/political_discourse_mining_hiyam/Train_Word_Embedidng/fasttext/data/nahar/1984.txt;/scratch/7613491_hkg02/political_discourse_mining_hiyam/Train_Word_Embedidng/fasttext/data/nahar/1985.txt;/scratch/7613491_hkg02/political_discourse_mining_hiyam/Train_Word_Embedidng/fasttext/data/nahar/1986.txt')
 
     parser.add_argument('--embeddings_path', type=str,
                         help='Path to output time embeddings',
