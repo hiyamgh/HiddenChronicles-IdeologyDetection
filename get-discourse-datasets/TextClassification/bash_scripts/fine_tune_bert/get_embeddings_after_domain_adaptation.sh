@@ -26,6 +26,5 @@ nvidia-smi
 
 bert_model=aubmindlab/bert-base-arabertv2
 path_to_model=aubmindlab/bert-base-arabertv2
-path_to_datasets=/scratch/7613491_hkg02/political_discourse_mining_hiyam/Train_Word_Embedidng/fasttext/data/nahar/1982.txt;/scratch/7613491_hkg02/political_discourse_mining_hiyam/Train_Word_Embedidng/fasttext/data/nahar/1983.txt;/scratch/7613491_hkg02/political_discourse_mining_hiyam/Train_Word_Embedidng/fasttext/data/nahar/1984.txt;/scratch/7613491_hkg02/political_discourse_mining_hiyam/Train_Word_Embedidng/fasttext/data/nahar/1985.txt;/scratch/7613491_hkg02/political_discourse_mining_hiyam/Train_Word_Embedidng/fasttext/data/nahar/1986.txt
 
-python get_embeddings_after_domain_adaptation.py --bert_model $bert_model --path_to_model $path_to_model --path_to_datasets $path_to_datasets
+python get_embeddings_after_domain_adaptation.py --bert_model $bert_model --path_to_model $path_to_model
