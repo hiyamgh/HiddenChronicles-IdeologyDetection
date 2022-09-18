@@ -8,7 +8,7 @@
 #
 
 import pickle
-with open('embeddings/nahar-1982-1986.pickle.pickle', 'rb') as handle:
+with open('embeddings/nahar-1982-1986.pickle', 'rb') as handle:
     b = pickle.load(handle)
 print()
 
