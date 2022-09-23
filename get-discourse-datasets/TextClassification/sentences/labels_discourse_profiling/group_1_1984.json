@@ -7,14 +7,14 @@
         "sentence_40": "استتكاراالصباح تجمع عشرات النسوهوالاطفال والشبان والشابات امامالنصب التذكاري المقبرهالجماعيه\n",
         "keywords": "مجزره,صبرا,شاتيلا",
         "year": "1984",
-        "label": "Loaded_Language"
+        "label": "Distant_Historical"
     },
     "1": {
         "sentence_0": "وحراسق البلاديجب ان تستمر يجوز انمسلم سلاحء عمليهانتزاع السلاحالاجتياج فجريمه",
         "sentence_10": "تغتفر فهيادت الي مجزره صبرا وشاتيلاانسشاب القوه المتعددهالنجاسات\n",
         "keywords": "مجزره,صبرا,شاتيلا",
         "year": "1984",
-        "label": "Loaded_Language"
+        "label": "Distant_Evaluation"
     },
     "2": {
         "sentence_0": "ااالفيديراليه نيويورك دعويوزير الدفاع الاسرائيني السابقارييل شارون المجله لتحميلهااياه مسؤوليه",
@@ -24,7 +24,7 @@
         "sentence_40": "المسؤوليهالمباشره ساحدد ان الوزير شارونشاهد العلامات\n",
         "keywords": "مجزره,صبرا,شاتيلا",
         "year": "1984",
-        "label": "Black-and-White_Fallacy;Loaded_Language;Whataboutism,Straw_Men,Red_Herring"
+        "label": "Distant_Evaluation"
     },
     "3": {
         "sentence_0": "لتنو لله مسخصه الاتقماه تعلفه لمصمتقكعامضم اتهمته بالتعريض مجزره صبرا",
@@ -35,6 +35,6 @@
         "sentence_50": "رعقسامه اه بثزنه قو نافغنالنه\n",
         "keywords": "مجزره,صبرا,شاتيلا",
         "year": "1984",
-        "label": "Whataboutism,Straw_Men,Red_Herring;Loaded_Language"
+        "label": "Distant_Evaluation"
     }
 }

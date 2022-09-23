@@ -29,7 +29,7 @@
         "sentence_30": "المقاومه انالسعوديه والكويت مستعدتين لحضور اجتماع لجنهالمتابعه يكن مجديا\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1982",
-        "label": "Appeal_to_fear-prejudice"
+        "label": "Cause_General"
     },
     "3": {
         "sentence_0": "ارضا وشعباء ويحقق التلاضماللبناني الفلسطيني ويكفل حمايهالثوره الفلسطينيه وتعزيز دورهاالنضالي",
@@ -39,7 +39,7 @@
         "sentence_40": "للصمودمواجهه العدوان الاسرائيليساناء وقاءكونا\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1982",
-        "label": "Flag-Waving;Loaded_Language;"
+        "label": "Distant_Expectations_Consequences"
     },
     "4": {
         "sentence_0": "عدم الاتسحاب اللجنوب الا التاكد وصولرئيس للجمهوريه شي لبنان مستعد",
@@ -50,6 +50,6 @@
         "sentence_50": "وهي تهديداتستنفذها الوقت المناسباميل خوريحاجاتهاالخاصبه\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1982",
-        "label": "Flag-Waving;Loaded_Language;Black-and-White_Fallacy"
+        "label": "Cause_General"
     }
 }

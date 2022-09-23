@@ -6,14 +6,14 @@
         "sentence_30": "والثورهالفلسطينيه والمقاومه الوطنيه\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Loaded_Language;Flag-Waving"
+        "label": "Distant_Expectations_Consequences"
     },
     "1": {
         "sentence_0": "لقد اثبتنا وسنظل نتبتهفتحيه لجنوب لبنان وللمقاومه الوطنيهاللبناتيه ونحن معكم",
         "sentence_10": "الطريق حتيوتحيه ايها الاخوه الارضالفلسطينيه المحقله\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Flag-Waving;Exaggeration,Minimisation"
+        "label": "Distant_Evaluation"
     },
     "2": {
         "sentence_0": "ولوحظ ان الزوارق الحربيه الاسرائيليهبذكري اطلافهصور النهارحفله خطابيهمخيم البصض حضرهاجمهور",
@@ -23,7 +23,7 @@
         "sentence_40": "الحفله وزع اتحادالمراه مساعدات وهدايا ابناءرجال المقاومه الفلسطيتيه\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Flag-Waving"
+        "label": "Distant_Evaluation"
     },
     "3": {
         "sentence_0": "القضيهومع تحقيق اماني الشعبوقد اي اعتداء لكنئا ايضاتقبل بان يعتدي",
@@ -33,7 +33,7 @@
         "sentence_40": "وتحريرالارض اللبنائيه والفلسطينيه\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Flag-Waving"
+        "label": "Distant_Expectations_Consequences"
     },
     "4": {
         "sentence_0": "وهذا واضحتحركات ياسر عرفات وتصريحاتهكشف بوضوح تورطه مخططضرب وحده الصف",
@@ -42,7 +42,7 @@
         "sentence_30": "اللبنانيه ظهرها طريقمحاوله ضرب الصف الوطني والاسلاميالداعم\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Doubt;Whataboutism,Straw_Men,Red_Herring"
+        "label": "Distant_Evaluation"
     },
     "5": {
         "sentence_0": "وهنا بد التركيز وقائعحصنت قبل الاجتياح ومنها اناسرائيل حالت انتشارالجيش",
@@ -51,7 +51,7 @@
         "sentence_30": "قوات الردع العربيه مسؤوليهضبط الاوضاع ومكنت المنظماتالفلسطينيه الاستمرار مالالاضطراب\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Whataboutism,Straw_Men,Red_Herring"
+        "label": "Cause_General"
     },
     "6": {
         "sentence_0": "النضال وكانهم وحدهم حياه العروبهيحملون السلم بالعرض وكانييامنوا درسا وعيرهالضربات",
@@ -62,7 +62,7 @@
         "sentence_50": "قضيتنا البحقهالقضيه الفلسطينيه وبطولات المقاومهالوطنيه الجنوب\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Loaded_Language;Flag-Waving"
+        "label": "Distant_Evaluation"
     },
     "7": {
         "sentence_0": "السلاح البسيط يمكنيشارك امل الجنوبواللبنانيون فدسب العربلذلك ذكر خطابه بالمصريينوالسوريين",
@@ -70,7 +70,7 @@
         "sentence_20": "لناناتهموا دمشق بان امداقهاكانت القضاء المقاومهالفلسطينيه لبنان\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Flag-Waving"
+        "label": "Distant_Evaluation"
     },
     "8": {
         "sentence_0": "والا فكيف يوافقصاحب التصريح منظمه التحريرالفلسطينيه الاعتذار العلنيلاسرائيل بيان اصدرته",
@@ -81,27 +81,27 @@
         "sentence_50": "عاجزه تحوير الذالوطني وججته السليمه\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Whataboutism,Straw_Men,Red_Herring;Causal_Oversimplification"
+        "label": "Distant_Evaluation"
     },
     "9": {
         "sentence_0": "واشاد بدور المقاومهالوطنيه اللبنانيه المتلاحمهالمقاومه الفلسطينيه لدحر الاحتلالالاسرائيلي ارض الجنوب\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Flag-Waving;Exaggeration,Minimisation"
+        "label": "Distant_Evaluation"
     },
     "10": {
         "sentence_0": "لقد كانت التجربه خاضهالبنان حركه المقاومه الفلسطينيهقبل خصوصا الجنوبوبيروت تجربه",
         "sentence_10": "قاسيه عاش الشعبالفوضي اكثر صعيدءالفوضي السياسيه والامنيه والحزبيهالقضايا المعاشه\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Loaded_Language"
+        "label": "Distant_Evaluation"
     },
     "11": {
         "sentence_0": "وانتقد غياب المسؤوليه القوميهمشاريع الاجماع العربي والتيكانت متفرجه ضرب المقاومهالفلسطينيه",
         "sentence_10": "واللبنانيه الجنوبابان الاحتلال\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Whataboutism,Straw_Men,Red_Herring"
+        "label": "Distant_Evaluation"
     },
     "12": {
         "sentence_0": "وضمانقيامه بدوره الوطني والقومي المعاديللصميونيه وللامبرياليهواكدت اخوه الكفاح والسلاحبيننا وبينكم",
@@ -110,7 +110,7 @@
         "sentence_30": "ضد الاحتلال وفيمعارك التصدي للاحتلال وللعملاءالجنوب والجبل والضاحيه وبيروت وكلالجبهات\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Flag-Waving;Exaggeration,Minimisation"
+        "label": "Distant_Evaluation"
     },
     "13": {
         "sentence_0": "منظمه العمل الوب ممارسه مخارضهللقوي السائده المناطلق الوطنيهرات منظمه العمل",
@@ -121,7 +121,7 @@
         "sentence_50": "يشكلبرنامج نضال وطني متكامل\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Flag-Waving"
+        "label": "Distant_Expectations_Consequences"
     },
     "14": {
         "sentence_0": "وشدد وجوب فهم استراتيجيهاسرائيل للمنطقه والعالمء والمشاكلالاقليميه صنعتها اسرائيلءمعتبرا ان",
@@ -130,7 +130,7 @@
         "sentence_30": "لانها اسقطت نظريه جيشلبنان الجنوبي\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Causal_Oversimplification;Flag-Waving"
+        "label": "Distant_Evaluation"
     },
     "15": {
         "sentence_0": "وجريالتاكيد ضروره تكتيف اللقاءاتلتجثير الثلاحم المصيري للقويالوطنيه اللبنانيه والفلسطينبهقاعده المشاركه",
@@ -138,14 +138,14 @@
         "sentence_20": "وتصعيدنهمج الكفاح المسلح الاراضيالفلسطينيه المحتله بعيدا\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Flag-Waving;Loaded_Language"
+        "label": "Distant_Expectations_Consequences"
     },
     "16": {
         "sentence_0": "الجنوب المعلمون المتعاقدون مصيرهمالنهارالعربي والدوليتصفيه المقاومه الفلسطينيه لبنانوضمان امن اسرائيل",
         "sentence_10": "وجه ايههجمات فلسطينيه لبنان\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Loaded_Language"
+        "label": "Distant_Expectations_Consequences"
     },
     "17": {
         "sentence_0": "انجاحمخطط حرب المخيمات سيؤدي اليانشاء الاحزمه وشل شبه نهائيللمقاومه الشامله",
@@ -155,7 +155,7 @@
         "sentence_40": "اللبنانيين تكون وراللمساومه الصراع الدولي والاقليميتسويه القضيه الفلسطيئيهلمصلحه الاسرائيليين\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Whataboutism,Straw_Men,Red_Herring;Flag-Waving"
+        "label": "Distant_Evaluation"
     },
     "18": {
         "sentence_0": "ولان اميركاوراء النوع النجاح ولاناسرائيل واسطته فان ردودالفعل الطبيعيه اللبنانيهوالفلسطينيه",
@@ -164,7 +164,7 @@
         "sentence_30": "ان تكون جانب واحد\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Black-and-White_Fallacy"
+        "label": "Distant_Evaluation"
     },
     "19": {
         "sentence_0": "اطلاق يينوقرابه الثالثه والنصف الظهرءاحضرت قياده الجبجه الشعبيهلتجرير فلسطين منطقه",
@@ -174,19 +174,19 @@
         "sentence_40": "استقبال المسكريينالمحتجزين تائب الامين العام للتنظيم\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Flag-Waving"
+        "label": "Main"
     },
     "20": {
         "sentence_0": "اذيرينون القضاء القضيهالفلسطينيه والمقاومه البطلهجنوب لبنانء ويذرفون عليكم بعيددموع التماسيح\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Exaggeration,Minimisation"
+        "label": "Distant_Evaluation"
     },
     "21": {
         "sentence_0": "فالمطلوب توحيد صفالمقاومه اللبنانيه المقاومهالفلسطينيه اجل تحرير الجنوبوفلسطين\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Black-and-White_Fallacy"
+        "label": "Distant_Expectations_Consequences"
     },
     "22": {
         "sentence_0": "لان لبنان حاله حربدائمه احدي عشره شته فحسب وهذا الاسبوعاسبوع",
@@ -198,7 +198,7 @@
         "sentence_60": "زمن كانتالحرب الصغيره قصائلها اخذه مجراها\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Name_Calling,Labeling;Repetition"
+        "label": "Distant_Evaluation"
     },
     "23": {
         "sentence_0": "وقال ان الثوره الفلسطينيهبظياده جبمه الاتقاذ الوطنيالفلسطيني وانتي ظهرت صفوفهاالمنتحرفين",
@@ -208,7 +208,7 @@
         "sentence_40": "ولقمه العيشضوليتر البنزين\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Flag-Waving;Exaggeration,Minimisation"
+        "label": "Distant_Expectations_Consequences"
     },
     "24": {
         "sentence_0": "فمضت تتلجي بالاختلاف حينا وبتبادل القصف العشوائي احيانا انمااقتصاد القذائف",
@@ -218,7 +218,7 @@
         "sentence_40": "الهموم السوريهالي\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Exaggeration,Minimisation;Whataboutism,Straw_Men,Red_Herring"
+        "label": "Distant_Evaluation"
     },
     "25": {
         "sentence_0": "يخدمالمقاومه والتحريران اقدام حركه امل الجنوبوعلي ارضيه تريعه الهدف متها",
@@ -228,7 +228,7 @@
         "sentence_40": "والدهم والاستفزازاتالمستمره\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Doubt;Whataboutism,Straw_Men,Red_Herring;Flag-Waving;Loaded_Language"
+        "label": "Main_Consequence"
     },
     "26": {
         "sentence_0": "واضاف ان موقف الشرعيه واضحعوده للمقاومه الفلسطينيه اليالجنوب وان الدوله",
@@ -236,7 +236,7 @@
         "sentence_20": "اللبنانيه عندما تبسطسيادتها الارض\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Black-and-White_Fallacy;Flag-Waving"
+        "label": "Distant_Expectations_Consequences"
     },
     "27": {
         "sentence_0": "سادسا عدم العوده الي قبلعام ودعم المقاومه الوطئيهاللبنائيه واعتبار الدعم",
@@ -247,7 +247,7 @@
         "sentence_50": "قدسيتها ان تؤثرالقدسيه ايه احداث مخله عابره\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Flag-Waving;Black-and-White_Fallacy;Causal_Oversimplification"
+        "label": "Distant_Expectations_Consequences"
     },
     "28": {
         "sentence_0": "المدنه المعلئه اطرافالنزاع الهوم لبنان الا خرصه سائحهيرتبوا اوضاعهم بالتعاوناسرائيل",
@@ -257,7 +257,7 @@
         "sentence_40": "التسويات الخيائيهالمذله لشعبنا\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Flag-Waving;Loaded_Language"
+        "label": "Distant_Expectations_Consequences"
     },
     "29": {
         "sentence_0": "فالمقاومه الوطنيهاللبنانيه تدعمها سورياتخوض معركه تحرير الجنوب تدافعالجنوب فحسب الامهالعربيه",
@@ -266,7 +266,7 @@
         "sentence_30": "احتلماحزيران\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Exaggeration,Minimisation;Flag-Waving"
+        "label": "Distant_Evaluation"
     },
     "30": {
         "sentence_0": "صيدا اصدرت الجماعهالاسلاميه بيانا ذكرت الحكامالعرب ان تكثيف عمليات المقاومهالاسلاميه",
@@ -274,7 +274,7 @@
         "sentence_20": "ويعجلرحيله\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Flag-Waving;Black-and-White_Fallacy"
+        "label": "Distant_Expectations_Consequences"
     },
     "31": {
         "sentence_0": "واتهمت سمتهمزمرا حركه امل ارتباطبالعدو الصهيوني بائهم فجروا الوضعحول المخيمات",
@@ -284,7 +284,7 @@
         "sentence_40": "الفلسطينيه الوقتتحيي الججود البخلصهتبذلها سوريا الصمود والقوي الوطنيهاللبنانيه لوقف النزف\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Causal_Oversimplification"
+        "label": "Distant_Evaluation"
     },
     "32": {
         "sentence_0": "دامتاسرائيل تحتل ارض الجنوب والارضالمحتله تزال تعنتما فليسرد لاستعاده الارض",
@@ -293,7 +293,7 @@
         "sentence_30": "صيداءالاساس لاستمرار التضالواستعاده الحقوق\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Flag-Waving;Black-and-White_Fallacy"
+        "label": "Distant_Evaluation"
     },
     "33": {
         "sentence_0": "واذا انتهت المواجهه بتغلب ابو عمار لبنان فانهيكون سحب نجائيا",
@@ -304,7 +304,7 @@
         "sentence_50": "الاصوليين\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Black-and-White_Fallacy;Loaded_Language"
+        "label": "Distant_Expectations_Consequences"
     },
     "34": {
         "sentence_0": "لقد ابلغ غولدنغ الي السلطه اللبنانيه ان اسرائيل تريدترتيبات امنيه",
@@ -314,7 +314,7 @@
         "sentence_40": "الجنوب سيستمرون توصلا الي تحرير الاراضيالفلسطينيه والقدس\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Causal_Oversimplification;Loaded_Language;Flag-Waving"
+        "label": "Main_Consequence"
     },
     "35": {
         "sentence_0": "وذلك لاعتبارات عده ابرزهارغبه اسرائيل ضرب الوجود الفلسطيني عاد اليالنمو",
@@ -326,7 +326,7 @@
         "sentence_60": "ضوءا اخضر لضربالارهاب تخليصا العذاب والالم والخطر\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Appeal_to_fear-prejudice;Whataboutism,Straw_Men,Red_Herring"
+        "label": "Distant_Expectations_Consequences"
     },
     "36": {
         "sentence_0": "ووصف جري اليمنالجنوبيه بانه كارثته كبري واكدتضامن الثوره الفلسطينيهالجماهيريهمحل عطوي",
@@ -334,7 +334,7 @@
         "sentence_20": "المقاومهاحد مواقعه بيت ليف بنتجبيل\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Exaggeration,Minimisation;Loaded_Language"
+        "label": "Main_Consequence"
     },
     "37": {
         "sentence_0": "اننا نقدر حق التقدير التضحياتتبذلها الشقيقه سوريا لدعمالقوي الوطنيه والتقدميه",
@@ -345,7 +345,7 @@
         "sentence_50": "الصامده المناضله\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Exaggeration,Minimisation;Repetition;Flag-Waving;Loaded_Language"
+        "label": "Distant_Evaluation"
     },
     "38": {
         "sentence_0": "وتعقد اللجنه اجتماعا قبل ظهراليوم للبحث سبل نشر قوه الفصلستكون",
@@ -357,7 +357,7 @@
         "sentence_60": "الوطنيوالوفاق الوطني لبنان\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Loaded_Language;Doubt"
+        "label": "Main"
     },
     "39": {
         "sentence_0": "وهذانجد ملامحه الساحه حقي الانوسئل للوضع الحاليالجنوب فاجاب انني اخشي",
@@ -367,7 +367,7 @@
         "sentence_40": "لبتانرغم ضربات المقاومه لانما تريد انتنضج الطبخه الاتجاه\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Doubt;Loaded_Language;Whataboutism,Straw_Men,Red_Herring"
+        "label": "Cause_Specific"
     },
     "40": {
         "sentence_0": "ان الواقع الضفهالغربيه وفي جنوب لبنانء الواقعيعبر روح الامه وتطلماتها",
@@ -376,7 +376,7 @@
         "sentence_30": "اسرائيل لبنان جهه\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Exaggeration,Minimisation;Loaded_Language"
+        "label": "Cause_General"
     },
     "41": {
         "sentence_0": "رابعا ان امن الجنوب مسؤوليهحركه امل باعتراف القويقالوطنيه اللبنانيه والفلسطينيهوقبولها",
@@ -385,14 +385,14 @@
         "sentence_30": "المقاومه وابطالها\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Causal_Oversimplification;Loaded_Language"
+        "label": "Distant_Evaluation"
     },
     "42": {
         "sentence_0": "انالمقاومه الفلسطينيه طليعهالمجاهدين لمواجهه اسرائيلالمقاومه انطلقت لتشتغل سياسهالعالم العربي وسياسه",
         "sentence_10": "لبنان الداخليهوحروبه وكانت الشعارات ان طريقفلسطين تمر جوتيه وتارهالجنوب\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Whataboutism,Straw_Men,Red_Herring"
+        "label": "Distant_Evaluation"
     },
     "43": {
         "sentence_0": "يثبت ان الدورالعرفاتي الحالي تصفيه المقاومهالمجاهده الجنوب تصفيه ءالمظاومه الفلسطينيه",
@@ -401,7 +401,7 @@
         "sentence_30": "اللبنانيه\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Exaggeration,Minimisation;Loaded_Language;Flag-Waving"
+        "label": "Cause_General"
     },
     "44": {
         "sentence_0": "خدام حقو قياده المقاومهالفلسطينيه الممثله شرعيا بالنسبهالينا بجبجه الانقاذ والاحزاب",
@@ -409,14 +409,14 @@
         "sentence_20": "الجنوبدامت المساله انتهت بيروت\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Loaded_Language"
+        "label": "Distant_Evaluation"
     },
     "45": {
         "sentence_0": "قما رايكم فاجاب ثريان مكان المقاومه الفلسطينيهوالاسلاميه واللبنانيه ارضالجنوب وداخل",
         "sentence_10": "فلسطين\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Loaded_Language;Flag-Waving"
+        "label": "Distant_Anecdotal"
     },
     "46": {
         "sentence_0": "واضاف المصدرشهدته وتشجده المخيماتالفلسطينيه بيروت عمليهاستباحه دمويه جديده اتتمكت خلالهاعصابات",
@@ -425,14 +425,14 @@
         "sentence_30": "وانهاءالوجود الفلسطيني لبنان وضربمنظمه التحرير\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Loaded_Language;Exaggeration,Minimisation;Causal_Oversimplification"
+        "label": "Distant_Anecdotal"
     },
     "47": {
         "sentence_0": "واشاد بتعاون المقاومه اللبنانيهوالفلسطينيه جنوبنا العظيم ءوقال ان التعاون كبر",
         "sentence_10": "ردحدث الفتره الاخيره احداثمؤسفه حول المخيمات الفلسطينيهالجنوب\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Exaggeration,Minimisation;Loaded_Language"
+        "label": "Distant_Evaluation"
     },
     "48": {
         "sentence_0": "وكان للجنوب عشيه الحربالماكه عدد المستشفياتلبنان المائه عدد الاسرهو الماكه",
@@ -442,7 +442,7 @@
         "sentence_40": "وشاركت\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Repetition;Exaggeration,Minimisation"
+        "label": "Main_Consequence"
     },
     "49": {
         "sentence_0": "ان سلسله الاعتداءات تشنشعبنا المقاوم الابي المناطقالمحيطه بالمعسكرات” الفلسطيئيهسواء بيروت",
@@ -453,6 +453,6 @@
         "sentence_50": "القضيهالفلسطينيه زواريب مغدوشهوشاتيلا وبرج البراجنه وايجاد وطنبديل للفلسطينيين لبنان\n",
         "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
         "year": "1986",
-        "label": "Flag-Waving;Doubt;Causal_Oversimplification;Loaded_Language;Black-and-White_Fallacy"
+        "label": "Cause_General"
     }
 }
