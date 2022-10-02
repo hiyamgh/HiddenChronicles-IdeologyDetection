@@ -264,40 +264,18 @@ def main():
     parser = argparse.ArgumentParser()
 
     ## Required parameters
-    # parser.add_argument("--data_dir",
-    #                     default=None,
-    #                     type=str,
-    #                     required=True,
-    #                     help="The input data dir. Should contain the .tsv files (or other data files) for the task.")
-    # parser.add_argument("--bert_model", default="aubmindlab/bert-base-arabertv2", type=str, required=True,
-    #                     help="Bert pre-trained model selected in the list: bert-base-uncased, "
-    #                          "bert-large-uncased, bert-base-cased, bert-large-cased, bert-base-multilingual-uncased, "
-    #                          "bert-base-multilingual-cased, bert-base-chinese.")
-    parser.add_argument("--data_dir",
-                        default=None,
-                        type=str,
-                        help="The input data dir. Should contain the .tsv files (or other data files) for the task.")
+
     parser.add_argument("--bert_model", default="aubmindlab/bert-base-arabertv2", type=str,
                         help="Bert pre-trained model selected in the list: bert-base-uncased, "
                              "bert-large-uncased, bert-base-cased, bert-large-cased, bert-base-multilingual-uncased, "
                              "bert-base-multilingual-cased, bert-base-chinese.")
 
-    # parser.add_argument("--task_name",
-    #                     default=None,
-    #                     type=str,
-    #                     required=True,
-    #                     help="The name of the task to train.")
     #
     parser.add_argument("--task_name",
                         default="classification_arabert",
                         type=str,
                         help="The name of the task to train.")
 
-    # parser.add_argument("--output_dir",
-    #                     default=None,
-    #                     type=str,
-    #                     required=True,
-    #                     help="The output directory where the model predictions and checkpoints will be written.")
     parser.add_argument("--output_dir",
                         default="bert_output/",
                         type=str,
@@ -310,15 +288,10 @@ def main():
                         help="The maximum total input sequence length after WordPiece tokenization. \n"
                              "Sequences longer than this will be truncated, and sequences shorter \n"
                              "than this will be padded.")
-    # parser.add_argument("--do_train",
-    #                     action='store_true',
-    #                     help="Whether to run training.")
+
     parser.add_argument("--do_train",
                         action='store_false',
                         help="Whether to run training.")
-    # parser.add_argument("--do_eval",
-    #                     action='store_true',
-    #                     help="Whether to run eval on the dev set.")
     parser.add_argument("--do_eval",
                         action='store_false',
                         help="Whether to run eval on the dev set.")
@@ -372,20 +345,19 @@ def main():
                              "Positive power of 2: static loss scaling value.\n")
 
     parser.add_argument("--train_set",
-                        # default="input/Discourse_Profiling/df_train_cleaned.xlsx",
-                        default="input/corpus-webis-editorials-16/df_train.xlsx",
+                        default="input/Discourse_Profiling/df_train_cleaned.xlsx",
+                        # default="input/corpus-webis-editorials-16/df_train.xlsx",
                         type=str,
                         help="path to the training dataset.")
 
     parser.add_argument("--dev_set",
-                        # default="input/Discourse_Profiling/df_dev_cleaned.xlsx",
-                        default="input/corpus-webis-editorials-16/df_dev.xlsx",
+                        default="input/Discourse_Profiling/df_dev_cleaned.xlsx",
+                        # default="input/corpus-webis-editorials-16/df_dev.xlsx",
                         type=str,
                         help="path to the training dataset.")
 
     parser.add_argument("--test_set",
-                        # default="input/Discourse_Profiling/df_test_cleaned.xlsx",
-                        default="input/corpus-webis-editorials-16/df_test.xlsx",
+                        default="sentences/labels_discourse_profiling/group_0_1982.json;sentences/labels_discourse_profiling/group_0_1984.json;sentences/labels_discourse_profiling/group_0_1985.json;sentences/labels_discourse_profiling/group_0_1986.json;sentences/labels_discourse_profiling/group_0_1987.json;",
                         type=str,
                         help="path to the testing dataset.")
 
