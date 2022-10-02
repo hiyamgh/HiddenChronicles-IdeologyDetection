@@ -1,6 +1,7 @@
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from googletrans import Translator
+from tqdm import tqdm
 
 df = pd.read_csv('NewsDiscourse_politicaldiscourse.csv')
 df = df[['Sentence', 'Label']]
@@ -22,24 +23,36 @@ translator = Translator()
 # translate the training data
 sentences_en = df_train['Sentence']
 sentences_ar = []
-for sent in sentences_en:
+for i, sent in enumerate(tqdm(sentences_en)):
     sentences_ar.append(translator.translate(sent, src='en', dest='ar').text)
+    if i % 100 == 0:
+        df_train_ar = pd.DataFrame()
+        df_train_ar['Sentence_ar'] = sentences_ar
+        df_train_ar['Label'] = df_train['Label']
+        df_train_ar.to_excel('df_train_ar.xlsx', index=False)
+        print('translated so far {} sentences'.format(i))
 
 df_train_ar = pd.DataFrame()
 df_train_ar['Sentence_ar'] = sentences_ar
 df_train_ar['Label'] = df_train['Label']
-df_train_ar.to_excel('df_train_ar.xlsx')
+df_train_ar.to_excel('df_train_ar.xlsx', index=False)
 
 # translate the validation data
 sentences_en = df_val['Sentence']
 sentences_ar = []
-for sent in sentences_en:
+for i, sent in enumerate(tqdm(sentences_en)):
     sentences_ar.append(translator.translate(sent, src='en', dest='ar').text)
+    if i % 100 == 0:
+        df_val_ar = pd.DataFrame()
+        df_val_ar['Sentence_ar'] = sentences_ar
+        df_val_ar['Label'] = df_val['Label']
+        df_val_ar.to_excel('df_val_ar.xlsx', index=False)
+        print('translated so far {} sentences'.format(i))
 
 df_val_ar = pd.DataFrame()
 df_val_ar['Sentence_ar'] = sentences_ar
 df_val_ar['Label'] = df_val['Label']
-df_val_ar.to_excel('df_val_ar.xlsx')
+df_val_ar.to_excel('df_val_ar.xlsx', index=False)
 
 #
 # print(df_train['Label'].value_counts())
