@@ -76,33 +76,14 @@ class DataProcessor:
         df = df.dropna()
         print('after dropping nans: df.shape: {}'.format(df.shape))
 
-        arabert_prep = ArabertPreprocessor(model_name=self.model_name)
-        if self.labels is None:
-            sentences = []
-            labels = set()
-            for i, row in df.iterrows():
-                sentence = str(row[self.text_col])
-                if sentence.strip().isdigit():
-                    continue
-                # according to https://github.com/aub-mind/arabert#preprocessing
-                # It is recommended to apply our preprocessing function before training/testing on any dataset
-                sentence = arabert_prep.preprocess(sentence)
-                label = row[self.label_col]
+        sentences = []
+        for i, row in df.iterrows():
+            sentence = str(row[self.text_col])
+            if sentence.strip().isdigit():
+                continue
+            label = row[self.label_col]
 
-                labels.add(label)
-                sentences.append([sentence, label])
-
-            self.labels = list(labels)
-        else:
-            sentences = []
-            for i, row in df.iterrows():
-                sentence = str(row[self.text_col])
-                label = row[self.label_col]
-
-                if sentence.strip().isdigit():
-                    continue
-
-                sentences.append([sentence, label])
+            sentences.append([sentence, label])
 
         return sentences
 
@@ -116,22 +97,23 @@ class DataProcessor:
 
     def _create_examples(self, data_tuples, set_type):
         """ Creates examples for the train and test sets """
-        exampels = []
+        examples = []
 
         for i, data_tuple in enumerate(data_tuples):
             guid = "%s-%s" % (set_type, i)
             sentence, label = data_tuple
 
-            exampels.append(self._get_input_example(guid=guid, sentence=sentence, label=label))
+            examples.append(self._get_input_example(guid=guid, sentence=sentence, label=label))
 
-        return exampels
+        return examples
 
     def _get_input_example(self, guid, sentence, label):
         return InputExample(text_a=sentence, label=label, guid=guid)
 
     def get_labels(self):
         """ gets the list of unique labels. Called only after calling _read_dataset()"""
-        return self.labels
+        return ["Distant_Evaluation", "Distant_Expectations_Consequences", "Main_Consequence", "Cause_General", "Cause_Specific", "Main",
+                "Distant_Historical", "Distant_Anecdotal"]
 
 
 def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer):
@@ -271,11 +253,10 @@ def main():
 
     ## Required parameters
 
-    parser.add_argument("--bert_model", default="aubmindlab/bert-base-arabertv2", type=str,
+    parser.add_argument("--bert_model", default="bert-base-uncased", type=str,
                         help="Bert pre-trained model selected in the list: bert-base-uncased, "
                              "bert-large-uncased, bert-base-cased, bert-large-cased, bert-base-multilingual-uncased, "
                              "bert-base-multilingual-cased, bert-base-chinese.")
-
     #
     parser.add_argument("--task_name",
                         default="classification_arabert",
@@ -283,7 +264,7 @@ def main():
                         help="The name of the task to train.")
 
     parser.add_argument("--output_dir",
-                        default="bert_output/",
+                        default="output/discourse_profiling_english_bertft/",
                         type=str,
                         help="The output directory where the model predictions and checkpoints will be written.")
 
@@ -318,7 +299,7 @@ def main():
                         help="The initial learning rate for Adam.")
     parser.add_argument("--num_train_epochs",
                         default=3.0,
-                        # default=2.0,
+                        # default=1.0,
                         type=float,
                         help="Total number of training epochs to perform.")
     parser.add_argument("--warmup_proportion",
@@ -351,21 +332,21 @@ def main():
                              "Positive power of 2: static loss scaling value.\n")
 
     parser.add_argument("--train_set",
-                        default="input/Discourse_Profiling/df_train_ar.xlsx",
+                        default="input/Discourse_Profiling/df_train_en.csv",
                         type=str,
                         help="path to the training dataset.")
 
     parser.add_argument("--dev_set",
-                        default="input/Discourse_Profiling/df_val_ar.xlsx",
+                        default="input/Discourse_Profiling/df_val_en.csv",
                         type=str,
                         help="path to the training dataset.")
 
     parser.add_argument("--test_set",
-                        default="sentences/csv/sentences_ocr_corrected_discourse_profiling_ar.xlsx",
+                        default="sentences/csv/sentences_ocr_corrected_discourse_profiling_en.csv",
                         type=str,
                         help="path to the testing dataset.")
 
-    parser.add_argument("--text_column", default="Sentence_ar", type=str, help="Name of the column that contains text data")
+    parser.add_argument("--text_column", default="Sentence", type=str, help="Name of the column that contains text data")
     parser.add_argument("--label_column", default="Label", type=str, help="Name of the column that contains the labels")
 
     args = parser.parse_args()
@@ -689,6 +670,7 @@ def do_evaluation(processor, args, label_list, tokenizer, model, device, tr_loss
         df_results['predicted'] = pred_labels
         df_results['Sentence'] = sentences
         df_results.to_csv(os.path.join(args.output_dir, 'results.csv'), index=False)
+
 
 if __name__=="__main__":
     main()
