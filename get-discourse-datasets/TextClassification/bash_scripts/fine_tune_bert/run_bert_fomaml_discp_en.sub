@@ -1,0 +1,37 @@
+#!/bin/bash -l
+
+#SBATCH --job-name=FOdpEN # Job name
+#SBATCH --partition=gpu # Partition
+#SBATCH --nodes=1 # Number of nodes
+#SBATCH --gres=gpu:1 # Number of GPUs
+#SBATCH --ntasks-per-node=1  # Number of tasks
+#SBATCH --output=FOdpEN.%j.out # Stdout (%j=jobId)
+#SBATCH --error=FOdpEN.%j.err # Stderr (%j=jobId)
+#SBATCH --time=18:00:00 # Walltime
+#SBATCH -A p118
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=hkg02@mail.aub.edu
+#SBATCH --array=1-30%2
+
+# Load any necessary modules, in this case OpenMPI with CUDA
+module purge
+module load Python/3.6.8-GCCcore-8.2.0
+module load PyTorch/1.9.1-fosscuda-2020b
+module load SciPy-bundle/2020.11-fosscuda-2020b
+
+
+nvcc --version
+
+echo "----------------------------------"
+
+nvidia-smi
+
+df_train=input/Discourse_Profiling/df_train_en.csv
+df_dev=input/Discourse_Profiling/df_val_en.csv
+df_test=sentences/csv/sentences_ocr_corrected_discourse_profiling_en.csv
+
+shared="--train_set $df_train  --dev_set $df_dev --test_set $df_test --output_dir output/discourse_profiling_FOMAML_FT_EN/$SLURM_ARRAY_TASK_ID/"
+
+echo ${SLURM_ARRAY_TASK_ID}
+echo $(head -n $SLURM_ARRAY_TASK_ID arglist_finetune_bert_fomaml_dp_en.txt | tail -n 1)
+python run_bert_fomaml_DiscourseProfilingEN.py $(head -n $SLURM_ARRAY_TASK_ID arglist_finetune_bert_fomaml_dp_en.txt | tail -n 1) $shared
