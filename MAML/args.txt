@@ -1,0 +1,10 @@
+--meta_learn_iter 100 --n 4 --inner_train_steps 8 --per_gpu_train_batch_size 8
+--meta_learn_iter 300 --n 4 --inner_train_steps 8 --per_gpu_train_batch_size 8
+--meta_learn_iter 500 --n 4 --inner_train_steps 8 --per_gpu_train_batch_size 8
+--meta_learn_iter 700 --n 4 --inner_train_steps 8 --per_gpu_train_batch_size 8
+--meta_learn_iter 1000 --n 4 --inner_train_steps 8 --per_gpu_train_batch_size 8
+--meta_learn_iter 100 --n 4 --inner_train_steps 3 --per_gpu_train_batch_size 8
+--meta_learn_iter 300 --n 4 --inner_train_steps 3 --per_gpu_train_batch_size 8
+--meta_learn_iter 500 --n 4 --inner_train_steps 3 --per_gpu_train_batch_size 8
+--meta_learn_iter 700 --n 4 --inner_train_steps 3 --per_gpu_train_batch_size 8
+--meta_learn_iter 1000 --n 4 --inner_train_steps 3 --per_gpu_train_batch_size 8

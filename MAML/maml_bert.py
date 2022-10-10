@@ -38,7 +38,8 @@ import itertools
 from utils_nlp import processors as processors
 from utils_nlp import output_modes as output_modes
 from utils_nlp import convert_examples_to_features
-
+from sklearn.metrics import *
+import pandas as pd
 
 def findsubsets(s, n):
     return list(itertools.combinations(s, n))
@@ -230,6 +231,102 @@ def maml(args, model, dataset, tokenizer, suffix=None):
     # Good practice: save your training arguments together with the trained model
     torch.save(args, os.path.join(args.output_dir_meta, 'training_args.bin'))
 
+    return model
+
+def get_results(labels, preds):
+    accuracy = accuracy_score(y_true=labels, y_pred=preds)
+    f1 = f1_score(y_true=labels, y_pred=preds, average="macro")
+    precision = precision_score(y_true=labels, y_pred=preds, average="macro")
+    recall = recall_score(y_true=labels, y_pred=preds, average="macro")
+    return {
+        "acc": accuracy,
+        "precision": precision,
+        "recall": recall,
+        "f1": f1,
+        "acc_and_f1": (accuracy + f1) / 2,
+    }
+
+
+def evaluate_task(args, model, eval_dataset, label_list, early=False, prefix=""):
+    eval_task =  args.task_name
+    # eval_output_dir = os.path.join(args.eval_task_dir,args.model_name_or_path,prefix)
+    eval_output_dir = args.eval_task_dir
+    results = {}
+
+    if not os.path.exists(eval_output_dir) and args.local_rank in [-1, 0]:
+        os.makedirs(eval_output_dir)
+
+    args.eval_batch_size = args.per_gpu_eval_batch_size * max(1, args.n_gpu)
+    # Note that DistributedSampler samples randomly
+    # @todo: take english:
+    eval_sampler = SequentialSampler(eval_dataset) if args.local_rank == -1 else DistributedSampler(eval_dataset)
+    eval_dataloader = DataLoader(eval_dataset, sampler=eval_sampler, batch_size=args.eval_batch_size)
+
+    # Eval!
+    logger.info("***** Running evaluation {} *****".format(prefix))
+    logger.info("  Num examples = %d", len(eval_dataset))
+    logger.info("  Batch size = %d", args.eval_batch_size)
+    eval_loss = 0.0
+    nb_eval_steps = 0
+    preds = None
+    out_label_ids = None
+    for batch in tqdm(eval_dataloader, desc="Evaluating"):
+        model.eval()
+        batch = tuple(t.to(args.device) for t in batch)
+        with torch.no_grad():
+            inputs = {'input_ids': batch[0],
+                      'attention_mask': batch[1],
+                      'labels': batch[3]}
+            if args.model_type != 'distilbert':
+                inputs['token_type_ids'] = batch[2] if args.model_type in ['bert', 'xlnet'] else None  # XLM, DistilBERT and RoBERTa don't use segment_ids
+            outputs = model(**inputs)
+            tmp_eval_loss, logits = outputs[:2]
+
+            eval_loss += tmp_eval_loss.mean().item()
+        nb_eval_steps += 1
+        if preds is None:
+            preds = logits.detach().cpu().numpy()
+            out_label_ids = inputs['labels'].detach().cpu().numpy()
+        else:
+            preds = np.append(preds, logits.detach().cpu().numpy(), axis=0)
+            out_label_ids = np.append(out_label_ids, inputs['labels'].detach().cpu().numpy(), axis=0)
+
+    eval_loss = eval_loss / nb_eval_steps
+    if args.output_mode == "classification":
+        preds = np.argmax(preds, axis=1)
+    elif args.output_mode == "regression":
+        preds = np.squeeze(preds)
+
+    # result = compute_metrics(eval_task, preds, out_label_ids)
+    # results.update(result)
+
+    result = get_results(labels=out_label_ids, preds=preds)
+    result['eval_loss'] = eval_loss
+    report = classification_report(out_label_ids, preds, target_names=label_list)
+    confusion = confusion_matrix(out_label_ids, preds)
+
+    for k in result:
+        print('{}: {}'.format(k, result[k]))
+    print(report)
+    print(confusion)
+
+    print('saving results to {} ....'.format(os.path.join(eval_output_dir, 'test_actual_predicted.csv')))
+    label_map = {i: label for i, label in enumerate(label_list)}
+    df = pd.DataFrame()
+    df['actual'] = [label_map[idx] for idx in out_label_ids]
+    df['predicted'] = [label_map[idx] for idx in preds]
+    df.to_csv(os.path.join(eval_output_dir, 'test_actual_predicted.csv'), index=False)
+    print('Done saving results')
+
+    if not early:
+        #output_eval_file = os.path.join(eval_output_dir, "eval_results.txt")
+        #with open(output_eval_file, "w") as writer:
+        logger.info("***** Eval results {} *****".format(prefix))
+        for key in sorted(result.keys()):
+            logger.info("  %s = %s", key, str(result[key]))
+                #writer.write("%s = %s\n" % (key, str(result[key])))
+    return results
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -352,7 +449,7 @@ def main():
     parser.add_argument("--early_stopping",
                         action='store_true')
 
-    parser.add_argument('--meta_learn_iter', default=3, type=int,
+    parser.add_argument('--meta_learn_iter', default=2, type=int,
                         help='Number of iteration to perform on meta-learning')
 
     parser.add_argument('--n', default=2, type=int, help='Support samples per class for few-shot tasks')
@@ -460,7 +557,22 @@ def main():
                                                     max_seq_length=args.max_seq_length, tokenizer=tokenizer,
                                                     output_mode="classification")
     # examples, label_list, max_seq_length, tokenizer, output_mode
-    maml(args=args, model=model, dataset=training_dataset, tokenizer=tokenizer, suffix=None)
+    model = maml(args=args, model=model, dataset=training_dataset, tokenizer=tokenizer, suffix=None)
+
+    # Evaluation
+    testing_features = convert_examples_to_features(examples=test_examples, label_list=label_list,
+                                                   max_seq_length=args.max_seq_length, tokenizer=tokenizer,
+                                                   output_mode="classification")
+
+    all_input_ids = torch.tensor([f.input_ids for f in testing_features], dtype=torch.long)
+    all_attention_mask = torch.tensor([f.input_mask for f in testing_features], dtype=torch.long)
+    all_token_type_ids = torch.tensor([f.segment_ids for f in testing_features], dtype=torch.long)
+    all_labels = torch.tensor([f.label for f in testing_features], dtype=torch.long)
+
+    testing_dataset = TensorDataset(all_input_ids, all_attention_mask, all_token_type_ids, all_labels)
+
+    evaluate_task(args, model, testing_dataset, label_list=label_list, prefix="")
+
 
 
 if __name__ == "__main__":
