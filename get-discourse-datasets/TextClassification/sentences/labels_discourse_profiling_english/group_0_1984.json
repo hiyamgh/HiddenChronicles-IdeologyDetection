@@ -1,0 +1,51 @@
+{
+    "0": {
+        "sentence_0": "In the western Beirut, he said when the Palestinian resistance",
+        "sentence_10": "started with active practices, and with the abuses, we stopped",
+        "sentence_20": "the oppressed, and now we refuse, such as abuses and",
+        "sentence_30": "reject the return of the Palestinian resistance that was before",
+        "sentence_40": "the Israeli invasion of Lebanon and praised the southern resistance",
+        "sentence_50": "of the Israeli occupation, indicating that the southern resistance is",
+        "sentence_60": "Islamic to save the scholars.",
+        "num_old": "0",
+        "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
+        "year": "1984",
+        "label_old": "Distant_Expectations_Consequences",
+        "label_new": ""
+    },
+    "1": {
+        "sentence_0": "And they know, you mentioned, France can play the role",
+        "sentence_10": "of the mediator because this issue is meaning and that",
+        "sentence_20": "it can be a solution to be a mediator and",
+        "sentence_30": "the opinion of the Lebanese army and in those who",
+        "sentence_40": "support its positions learn that the army is based on",
+        "sentence_50": "its correct theory and its good belief to change their",
+        "sentence_60": "organization and since it exists, we depend on the army",
+        "sentence_70": "of the southern suburb and the mountain and learnThus, it",
+        "sentence_80": "is well related to the positions of people and their",
+        "sentence_90": "support for this army.",
+        "num_old": "1",
+        "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
+        "year": "1984",
+        "label_old": "Distant_Evaluation",
+        "label_new": ""
+    },
+    "2": {
+        "sentence_0": "We refuse that the political solution is clear.",
+        "num_old": "1",
+        "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
+        "year": "1984",
+        "label_old": "Distant_Evaluation",
+        "label_new": ""
+    },
+    "3": {
+        "sentence_0": "The most important bold and violent strikes are directed by",
+        "sentence_10": "the Lebanese resistance fighters and the Palestinian revolutionary fighters to",
+        "sentence_20": "the enemy soldiers in southern Lebanon.",
+        "num_old": "2",
+        "keywords": "مقاومه,فلسطينيه,جنوب,لبنان",
+        "year": "1984",
+        "label_old": "Distant_Evaluation",
+        "label_new": ""
+    }
+}

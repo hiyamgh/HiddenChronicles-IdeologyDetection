@@ -1,0 +1,23 @@
+{
+    "0": {
+        "sentence_0": "And that Gartral Amusiarun stated that an Israeli military source",
+        "sentence_10": "said that General Yamoush Sagi, head of military intelligence, Turkis,",
+        "sentence_20": "in implementation of the pioneers of the Cahan Committee, the",
+        "sentence_30": "investigation took place",
+        "num_old": "0",
+        "keywords": "مجزره,صبرا,شاتيلا",
+        "year": "1983",
+        "label_old": "Cause_General",
+        "label_new": ""
+    },
+    "1": {
+        "sentence_0": "She added that the meeting dealt with the Lebanese and",
+        "sentence_10": "Palestinian developments, and the status of this mountain for another",
+        "sentence_20": "side.",
+        "num_old": "1",
+        "keywords": "مجزره,صبرا,شاتيلا",
+        "year": "1983",
+        "label_old": "Cause_General",
+        "label_new": ""
+    }
+}
