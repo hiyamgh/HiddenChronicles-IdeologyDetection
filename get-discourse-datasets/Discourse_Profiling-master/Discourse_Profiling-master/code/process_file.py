@@ -24,7 +24,7 @@ class Document(object):
 def process_doc(fname, domain):
 
     # Process text document
-    f = open(fname, 'r')
+    f = open(fname, 'r', encoding='utf-8')
     # print(fname)
     doc = Document(fname, domain)
     lead_para = False

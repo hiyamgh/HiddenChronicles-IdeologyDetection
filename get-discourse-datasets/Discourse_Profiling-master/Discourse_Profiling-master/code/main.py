@@ -1,91 +1,7 @@
 import os
 from process_file import process_doc
-import random
-import torch
-torch.backends.cudnn.deterministic = True
-torch.backends.cudnn.benchmark = False
-import numpy as np
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
-from sklearn.metrics import precision_recall_fscore_support
-from sklearn.metrics import classification_report, confusion_matrix
-from full_model import Classifier
-import torch.nn as nn
-import torch.optim as optim
-import time
 
-
-def get_batch(doc, ref_type='headline'):
-    sent, ls, out, sids = [], [], [], []
-    sent.append(doc.headline)
-    ls.append(len(doc.headline))
-    for sid in doc.sentences:
-        if SPEECH:
-            out.append(out_map[doc.sent_to_speech.get(sid, 'NA')])
-        else:
-            out.append(out_map[doc.sent_to_event.get(sid)])
-        sent.append(doc.sentences[sid])
-        ls.append(len(doc.sentences[sid]))
-        sids.append(sid)
-    ls = torch.LongTensor(ls)
-    out = torch.LongTensor(out)
-    return sent, ls, out, sids
-
-
-def train(epoch, data):
-    start_time = time.time()
-    total_loss = 0
-    global prev_best_macro
-
-    for ind, doc in enumerate(data):
-        model.train()
-        optimizer.zero_grad()
-        sent, ls, out, _ = get_batch(doc)
-        if has_cuda:
-            ls = ls.cuda()
-            out = out.cuda()
-
-        _output, _, _, _ = model.forward(sent, ls)
-        loss = criterion(_output, out)
-        total_loss += loss.item()
-        loss.backward()
-        optimizer.step()
-        del sent, ls, out
-        if has_cuda:
-            torch.cuda.empty_cache()
-
-    print("--Training--\nEpoch: ", epoch, "Loss: ", total_loss, "Time Elapsed: ", time.time()-start_time)
-    perf = evaluate(validate_data)
-    # print(perf)
-    if prev_best_macro < perf:
-        prev_best_macro = perf
-        print ("-------------------Test start-----------------------")
-        _ = evaluate(test_data, True)
-        print ("-------------------Test end-----------------------")
-        torch.save(model.state_dict(), 'discourse_lstm_model.pt')
-
-
-def evaluate(data, is_test=False):
-    y_true, y_pred = [], []
-    model.eval()
-    for doc in data:
-        sent, ls, out, sids = get_batch(doc)
-        if has_cuda:
-            ls = ls.cuda()
-            #out = out.cuda()
-
-        _output, _, _, _ = model.forward(sent, ls)
-        _output = _output.squeeze()
-        _, predict = torch.max(_output, 1)
-        y_pred += list(predict.cpu().numpy() if has_cuda else predict.numpy())
-        temp_true = list(out.numpy())
-        y_true += temp_true
-
-    print("MACRO: ", precision_recall_fscore_support(y_true, y_pred, average='macro'))
-    print("MICRO: ", precision_recall_fscore_support(y_true, y_pred, average='micro'))
-    if is_test:
-        print("Classification Report \n", classification_report(y_true, y_pred))
-    print("Confusion Matrix \n", confusion_matrix(y_true, y_pred))
-    return precision_recall_fscore_support(y_true, y_pred, average='macro')[2]
 
 
 if __name__ == '__main__':
@@ -98,7 +14,6 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    has_cuda = torch.cuda.is_available()
 
     SPEECH = 0
     if SPEECH:
@@ -136,36 +51,49 @@ if __name__ == '__main__':
             validate_data.append(doc)
     print(len(train_data), len(validate_data), len(test_data))
 
-    seed = args.seed
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    if has_cuda:
-        torch.cuda.manual_seed(seed)
-    random.seed(seed)
-    np.random.seed(seed)
+    sum = 0
+    import pandas as pd
 
-    prev_best_macro = 0.
+    # save the training data
+    sentences, labels = [], []
+    for doc in train_data:
+        for sent_id, sent in doc.sentences.items():
+            sent_txt = ' '.join(sent)
+            label = doc.sent_to_event[sent_id]
+            sentences.append(sent_txt)
+            labels.append(label)
+    df = pd.DataFrame()
+    df['Sentence'] = sentences
+    df['Label'] = labels
+    df.to_csv('df_train.csv', index=False)
+    sum += len(df)
 
-    model = Classifier({'num_layers': 1, 'hidden_dim': 512, 'bidirectional': True, 'embedding_dim': 1024,
-                        'dropout': 0.5, 'out_dim': len(out_map)})
+    # save the validation data
+    sentences, labels = [], []
+    for doc in validate_data:
+        for sent_id, sent in doc.sentences.items():
+            sent_txt = ' '.join(sent)
+            label = doc.sent_to_event[sent_id]
+            sentences.append(sent_txt)
+            labels.append(label)
+    df = pd.DataFrame()
+    df['Sentence'] = sentences
+    df['Label'] = labels
+    df.to_csv('df_validation.csv', index=False)
+    sum += len(df)
 
-    if has_cuda:
-        model = model.cuda()
-    model.init_weights()
+    # save the testing data
+    sentences, labels = [], []
+    for doc in test_data:
+        for sent_id, sent in doc.sentences.items():
+            sent_txt = ' '.join(sent)
+            label = doc.sent_to_event[sent_id]
+            sentences.append(sent_txt)
+            labels.append(label)
+    df = pd.DataFrame()
+    df['Sentence'] = sentences
+    df['Label'] = labels
+    df.to_csv('df_test.csv', index=False)
+    sum += len(df)
 
-    criterion = nn.CrossEntropyLoss()
-
-    print("Model Created")
-
-    params = filter(lambda p: p.requires_grad, model.parameters())
-    optimizer = optim.Adam(params, lr=5e-5, betas=[0.9, 0.999], eps=1e-8, weight_decay=0)
-
-    try:
-        for epoch in range(15):
-            print("---------------------------Started Training Epoch = {0}--------------------------".format(epoch+1))
-            train(epoch, train_data)
-
-    except KeyboardInterrupt:
-        print ("----------------- INTERRUPTED -----------------")
-        evaluate(validate_data)
-        evaluate(test_data)
+    print(sum)
