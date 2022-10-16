@@ -42,6 +42,7 @@ from utils_xmaml import id2dataset
 
 from sklearn.metrics import *
 import pandas as pd
+from tqdm import tqdm
 
 def findsubsets(s, n):
     return list(itertools.combinations(s, n))
@@ -118,8 +119,9 @@ def x_maml_with_aux_langs(args, model, lang_datasets, tokenizer, suffix=None):
 
     set_seed(args)  # Added here for reproductibility (even between python 2 and 3)
 
-    for mt_itr in range(1, args.meta_learn_iter + 1):  # outer loop learning
+    for mt_itr in tqdm(range(1, args.meta_learn_iter + 1)):  # outer loop learning
         inner_opt = torch.optim.SGD(model.parameters(), lr=args.inner_lr)
+        losses = []
         for lang_id, dataset in lang_datasets.items():
             args.train_batch_size = args.per_gpu_train_batch_size * max(1, args.n_gpu)
             #task_train_samples, task_val_samples = torch.utils.data.random_split(dataset,[2000, len(dataset)-2000])
@@ -134,48 +136,51 @@ def x_maml_with_aux_langs(args, model, lang_datasets, tokenizer, suffix=None):
                     continue
             #batch=next(iter(task_dataloader))
                 with higher.innerloop_ctx(model, inner_opt, copy_initial_weights=False) as (fast_model, diffopt):
-                    fast_model.train()
-                    #print("-------------")
-                    set_seed(args)  # Added here for reproductibility (even between python 2 and 3)
-                    batch = tuple(t.to(args.device) for t in batch)
-                    # batch_valid=tuple(t.to(args.device) for t in next(iter(task_valid_dataloader)))
-                    n_meta_lr = int((args.train_batch_size)/2)
-                    input_fast_train = {'input_ids': batch[0][:n_meta_lr],
-                                        'attention_mask': batch[1][:n_meta_lr],
-                                        'labels': batch[3][:n_meta_lr]}
-                    # input_fast_train = {'input_ids': batch[0],
-                    #                     'attention_mask': batch[1],
-                    #                     'labels': batch[3]}
+                    for itr in range(args.inner_train_steps):
+                        fast_model.train()
+                        #print("-------------")
+                        set_seed(args)  # Added here for reproductibility (even between python 2 and 3)
+                        batch = tuple(t.to(args.device) for t in batch)
+                        # batch_valid=tuple(t.to(args.device) for t in next(iter(task_valid_dataloader)))
+                        n_meta_lr = int((args.train_batch_size)/2)
+                        input_fast_train = {'input_ids': batch[0][:n_meta_lr],
+                                            'attention_mask': batch[1][:n_meta_lr],
+                                            'labels': batch[3][:n_meta_lr]}
+                        # input_fast_train = {'input_ids': batch[0],
+                        #                     'attention_mask': batch[1],
+                        #                     'labels': batch[3]}
 
+                        if args.model_type != 'distilbert':
+                            input_fast_train['token_type_ids'] = batch[2][:n_meta_lr] if args.model_type in ['bert',
+                                                                                                             'xlnet'] else None  # XLM, DistilBERT and RoBERTa don't use segment_ids
+
+                        outputs = fast_model(**input_fast_train)
+                        loss = outputs[0]  # model outputs are always tuple in transformers (see doc)
+
+                        if args.n_gpu > 1:
+                            loss = loss.mean()  # mean() to average on multi-gpu parallel training
+                        if args.gradient_accumulation_steps > 1:
+                            loss = loss / args.gradient_accumulation_steps
+
+                        if args.fp16:
+                            with amp.scale_loss(loss, optimizer) as scaled_loss:
+                                diffopt.step(scaled_loss)
+                        else:
+                            diffopt.step(loss)
+
+
+                    input_fast_valid={'input_ids': batch[0][n_meta_lr:],
+                                            'attention_mask': batch[1][n_meta_lr:],
+                                            'labels': batch[3][n_meta_lr:]}
                     if args.model_type != 'distilbert':
-                        input_fast_train['token_type_ids'] = batch[2][:n_meta_lr] if args.model_type in ['bert',
-                                                                                                         'xlnet'] else None  # XLM, DistilBERT and RoBERTa don't use segment_ids
+                        input_fast_valid['token_type_ids'] = batch[2][n_meta_lr:] if args.model_type in ['bert',
+                                                                                             'xlnet'] else None  # XLM, DistilBERT and RoBERTa don't use segment_ids
+                    outputs = fast_model(**input_fast_valid)
+                    qry_loss = outputs[0]  # model outputs are always tuple in transformers (see doc)
+                    qry_loss.backward()
+                    losses.append(qry_loss.item())
 
-                    outputs = fast_model(**input_fast_train)
-                    loss = outputs[0]  # model outputs are always tuple in transformers (see doc)
-
-                    if args.n_gpu > 1:
-                        loss = loss.mean()  # mean() to average on multi-gpu parallel training
-                    if args.gradient_accumulation_steps > 1:
-                        loss = loss / args.gradient_accumulation_steps
-
-                    if args.fp16:
-                        with amp.scale_loss(loss, optimizer) as scaled_loss:
-                            diffopt.step(scaled_loss)
-                    else:
-                        diffopt.step(loss)
-
-
-                input_fast_valid={'input_ids': batch[0][n_meta_lr:],
-                                        'attention_mask': batch[1][n_meta_lr:],
-                                        'labels': batch[3][n_meta_lr:]}
-                if args.model_type != 'distilbert':
-                    input_fast_valid['token_type_ids'] = batch[2][n_meta_lr:] if args.model_type in ['bert',
-                                                                                         'xlnet'] else None  # XLM, DistilBERT and RoBERTa don't use segment_ids
-                outputs = fast_model(**input_fast_valid)
-                qry_loss = outputs[0]  # model outputs are always tuple in transformers (see doc)
-                qry_loss.backward()
-
+        print('average loss: {}'.format(np.mean(losses)))
         optimizer.step()
         model.zero_grad()
         logger.info("meta-learning it %s", mt_itr)
@@ -408,6 +413,8 @@ def main():
     parser.add_argument("--dev_datasets_ids", type=str, default="1,3")
     parser.add_argument("--dev_dataset_finetune", type=str, default="1")
     parser.add_argument("--test_dataset_eval", type=str, default="2")
+    parser.add_argument("--label_col", type=str, default="")
+    parser.add_argument("--labels", type=str, default="")
 
     parser.add_argument("--model_type", default='BERT', type=str,
                         help="Model type selected in the list: ")
@@ -579,7 +586,11 @@ def main():
     args.task_name = args.task_name.lower()
     if args.task_name not in processors:
         raise ValueError("Task not found: %s" % (args.task_name))
-    processor = processors[args.task_name]()
+    label_col = args.label_col
+    if label_col != "":
+        processor = processors[args.task_name](label_col=label_col, labels=args.labels)
+    else:
+        processor = processors[args.task_name]()
     args.output_mode = output_modes[args.task_name]
     label_list = processor.get_labels()
     num_labels = len(label_list)
@@ -637,14 +648,19 @@ def main():
 
     logger.info("Running XMAML ...")
     # examples, label_list, max_seq_length, tokenizer, output_mode
-    model = x_maml_with_aux_langs(args=args, model=model, lang_datasets=domains_to_maml, tokenizer=tokenizer, suffix=None)
+    x_maml_with_aux_langs(args=args, model=model, lang_datasets=domains_to_maml, tokenizer=tokenizer, suffix=None)
 
     logger.info("Fine Tuning ...")
     # Fine tuning
-    _, _, model = fine_tune_task(args, model=model, train_dataset=dev_dataset_finetune, tokenizer=tokenizer)
+    model = BertForSequenceClassification.from_pretrained(args.output_dir_meta, num_labels=num_labels)
+    model = model.to(args.device)
+
+    fine_tune_task(args, model=model, train_dataset=dev_dataset_finetune, tokenizer=tokenizer)
 
     logger.info("Evaluating ...")
-    # Evaluation
+    # # Evaluation
+    # model = BertForSequenceClassification.from_pretrained(args.output_dir_meta, num_labels=num_labels)
+    # model = model.to(args.device)
     evaluate_task(args, model=model, eval_dataset=test_dataset_eval, label_list=label_list, prefix="")
 
 

@@ -95,9 +95,10 @@ class InputFeatures(object):
 
 class DiscourseProcessor:
 
-    def __init__(self):
-        self.text_col = "Sentence"
-        self.label_col = "Label"
+    def __init__(self, text_col=None, label_col=None, labels=None):
+        self.text_col = "Sentence" if text_col is None else text_col
+        self.label_col = "Label" if label_col is None else label_col
+        self.labels = labels
         self.train_examples, self.dev_examples, self.test_examples = [], [], []
 
     def _read_dataset(self, df_path):
@@ -151,8 +152,13 @@ class DiscourseProcessor:
         return InputExample(guid=guid, text_a=sentence, label=label)
 
     def get_labels(self):
-        return ["Distant_Evaluation", "Distant_Expectations_Consequences", "Main_Consequence", "Cause_General", "Cause_Specific", "Main",
-                "Distant_Historical", "Distant_Anecdotal"]
+        if self.labels is None:
+            return ["Distant_Evaluation", "Distant_Expectations_Consequences", "Main_Consequence", "Cause_General", "Cause_Specific", "Main",
+                    "Distant_Historical", "Distant_Anecdotal"]
+        else:
+            labels = self.labels.split(",")
+            labels = [l.strip() for l in labels if l.strip() != ""]
+            return labels
 
     def load_all_data(self, df_train_path, df_dev_path, df_test_path):
         self.train_examples = self.get_train_examples(df_path=df_train_path)
@@ -279,10 +285,6 @@ def _truncate_seq_pair(tokens_a, tokens_b, max_length):
             tokens_b.pop()
 
 
-tasks_num_labels = {
-    "dp": 8,
-}
-
 processors = {
     "dp": DiscourseProcessor,
 }
@@ -291,13 +293,19 @@ output_modes = {
     "dp": "classification",
 }
 
+# id2dataset = {
+#     "1": "input/sentences_ocr_corrected_discourse_profiling_en_dev.csv",
+#     "2": "input/sentences_ocr_corrected_discourse_profiling_en_test.csv",
+#     "3": "input/df_en.csv",
+#     "4": "input/sentences_ocr_corrected_discourse_profiling_ar_dev.xlsx",
+#     "5": "input/sentences_ocr_corrected_discourse_profiling_ar_test.xlsx",
+#     "6": "input/df_ar.xlsx",
+# }
+
 id2dataset = {
-    "1": "input/sentences_ocr_corrected_discourse_profiling_en_dev.csv",
-    "2": "input/sentences_ocr_corrected_discourse_profiling_en_test.csv",
-    "3": "input/df_en.csv",
-    "4": "input/sentences_ocr_corrected_discourse_profiling_ar_dev.xlsx",
-    "5": "input/sentences_ocr_corrected_discourse_profiling_ar_test.xlsx",
-    "6": "input/df_ar.xlsx",
+    "1": "input/sentences_train8.csv",
+    "2": "input/sentences_test8.csv",
+    "3": "input/df_train.csv",
+    "4": "input/sentences_train3.csv",
+    "5": "input/sentences_test3.csv",
 }
-
-
