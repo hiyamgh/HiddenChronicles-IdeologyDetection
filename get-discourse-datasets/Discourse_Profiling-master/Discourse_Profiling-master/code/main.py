@@ -54,45 +54,66 @@ if __name__ == '__main__':
     sum = 0
     import pandas as pd
 
+    labels2gen = {
+        'Main': 'main_contents',
+        'Main_Consequence': 'main_contents',
+        'Cause_Specific': 'context_informing_contents',
+        'Cause_General': 'context_informing_contents',
+        'Distant_Historical': 'additional_supportive_contents',
+        'Distant_Anecdotal': 'additional_supportive_contents',
+        'Distant_Evaluation': 'additional_supportive_contents',
+        'Distant_Expectations_Consequences': 'additional_supportive_contents',
+    }
+
     # save the training data
-    sentences, labels = [], []
+    sentences, labels, labels_general = [], [], []
     for doc in train_data:
         for sent_id, sent in doc.sentences.items():
             sent_txt = ' '.join(sent)
             label = doc.sent_to_event[sent_id]
-            sentences.append(sent_txt)
-            labels.append(label)
+            if label != 'NA':
+                sentences.append(sent_txt)
+                labels.append(label)
+                labels_general.append(labels2gen[label])
+
     df = pd.DataFrame()
     df['Sentence'] = sentences
     df['Label'] = labels
+    df['Label_general'] = labels_general
     df.to_csv('df_train.csv', index=False)
     sum += len(df)
 
     # save the validation data
-    sentences, labels = [], []
+    sentences, labels, labels_general = [], [], []
     for doc in validate_data:
         for sent_id, sent in doc.sentences.items():
             sent_txt = ' '.join(sent)
             label = doc.sent_to_event[sent_id]
-            sentences.append(sent_txt)
-            labels.append(label)
+            if label != 'NA':
+                sentences.append(sent_txt)
+                labels.append(label)
+                labels_general.append(labels2gen[label])
     df = pd.DataFrame()
     df['Sentence'] = sentences
     df['Label'] = labels
+    df['Label_general'] = labels_general
     df.to_csv('df_validation.csv', index=False)
     sum += len(df)
 
     # save the testing data
-    sentences, labels = [], []
+    sentences, labels, labels_general = [], [], []
     for doc in test_data:
         for sent_id, sent in doc.sentences.items():
             sent_txt = ' '.join(sent)
             label = doc.sent_to_event[sent_id]
-            sentences.append(sent_txt)
-            labels.append(label)
+            if label != 'NA':
+                sentences.append(sent_txt)
+                labels.append(label)
+                labels_general.append(labels2gen[label])
     df = pd.DataFrame()
     df['Sentence'] = sentences
     df['Label'] = labels
+    df['Label_general'] = labels_general
     df.to_csv('df_test.csv', index=False)
     sum += len(df)
 
