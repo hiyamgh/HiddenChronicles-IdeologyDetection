@@ -21,6 +21,35 @@ import json
 # check out google scholar: https://scholar.google.com/scholar?hl=en&as_sdt=0%2C5&q=fine+tune+bert+domain+adaptation+mlm&btnG=
 
 
+# Bachir Gemayel Assassinated in <<1982-1987>>
+# https://en.wikipedia.org/wiki/Bachir_Gemayel#Assassination
+# بشير,جميل,اغتيال
+
+# The American Embassy in Beirut is attacked by a suicide bomb: <<1983->1987>>
+# https://en.wikipedia.org/wiki/1983_United_States_embassy_bombing_in_Beirut
+# تفجير,السفاره,الامريكيه,بيروت
+
+# War of Liberation against Syrians
+# https://en.wikipedia.org/wiki/War_of_Liberation_(1989%E2%80%931990) <<1989-1990->1993>>
+# حرب,تحرير,جنرال,عون
+
+# Oslo agreements <<1993-1996 1993->1996>>
+# https://en.wikipedia.org/wiki/Oslo_Accords#:~:text=The%20Oslo%20Accords%20are%20a,Taba%2C%20Egypt%2C%20in%201995.
+# اتفاقيات,أوسلو,اسرائيل,منظمه,تحرير,فلسطينيه
+
+# September 11 attacks <<2001-2003>>
+# https://en.wikipedia.org/wiki/September_11_attacks
+# هجمات,11,(سبتمبر,ايلول),قاعده
+
+# Hariri Assassination <<2005-2006>>
+# https://en.wikipedia.org/wiki/Assassination_of_Rafic_Hariri
+# اغتيال,رفيق,الحريري
+
+# 2006 Lebanon Israel War <<2006-2008>>
+# https://en.wikipedia.org/wiki/2006_Lebanon_War
+# حرب,تموز,اسرائيل
+
+
 def samples2json(keywords, years, sentences):
     samples = {}
     for i, line in enumerate(sentences):
@@ -45,25 +74,34 @@ if __name__ == '__main__':
     parser.add_argument("--save_dir", default="sentences/", type=str, help="directory to save the output files in")
     args = parser.parse_args()
 
-    groups = ['مقاومه,فلسطينيه,جنوب,لبنان', 'مجزره,صبرا,شاتيلا', 'تفجير,السفاره,الامريكيه,بيروت']
-    group_names = ['group_{}'.format(i) for i in range(len(groups))]
+    groups = [
+        # ['Mukawama', 'مقاومه,فلسطينيه,جنوب,لبنان', (1982, 1987)],
+        # ['Sabra_Shatila',  'مجزره,صبرا,شاتيلا', (1982, 1987)],
+        ['US_Embassy_Bombing',  'تفجير,سفاره,اميركيه,بيروت', (1983, 1987)],
+        ['War_of_Liberation', 'حرب,تحرير', (1989, 1993)],
+        ['Oslo_Accords', 'أوسلو,اسرائيل', (1993, 1996)],
+        ['September_11_attacks', 'هجمات,ايلول,قاعده', (2001, 2003)],
+        ['Rafik_Hariri_Assassination',  'اغتيال,رفيق,الحريري', (2005, 2006)],
+        ['Lebanon_Israel_War_2006', 'حرب,تموز,اسرائيل', (2006, 2008)]
+    ]
+
     directory = '/scratch/7613491_hkg02/political_discourse_mining_hiyam/Train_Word_Embedidng/fasttext/data/{}/'.format(args.archive)
     # directory = 'C:/Users/96171/Downloads/'
-    files = ['1982.txt', '1983.txt', '1984.txt', '1985.txt', '1986.txt', '1987.txt']
-    save_dir = 'sentences/{}/'.format(args.archive)
-
     print('processing sentences from {} archive ...\n'.format(args.archive))
 
     for i, group in enumerate(groups):
-        for file_name in files:
+        group_name, words_grouped, years_range = group[0], group[1], group[2]
+        save_dir = 'sentences/{}_{}/'.format(args.archive, group_name)
+        years = [y for y in range(years_range[0], years_range[1] + 1)]
+        for y in years:
+            file_name = '{}.txt'.format(y)
             if os.path.isfile(os.path.join(directory, file_name)):
-                df = pd.DataFrame(columns=['keywords', 'year', 'sentence'])
                 with open(os.path.join(directory, file_name), 'r', encoding='utf-8-sig') as f:
                     lines = f.readlines()
                 f.close()
                 print('file: {}, lines: {}'.format(file_name, len(lines)))
                 keywords, years, sentences = [], [], []
-                words = group.split(',')
+                words = words_grouped.split(',')
                 for line in lines:
                     tokens = line.split(' ')
                     match = True
@@ -74,8 +112,8 @@ if __name__ == '__main__':
                             match = False
                             break
                     if match:
-                        keywords.append(group)
-                        years.append(file_name[:-4])
+                        keywords.append(words_grouped)
+                        years.append(y)
                         sentences.append(line)
 
                 print('file: {}, group: {}'.format(file_name, group))
@@ -103,7 +141,7 @@ if __name__ == '__main__':
                 samples = samples2json(keywords=rand_keywords, years=rand_years, sentences=rand_sentences)
                 if not os.path.exists(save_dir):
                     os.makedirs(save_dir)
-                with open(os.path.join(save_dir, '{}_{}.json'.format(group_names[i], file_name[:-4])), 'w', encoding='utf-8') as fp:
+                with open(os.path.join(save_dir, '{}_{}.json'.format(group_name, y)), 'w', encoding='utf-8') as fp:
                     json.dump(samples, fp, indent=4, ensure_ascii=False)
 
                 print('---------------------------------------')
