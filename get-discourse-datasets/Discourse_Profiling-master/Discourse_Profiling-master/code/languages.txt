@@ -1,0 +1,15 @@
+--lang ar
+--lang fa
+--lang he
+--lang ur
+--lang es
+--lang fr
+--lang de
+--lang el
+--lang bg
+--lang ru
+--lang tr
+--lang vi
+--lang th
+--lang hi
+--lang sw
