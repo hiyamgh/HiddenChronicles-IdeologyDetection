@@ -9,9 +9,8 @@ import torch.optim as optim
 from copy import deepcopy
 import gc
 from transformers import AutoModel, AutoModelForSequenceClassification, AutoConfig
-from transformers import AdapterConfig, AdapterType
-from pytorch_metric_learning.losses import TripletMarginLoss
-from pytorch_metric_learning.distances import CosineSimilarity
+# from transformers import AdapterConfig, AdapterType
+from torch.nn import TripletMarginWithDistanceLoss, CosineSimilarity
 import contextlib
 
 
@@ -51,19 +50,21 @@ class MAMLFewShotClassifier(FewShotClassifier):
 
         self.use_adapter = args.use_adapter
 
-        if self.use_adapter:
-            adapter_config = AdapterConfig.load(
-                "houlsby", reduction_factor=5, original_ln_after=False
-            )
-            config.adapter_down_sample_size = int(
-                config.hidden_size / adapter_config.reduction_factor
-            )
-            # add a new adapter with the loaded config
-            model_initialization.add_adapter(
-                META_ADAPTER_NAME, AdapterType.text_task, config=adapter_config
-            )
-            # freeze all weights except for the adapter weights
-            model_initialization.train_adapter([META_ADAPTER_NAME])
+        self.device = device # Hiyam
+
+        # if self.use_adapter:
+        #     adapter_config = AdapterConfig.load(
+        #         "houlsby", reduction_factor=5, original_ln_after=False
+        #     )
+        #     config.adapter_down_sample_size = int(
+        #         config.hidden_size / adapter_config.reduction_factor
+        #     )
+        #     # add a new adapter with the loaded config
+        #     model_initialization.add_adapter(
+        #         META_ADAPTER_NAME, AdapterType.text_task, config=adapter_config
+        #     )
+        #     # freeze all weights except for the adapter weights
+        #     model_initialization.train_adapter([META_ADAPTER_NAME])
 
         slow_model = MetaAdapterBERT if self.use_adapter else MetaBERT
 
@@ -109,12 +110,12 @@ class MAMLFewShotClassifier(FewShotClassifier):
 
         # Task weights
         self.use_uncertainty_task_weighting = args.use_uncertainty_task_weighting
-        self.log_task_stds = nn.ParameterDict(
-            {
-                k: nn.Parameter(torch.zeros(1, device=self.device))
-                for k in os.listdir(os.path.join(args.dataset_path, "train"))
-            }
-        )
+        # self.log_task_stds = nn.ParameterDict(
+        #     {
+        #         k: nn.Parameter(torch.zeros(1, device=self.device))
+        #         for k in os.listdir(os.path.join(args.dataset_path, "train"))
+        #     }
+        # )
 
         # Scale loss to nr of classes
         self.scale_losses = args.scale_losses
@@ -128,8 +129,8 @@ class MAMLFewShotClassifier(FewShotClassifier):
         # Initialize loss
         self.use_cosine_distance = args.use_cosine_distance
         dist_fn = CosineSimilarity() if self.use_cosine_distance else None
-        self.triplet_loss_new = TripletMarginLoss(
-            margin=self.triplet_loss_margin, distance=dist_fn
+        self.triplet_loss_new = TripletMarginWithDistanceLoss(
+            margin=self.triplet_loss_margin, distance_function=dist_fn
         )
         # Consistency loss
         self.consistency_training = self.args.use_consistency_loss
@@ -155,10 +156,10 @@ class MAMLFewShotClassifier(FewShotClassifier):
 
         self.optimizer = Ranger(
             [
-                {
-                    "params": self.log_task_stds.parameters(),
-                    "lr": args.meta_learning_rate,
-                },
+                # {
+                #     "params": self.log_task_stds.parameters(),
+                #     "lr": args.meta_learning_rate,
+                # },
                 {"params": self.classifier.parameters(), "lr": args.meta_learning_rate},
                 {
                     "params": self.inner_loop_optimizer.parameters(),
@@ -166,11 +167,18 @@ class MAMLFewShotClassifier(FewShotClassifier):
                 },
             ],
             lr=args.meta_learning_rate,
-            num_epochs=args.total_epochs,
-            num_batches_per_epoch=args.total_iter_per_epoch,
+            # num_epochs=args.total_epochs,
+            # num_batches_per_epoch=args.total_iter_per_epoch,
             weight_decay=0,
-            warmdown_min_lr=args.min_learning_rate,
+            # warmdown_min_lr=args.min_learning_rate,
         )
+
+        self.scheduler = optim.lr_scheduler.CosineAnnealingLR( # Hiyam
+            optimizer=self.optimizer,
+            T_max=self.args.total_epochs * self.args.total_iter_per_epoch,
+            eta_min=self.args.min_learning_rate,
+        )
+
 
         self.inner_loop_optimizer.to(self.device)
 
@@ -698,8 +706,9 @@ class MAMLFewShotClassifier(FewShotClassifier):
             context_manager = (
                 torch.no_grad()
                 if (self.consistency_training and task_id % 2 == 0)
-                else contextlib.nullcontext()
+                else contextlib.suppress()
             )
+            # https://stackoverflow.com/questions/45187286/how-do-i-write-a-null-no-op-contextmanager-in-python
 
             with context_manager:
                 res = self.net_forward(
@@ -733,11 +742,11 @@ class MAMLFewShotClassifier(FewShotClassifier):
 
             # Log and compute grads
             target_loss = target_losses[TOTAL_LOSS_KEY]
-            if self.use_uncertainty_task_weighting:
-                log_task_std = self.log_task_stds[teacher_name]
-                target_loss = (
-                    1 / torch.exp(-1 * log_task_std) ** 2
-                ) * target_loss + log_task_std
+            # if self.use_uncertainty_task_weighting:
+            #     log_task_std = self.log_task_stds[teacher_name]
+            #     target_loss = (
+            #         1 / torch.exp(-1 * log_task_std) ** 2
+            #     ) * target_loss + log_task_std
 
             target_loss = target_loss / meta_batch_size
             accuracy = np.mean(is_correct)
@@ -757,11 +766,15 @@ class MAMLFewShotClassifier(FewShotClassifier):
                         target_losses[k].detach().cpu().item() / meta_batch_size
                     )
                 else:
-                    losses[k] += target_losses[k] / meta_batch_size
+                    if k in losses:
+                        losses[k] += target_losses[k] / meta_batch_size
+                    else: # Hiyam's addition
+                        losses[k] = target_losses[k] / meta_batch_size
 
             task_lang_logs.append(task_lang_log)
 
-            torch.cuda.synchronize()
+            if torch.cuda.is_available(): # Hiyam
+                torch.cuda.synchronize()
 
         losses["accuracy"] = np.mean(task_accuracies)
         if training_phase:
@@ -879,14 +892,17 @@ class MAMLFewShotClassifier(FewShotClassifier):
         # Set back
         self.inner_loop_optimizer.requires_grad_(True)
 
+        avg_loss_avg = None
         avg_loss = {}
         for k in losses[0].keys():
             avg_loss[k] = np.mean([loss[k] for loss in losses])
+            avg_loss_avg = avg_loss[k]
 
         accuracy = np.mean(is_correct_preds)
         print("Accuracy", accuracy)
-        if avg_loss < best_loss:
-            best_loss = avg_loss
+
+        if avg_loss_avg < best_loss:
+            best_loss = avg_loss_avg
             print("New best finetuned model with loss {:.05f}".format(best_loss))
             torch.save(
                 names_weights_copy,

@@ -490,7 +490,10 @@ class FewShotClassifier(nn.Module):
 
         self.optimizer.step()
 
-        losses["learning_rate"] = self.optimizer.current_lr
+        self.scheduler.step(epoch=epoch * self.args.total_iter_per_epoch) # Hiyam
+        losses["learning_rate"] = self.scheduler.get_lr()[0]
+        # losses["learning_rate"] = self.optimizer.current_lr
+
         self.optimizer.zero_grad()
         self.zero_grad()
 

@@ -42,7 +42,7 @@ class ExperimentBuilder(object):
         self.num_epoch_no_improvements = 0
         self.patience = args.patience
         self.num_start_epochs = args.num_start_epochs
-        self.max_models_to_save = self.args.max_models_to_save
+        # self.max_models_to_save = self.args.max_models_to_save
         self.create_summary_csv = False
 
         self.writer = SummaryWriter("runs/{}".format(self.args.experiment_name))
@@ -80,9 +80,12 @@ class ExperimentBuilder(object):
 
         self.data = data(args=args, current_iter=self.state["current_iter"])
 
-        self.idx_to_class_name = self.data.dataset.load_from_json(
-            self.data.dataset.index_to_label_name_dict_file
-        )
+        # self.idx_to_class_name = self.data.dataset.load_from_json(
+        #     self.data.dataset.index_to_label_name_dict_file
+        # )
+
+        self.idx_to_class_name = self.data.dataset.index_to_label_name_dict_file
+
 
         print(
             "train_seed {}, val_seed: {}, at start time".format(
@@ -179,19 +182,21 @@ class ExperimentBuilder(object):
         """
 
         # # Convert selected_classes to their pretrained directories
-        if self.args.sets_are_pre_split:
-            teacher_names, langs = zip(
-                *[t.split("_") for t in train_sample[SELECTED_CLASS_KEY]]
-            )
-        else:
-            teacher_names, langs = zip(
-                *[
-                    self.idx_to_class_name[selected_class].split("_")
-                    for selected_class in train_sample[SELECTED_CLASS_KEY]
-                ]
-            )
+        # if self.args.sets_are_pre_split:
+        #     teacher_names, langs = zip(
+        #         *[t.split("_") for t in train_sample[SELECTED_CLASS_KEY]]
+        #     )
+        # else:
+        #     teacher_names, langs = zip(
+        #         *[
+        #             self.idx_to_class_name[selected_class].split("_")
+        #             for selected_class in train_sample[SELECTED_CLASS_KEY]
+        #         ]
+        #     )
+        #
+        # train_sample[SELECTED_CLASS_KEY] = teacher_names
 
-        train_sample[SELECTED_CLASS_KEY] = teacher_names
+        langs = train_sample[SELECTED_CLASS_KEY]
 
         losses, task_lang_log = self.model.run_train_iter(
             data_batch=train_sample, epoch=epoch_idx

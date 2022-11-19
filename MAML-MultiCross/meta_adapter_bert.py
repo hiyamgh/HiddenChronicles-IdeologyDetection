@@ -7,7 +7,7 @@ import os
 from transformers import WEIGHTS_NAME, AutoModel
 
 from meta_neural_network_architectures import *
-from transformers import AdapterConfig, AdapterType
+# from transformers import AdapterConfig, AdapterType
 
 
 META_ADAPTER_NAME = "adapter"
@@ -330,96 +330,96 @@ def distil_state_dict_to_bert(k):
     return k
 
 
-if __name__ == "__main__":
-
-    is_distil = False
-    is_xlm = True
-    bert = AutoModel.from_pretrained("xlm-roberta-base")
-    # load "pfeiffer" config from Hub, but replace the reduction factor
-    adapter_config = AdapterConfig.load(
-        "houlsby", reduction_factor=12, original_ln_after=False
-    )
-    # add a new adapter with the loaded config
-    bert.add_adapter(META_ADAPTER_NAME, AdapterType.text_task, config=adapter_config)
-    bert.eval()
-    t = bert.state_dict()
-    config = bert.config
-    config.adapter_down_sample_size = int(
-        config.hidden_size / adapter_config.reduction_factor
-    )
-    classifier = MetaAdapterBERT.init_from_pretrained(
-        t,
-        config,
-        num_labels=4,
-        is_distil=is_distil,
-        is_xlm=is_xlm,
-        per_step_layer_norm_weights=True,
-        num_inner_loop_steps=5,
-    )
-    # Fast model
-    fast_model = FunctionalAdapterBert(
-        None, classifier.config, is_distil=is_distil, is_xlm=is_xlm, is_protomaml=False
-    )
-    fast_model.set_fast_weights(classifier.named_parameters())
-    fast_model.eval()
-    classifier.eval()
-    s = classifier.state_dict()
-    # meta_bert.load_state_dict(t)
-
-    # model = BertForSequenceClassification.from_pretrained("bert-base-uncased")
-    # fast_weights = OrderedDict(model.named_parameters())
-    #
-    input_ids = torch.Tensor(
-        [
-            [101, 1303, 1110, 1199, 3087, 1106, 4035, 13775, 102],
-            [101, 178, 1274, 1204, 1176, 1115, 4170, 182, 102],
-        ]
-    ).to(torch.long)
-
-    m_out = classifier(0, input_ids=input_ids, return_hidden_states=True)
-    fast_out = fast_model(num_step=0, input_ids=input_ids, is_train=False)
-    m_functional_out = classifier(
-        0,
-        input_ids=input_ids,
-        return_hidden_states=True,
-        params=classifier.get_inner_loop_params(),
-    )
-    b_out = bert(input_ids)
-
-    print(classifier)
-    for (n1, p1), (n2, p2) in zip(
-        classifier.named_parameters(), bert.named_parameters()
-    ):
-        if p1.data.ne(p2.data).sum() > 0:
-            print(n1, n2, "False")
-            print(p1.shape, p2.shape)
-
-    # assert (m_out[1].ne(b_out[0])).sum() == 0, "Output not consistent between MetaBert and Bert"
-    # assert (b_out[0].ne(fast_out[1])).sum() == 0, "Output not consistent between FunctionalBert and Bert"
-
-    assert (
-        m_functional_out[0].ne(m_out[0])
-    ).sum() == 0, "Output not consistent between FunctionalBert and MetaBert"
-    assert (
-        fast_out[0].ne(m_out[0])
-    ).sum() == 0, "Output not consistent between FunctionalBert and MetaBert"
-    assert (
-        fast_out[1].ne(m_out[1])
-    ).sum() == 0, "Output not consistent between FunctionalBert and MetaBert"
-    # token_type_ids = torch.Tensor(
-    #     [[0, 0, 0, 0, 0, 1, 1, 1, 1], [0, 0, 0, 0, 0, 1, 1, 1, 1]]
-    # ).to(torch.long)
-    # attention_mask = torch.Tensor(
-    #     [[1, 1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1, 1]]
-    # ).to(torch.long)
-    #
-    # print(
-    #     functional_bert(
-    #         fast_weights,
-    #         model.config,
-    #         input_ids=input_ids,
-    #         attention_mask=attention_mask,
-    #         token_type_ids=token_type_ids,
-    #         is_train=True,
-    #     )
-    # )
+# if __name__ == "__main__":
+#
+#     is_distil = False
+#     is_xlm = True
+#     bert = AutoModel.from_pretrained("xlm-roberta-base")
+#     # load "pfeiffer" config from Hub, but replace the reduction factor
+#     adapter_config = AdapterConfig.load(
+#         "houlsby", reduction_factor=12, original_ln_after=False
+#     )
+#     # add a new adapter with the loaded config
+#     bert.add_adapter(META_ADAPTER_NAME, AdapterType.text_task, config=adapter_config)
+#     bert.eval()
+#     t = bert.state_dict()
+#     config = bert.config
+#     config.adapter_down_sample_size = int(
+#         config.hidden_size / adapter_config.reduction_factor
+#     )
+#     classifier = MetaAdapterBERT.init_from_pretrained(
+#         t,
+#         config,
+#         num_labels=4,
+#         is_distil=is_distil,
+#         is_xlm=is_xlm,
+#         per_step_layer_norm_weights=True,
+#         num_inner_loop_steps=5,
+#     )
+#     # Fast model
+#     fast_model = FunctionalAdapterBert(
+#         None, classifier.config, is_distil=is_distil, is_xlm=is_xlm, is_protomaml=False
+#     )
+#     fast_model.set_fast_weights(classifier.named_parameters())
+#     fast_model.eval()
+#     classifier.eval()
+#     s = classifier.state_dict()
+#     # meta_bert.load_state_dict(t)
+#
+#     # model = BertForSequenceClassification.from_pretrained("bert-base-uncased")
+#     # fast_weights = OrderedDict(model.named_parameters())
+#     #
+#     input_ids = torch.Tensor(
+#         [
+#             [101, 1303, 1110, 1199, 3087, 1106, 4035, 13775, 102],
+#             [101, 178, 1274, 1204, 1176, 1115, 4170, 182, 102],
+#         ]
+#     ).to(torch.long)
+#
+#     m_out = classifier(0, input_ids=input_ids, return_hidden_states=True)
+#     fast_out = fast_model(num_step=0, input_ids=input_ids, is_train=False)
+#     m_functional_out = classifier(
+#         0,
+#         input_ids=input_ids,
+#         return_hidden_states=True,
+#         params=classifier.get_inner_loop_params(),
+#     )
+#     b_out = bert(input_ids)
+#
+#     print(classifier)
+#     for (n1, p1), (n2, p2) in zip(
+#         classifier.named_parameters(), bert.named_parameters()
+#     ):
+#         if p1.data.ne(p2.data).sum() > 0:
+#             print(n1, n2, "False")
+#             print(p1.shape, p2.shape)
+#
+#     # assert (m_out[1].ne(b_out[0])).sum() == 0, "Output not consistent between MetaBert and Bert"
+#     # assert (b_out[0].ne(fast_out[1])).sum() == 0, "Output not consistent between FunctionalBert and Bert"
+#
+#     assert (
+#         m_functional_out[0].ne(m_out[0])
+#     ).sum() == 0, "Output not consistent between FunctionalBert and MetaBert"
+#     assert (
+#         fast_out[0].ne(m_out[0])
+#     ).sum() == 0, "Output not consistent between FunctionalBert and MetaBert"
+#     assert (
+#         fast_out[1].ne(m_out[1])
+#     ).sum() == 0, "Output not consistent between FunctionalBert and MetaBert"
+#     # token_type_ids = torch.Tensor(
+#     #     [[0, 0, 0, 0, 0, 1, 1, 1, 1], [0, 0, 0, 0, 0, 1, 1, 1, 1]]
+#     # ).to(torch.long)
+#     # attention_mask = torch.Tensor(
+#     #     [[1, 1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1, 1]]
+#     # ).to(torch.long)
+#     #
+#     # print(
+#     #     functional_bert(
+#     #         fast_weights,
+#     #         model.config,
+#     #         input_ids=input_ids,
+#     #         attention_mask=attention_mask,
+#     #         token_type_ids=token_type_ids,
+#     #         is_train=True,
+#     #     )
+#     # )

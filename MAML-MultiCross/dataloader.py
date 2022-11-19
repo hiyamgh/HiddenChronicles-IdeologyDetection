@@ -17,6 +17,8 @@ from transformers import AutoTokenizer
 from utils.torch_utils import stack_and_pad_tensors
 import glob
 from collections import defaultdict
+import pandas as pd
+from utils.parser_utils import id2dataset_multi, id2dataset_lang, class2id, id2class
 
 SUPPORT_SET_SAMPLES_KEY = "support_set_samples"
 SUPPORT_SET_LENS_KEY = "support_set_lens"
@@ -31,6 +33,12 @@ CLASS_NAMES_ENCODING_KEY = "class_names_encoding"
 CLASS_NAMES_LENS_KEY = "class_names_len"
 TRAIN_DATALOADER_KEY = "train_dataloader"
 DEV_DATALOADER_KEY = "dev_dataloader"
+
+
+class Sample:
+    def __init__(self, sentence, teacher_encoding):
+        self.sentence = sentence
+        self.teacher_encoding = teacher_encoding
 
 
 class DistilDataLoader(DataLoader):
@@ -152,7 +160,7 @@ class DistilDataLoader(DataLoader):
             ),
         }
 
-        self.label_set = self.get_label_set()
+        # self.label_set = self.get_label_set()
         self.data_length = {
             name: np.sum([len(self.datasets[name][key]) for key in self.datasets[name]])
             for name in self.datasets.keys()
@@ -205,79 +213,40 @@ class DistilDataLoader(DataLoader):
         :return: Three sets, the training set, validation set and test sets (referred to as the meta-train,
         meta-val and meta-test in the paper)
         """
-        rng = np.random.RandomState(seed=self.seed["val"])
 
-        if self.args.sets_are_pre_split:
-            (
-                data_sample_paths,
-                index_to_label_name_dict_file,
-                label_to_index,
-            ) = self.load_datapaths()
-            dataset_splits = dict()
-            for key, value in data_sample_paths.items():
-                key = self.get_label_from_index(index=key)
-                bits = key.split("/")
-                set_name = bits[0]
-                class_label = bits[1]
-                if set_name not in dataset_splits:
-                    dataset_splits[set_name] = {class_label: value}
+        train_datasets_ids = self.args.train_datasets_ids.strip().split(",")
+        dev_dataset_ids = self.args.dev_dataset_id.strip().split(",")
+        test_dataset_ids = self.args.test_dataset_id.strip().split(",")
+
+        self.index_to_label_name_dict_file = id2class
+        self.label_name_to_map_dict_file = class2id
+
+        splits_ids = {
+            'train': train_datasets_ids,
+            'val': dev_dataset_ids,
+            'test': test_dataset_ids
+        }
+        dataset_splits = dict()
+        for dset in splits_ids:
+            dataset_splits[dset] = {}
+            for id in splits_ids[dset]:
+                lang = id2dataset_lang[id] # get language
+                dataset_splits[dset][lang] = {}
+                if '.xlsx' in id2dataset_multi[id]: # read the dataframe of the corresponding language
+                    df = pd.read_excel(id2dataset_multi[id])
                 else:
-                    dataset_splits[set_name][class_label] = value
-            if "test" not in dataset_splits.keys():
-                print(
-                    "No samples in test set are present, continuing with only train and validation set."
-                )
-                dataset_splits["test"] = {}
+                    df = pd.read_csv(id2dataset_multi[id])
 
-        else:
-            (
-                data_sample_paths,
-                index_to_label_name_dict_file,
-                label_to_index,
-            ) = self.load_datapaths()
-            total_label_types = len(data_sample_paths)
-            num_classes_idx = np.arange(len(data_sample_paths.keys()), dtype=np.int32)
+                classes = list(set(df["Label_general"]))
 
-            rng.shuffle(num_classes_idx)
-            keys = list(data_sample_paths.keys())
-            values = list(data_sample_paths.values())
-            new_keys = [keys[idx] for idx in num_classes_idx]
-            new_values = [values[idx] for idx in num_classes_idx]
-            data_sample_paths = dict(zip(new_keys, new_values))
-            # data_sample_paths = self.shuffle(data_sample_paths)
-            x_train_id, x_val_id, x_test_id = (
-                int(self.train_val_test_split[0] * total_label_types),
-                int(np.sum(self.train_val_test_split[:2]) * total_label_types),
-                int(total_label_types),
-            )
-            print(x_train_id, x_val_id, x_test_id)
+                for cls in classes:
+                    df_cls = df[df['Label_general'] == cls] # get all rows (sentences) corresponding to a class
+                    samples = []
+                    for i, row in df_cls.iterrows():
+                        sentence = row['Sentence']
+                        samples.append(Sample(sentence=sentence, teacher_encoding=class2id[cls]))
 
-            x_train_classes = (
-                class_key for class_key in list(data_sample_paths.keys())[:x_train_id]
-            )
-            x_val_classes = (
-                class_key
-                for class_key in list(data_sample_paths.keys())[x_train_id:x_val_id]
-            )
-            x_test_classes = (
-                class_key
-                for class_key in list(data_sample_paths.keys())[x_val_id:x_test_id]
-            )
-            x_train, x_val, x_test = (
-                {
-                    class_key: data_sample_paths[class_key]
-                    for class_key in x_train_classes
-                },
-                {
-                    class_key: data_sample_paths[class_key]
-                    for class_key in x_val_classes
-                },
-                {
-                    class_key: data_sample_paths[class_key]
-                    for class_key in x_test_classes
-                },
-            )
-            dataset_splits = {"train": x_train, "val": x_val, "test": x_test}
+                    dataset_splits[dset][lang][cls] = samples
 
         return dataset_splits
 
@@ -302,7 +271,7 @@ class DistilDataLoader(DataLoader):
 
         return class_label, (input_ids, teacher_encodings)
 
-    def load_batch(self, batch_sample_paths, class_names):
+    def load_batch(self, batch_samples):
         """
         Load a batch of samples, given a list of filepaths
         :param batch_sample_paths: A list of filepaths
@@ -310,8 +279,8 @@ class DistilDataLoader(DataLoader):
         """
 
         sample_batch = [
-            self.load_sample(sample_path=sample_path, class_names=class_names)
-            for sample_path in batch_sample_paths
+            self.load_sample(sample=sample_sample)
+            for sample_sample in batch_samples
         ]
 
         # Unzip the input ids and teacher encodings
@@ -346,87 +315,29 @@ class DistilDataLoader(DataLoader):
 
         return x, mask, y
 
-    def load_sample(self, sample_path, class_names):
+    def load_sample(self, sample):
         """
         Given an sample filepath and the number of channels to keep, load an sample and keep the specified channels
         :param sample_path: The sample's filepath
         :return: stacked and padded Tensors of input_ids and teacher_encodings
         """
-        with open(sample_path, "r", encoding="utf-8") as f:
-            sample = json.load(f)
 
-        seqs = sample["target_sentence"].split("[SEP]")
-        text = seqs[0]
-        extra_seq = seqs[1] if len(seqs) > 1 else None
+        text = sample.sentence.strip()
 
         # get input ids for BERT model
         input_ids = torch.LongTensor(
             self.tokenizer.encode(
                 text,
-                text_pair=extra_seq,
+                text_pair=None,
                 add_special_tokens=True,
                 # max_length=512,
                 truncation=False,
             )
         )
         input_ids = input_ids[-512:]
-        teacher_encodings = torch.FloatTensor(sample["teacher_encoding"])
+        teacher_encodings = torch.FloatTensor([sample.teacher_encoding])
 
         return input_ids, teacher_encodings
-
-    def load_datapaths(self):
-        """
-        If saved json dictionaries of the data are available, then this method loads the dictionaries such that the
-        data is ready to be read. If the json dictionaries do not exist, then this method calls get_data_paths()
-        which will build the json dictionary containing the class to filepath samples, and then store them.
-        :return: data_sample_paths: dict containing class to filepath list pairs.
-                 index_to_label_name_dict_file: dict containing numerical indexes mapped to the human understandable
-                 string-names of the class
-                 label_to_index: dictionary containing human understandable string mapped to numerical indexes
-        """
-        dataset_dir = os.environ["DATASET_DIR"]
-        data_path_file = "{}/{}.json".format(dataset_dir, self.dataset_name)
-        self.index_to_label_name_dict_file = "{}/map_to_label_name_{}.json".format(
-            dataset_dir, self.dataset_name
-        )
-        self.label_name_to_map_dict_file = "{}/label_name_to_map_{}.json".format(
-            dataset_dir, self.dataset_name
-        )
-
-        if not os.path.exists(data_path_file):
-            self.reset_stored_filepaths = True
-
-        if self.reset_stored_filepaths == True:
-            if os.path.exists(data_path_file):
-                os.remove(data_path_file)
-            self.reset_stored_filepaths = False
-
-        try:
-            data_sample_paths = self.load_from_json(filename=data_path_file)
-            label_to_index = self.load_from_json(
-                filename=self.label_name_to_map_dict_file
-            )
-            index_to_label_name_dict_file = self.load_from_json(
-                filename=self.index_to_label_name_dict_file
-            )
-            return data_sample_paths, index_to_label_name_dict_file, label_to_index
-        except:
-            print("Mapped data paths can't be found, remapping paths..")
-            (
-                data_sample_paths,
-                code_to_label_name,
-                label_name_to_code,
-            ) = self.get_data_paths()
-            self.save_to_json(dict_to_store=data_sample_paths, filename=data_path_file)
-            self.save_to_json(
-                dict_to_store=code_to_label_name,
-                filename=self.index_to_label_name_dict_file,
-            )
-            self.save_to_json(
-                dict_to_store=label_name_to_code,
-                filename=self.label_name_to_map_dict_file,
-            )
-            return self.load_datapaths()
 
     def load_test_sample(self, filepath):
         """
@@ -467,149 +378,6 @@ class DistilDataLoader(DataLoader):
 
         return filepath, sample.get("target_language", "TEST")
 
-    def _get_raw_datasamples_dataset(self, data_path):
-        """
-        Iterates over all data samples from root path, tests validity and returns an index
-        :param data_path: Root path of dataset
-        :return: labels, raw_data_sample_paths
-        """
-        print("Get samples from", data_path)
-        raw_data_sample_paths = []
-        labels = set()
-        # Set a minimal nr of classes for a task to be considered. Prototype-based methods have more flexibility as they can model a variable nr of classes
-        min_nr_classes = (
-            2
-            if ("proto" in self.args.meta_update_method)
-            or (self.args.meta_update_method == "mtl")
-            else self.args.num_classes_per_set
-        )
-
-        # Iterate over all teacher/language/class combinations
-        root, teacher_dirs = next(os.walk(data_path))[0:2]
-
-        for teacher_dir in teacher_dirs:
-            lang_dirs = next(os.walk(os.path.join(root, teacher_dir)))[1]
-            for lang_dir in lang_dirs:
-                class_dirs = next(os.walk(os.path.join(root, teacher_dir, lang_dir)))[1]
-                if (
-                    len(class_dirs) < min_nr_classes
-                ):  # Minimum number of classes to be considered
-                    print(
-                        "Warning: ",
-                        teacher_dir,
-                        lang_dir,
-                        "has less than {} class folders and is skipped.".format(
-                            min_nr_classes
-                        ),
-                    )
-                    continue
-
-                labels.add("_".join([teacher_dir, lang_dir]))
-
-                for class_dir in class_dirs:
-                    raw_data_sample_paths.extend(
-                        [
-                            os.path.abspath(f)
-                            for f in glob.glob(
-                                os.path.join(
-                                    root, teacher_dir, lang_dir, class_dir, "*.json"
-                                )
-                            )
-                        ]
-                    )
-        return labels, raw_data_sample_paths
-
-    def get_data_paths(self):
-        """
-        Method that scans the dataset directory and generates lang to sample-filepath list dictionaries.
-        :return: data_sample_paths: dict containing lang to filepath list pairs.
-        """
-        data_sample_path_list_raw = []
-        labels = set()
-        if self.args.sets_are_pre_split:
-            root, dset_dirs = next(os.walk(self.data_path))[0:2]
-            for dset_dir in dset_dirs:
-                if dset_dir.lower() in ["train", "val", "test"]:
-                    (
-                        dset_labels,
-                        dset_data_sample_paths,
-                    ) = self._get_raw_datasamples_dataset(os.path.join(root, dset_dir))
-                    labels.update({dset_dir + "/" + label for label in dset_labels})
-                    data_sample_path_list_raw.extend(dset_data_sample_paths)
-        else:
-            labels, data_sample_path_list_raw = self._get_raw_datasamples_dataset(
-                self.data_path
-            )
-
-        labels = sorted(labels)
-        idx_to_label_name = {idx: label for idx, label in enumerate(labels)}
-        label_name_to_idx = {label: idx for idx, label in enumerate(labels)}
-
-        samples_path_dict = {
-            idx: defaultdict(list) for idx in list(idx_to_label_name.keys())
-        }
-        tmp_label_map = {k.split("/")[-1]: v for k, v in label_name_to_idx.items()}
-        with tqdm.tqdm(total=len(data_sample_path_list_raw)) as pbar_error:
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                # Process the list of files, but split the work across the process pool to use all CPUs!
-                for sample_file, lang in executor.map(
-                    self.load_test_sample, (data_sample_path_list_raw)
-                ):
-                    pbar_error.update(1)
-                    if sample_file is not None:
-                        label = "_".join(sample_file.split(os.sep)[-4:-2])
-                        class_ix = sample_file.split(os.sep)[-2]
-                        # Label is defined as teacher/lang combination, but data is also split over classes to generate meta tasks from
-                        samples_path_dict[tmp_label_map[label]][class_ix].append(
-                            sample_file
-                        )
-
-        return samples_path_dict, idx_to_label_name, label_name_to_idx
-
-    def get_label_set(self):
-        """
-        Generates a set containing all class numerical indexes
-        :return: A set containing all class numerical indexes
-        """
-        index_to_label_name_dict_file = self.load_from_json(
-            filename=self.index_to_label_name_dict_file
-        )
-        return set(list(index_to_label_name_dict_file.keys()))
-
-    def get_index_from_label(self, label):
-        """
-        Given a class's (human understandable) string, returns the numerical index of that class
-        :param label: A string of a human understandable class contained in the dataset
-        :return: An int containing the numerical index of the given class-string
-        """
-        label_to_index = self.load_from_json(filename=self.label_name_to_map_dict_file)
-        return label_to_index[label]
-
-    def get_label_from_index(self, index):
-        """
-        Given an index return the human understandable label mapping to it.
-        :param index: A numerical index (int)
-        :return: A human understandable label (str)
-        """
-        index_to_label_name = self.load_from_json(
-            filename=self.index_to_label_name_dict_file
-        )
-        return index_to_label_name[index]
-
-    def get_label_from_path(self, filepath):
-        """
-        Given a path of an sample generate the human understandable label for that sample.
-        :param filepath: The sample's filepath
-        :return: A human understandable label.
-        """
-        label_bits = filepath.split("/")
-        label = "/".join(
-            [label_bits[idx] for idx in self.indexes_of_folders_indicating_class]
-        )
-        if self.labels_as_int:
-            label = int(label)
-        return label
-
     def get_full_task_set(self, task_name, percentage_train=0.8, seed=42):
         """
         Retrieves the full dataset corresponding to task_name
@@ -617,25 +385,14 @@ class DistilDataLoader(DataLoader):
         :return:
         """
         rng = np.random.RandomState(seed)
-        # get task_idx
 
-        if self.args.sets_are_pre_split:
-            task_idx = (
-                task_name.replace("train/", "", 1)
-                .replace("val/", "", 1)
-                .replace("test/", "", 1)
-            )
-        else:
-            task_idx = str(
-                self.load_from_json(self.label_name_to_map_dict_file)[task_name]
-            )
         # get file corresponding to task
         for d, task_mappings in self.datasets.items():
-            if task_idx in task_mappings.keys():
+            if task_name in task_mappings.keys():
                 # Tasks files are indexed per class within task
-                task_files = [
-                    task_mappings[task_idx][class_idx]
-                    for class_idx in task_mappings[task_idx].keys()
+                task_sentences = [
+                    task_mappings[task_name][class_idx]
+                    for class_idx in task_mappings[task_name].keys() # we are coupling the sentence with its class
                 ]
 
         x_train = []
@@ -644,15 +401,19 @@ class DistilDataLoader(DataLoader):
         x_dev = []
         len_dev = []
         y_dev = []
-        label_indices = list(range(len(task_files)))
-        label_names = list(
-            set([os.path.split(os.path.dirname(f[0]))[-1] for f in task_files])
-        )
-        for label_ix, class_task_files in enumerate(task_files):
+        label_indices = list(range(len(task_sentences)))
+        # label_names = list(
+        #     set([os.path.split(os.path.dirname(f[0]))[-1] for f in task_files])
+        # )
+        for label_ix, class_task_sentences in enumerate(task_sentences):
 
-            rng.shuffle(class_task_files)
+            if type(class_task_sentences) == dict:
+                print('class_task_sentences are a dict, so will make them a list instead')
+                class_task_sentences = class_task_sentences['support'] + class_task_sentences['query']
 
-            num_samples = len(class_task_files)
+            rng.shuffle(class_task_sentences)
+
+            num_samples = len(class_task_sentences)
             if self.args.finetune_base_model:
                 num_train_samples = int(percentage_train * num_samples)
             else:
@@ -667,12 +428,12 @@ class DistilDataLoader(DataLoader):
 
             # load
             task_samples, sample_lens, task_logits = self.get_class_samples(
-                class_task_files,
+                class_task_sentences,
                 label_ix,
                 label_indices,
                 is_gold_label=self.args.val_using_cross_entropy
                 or self.args.meta_loss == "ce",
-                class_names=label_names,
+                class_names=[],
                 num_support_samples=0,
             )
 
@@ -716,6 +477,7 @@ class DistilDataLoader(DataLoader):
             y_dev,
             seed,
         )
+
 
     def get_num_samples_and_classes(self, num_available_classes, rng):
 
@@ -935,7 +697,7 @@ class DistilDataLoader(DataLoader):
 
     def get_class_samples(
         self,
-        sample_paths,
+        sample_sentences,
         label_ix,
         shuffled_labels,
         is_gold_label,
@@ -943,20 +705,20 @@ class DistilDataLoader(DataLoader):
         num_support_samples,
     ):
 
-        if self.consistency_training and self.current_set_name == "train":
-            # Add augmented samples to query set
-            query_sample_paths = sample_paths[num_support_samples:]
-            # Append augmented samples
-            sample_paths = np.append(
-                sample_paths,
-                [
-                    self.get_aug_sample_path(sample_path)
-                    for sample_path in query_sample_paths
-                ],
-            )
+        # if self.consistency_training and self.current_set_name == "train":
+        #     # Add augmented samples to query set
+        #     query_sample_paths = sample_paths[num_support_samples:]
+        #     # Append augmented samples
+        #     sample_paths = np.append(
+        #         sample_paths,
+        #         [
+        #             self.get_aug_sample_path(sample_path)
+        #             for sample_path in query_sample_paths
+        #         ],
+        #     )
 
         # Loads and prepares samples for 1 class within task
-        class_samples, teacher_encodings = self.load_batch(sample_paths, class_names)
+        class_samples, teacher_encodings = self.load_batch(sample_sentences)
 
         class_samples, sample_lens = stack_and_pad_tensors(
             class_samples, padding_index=self.tokenizer.pad_token_id
@@ -967,7 +729,7 @@ class DistilDataLoader(DataLoader):
         elif self.args.meta_loss == "ce" or is_gold_label:
             ohe_label = [0] * len(shuffled_labels)
             ohe_label[label_ix] = 1
-            class_encodings = torch.LongTensor([ohe_label] * len(sample_paths))
+            class_encodings = torch.LongTensor([ohe_label] * len(sample_sentences))
         else:  # kl
             # Index the teacher logits at indices of target classes
             class_encodings = torch.stack(teacher_encodings)[:, shuffled_labels]
