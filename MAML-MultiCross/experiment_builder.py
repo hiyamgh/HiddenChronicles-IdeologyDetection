@@ -1,4 +1,6 @@
 from collections import defaultdict
+
+import torch.cuda
 import tqdm
 import os
 import numpy as np
@@ -789,3 +791,73 @@ class ExperimentBuilder(object):
 
             print(self.full_task_set_evaluation(epoch=self.epoch, set_name="test"))
             # self.evaluate_test_set_using_the_best_models(top_n_models=5)
+
+    def finetune_task(self):
+
+        from pathlib import Path
+        checkpoint = Path(self.saved_models_filepath) / "train_model_best"
+
+        if checkpoint.exists():
+            #Load the model
+            print("Loading model")
+            self.state = self.model.load_model(
+                model_save_dir=self.saved_models_filepath,
+                model_name="train_model",
+                model_idx="best",
+            )
+            del self.state
+        else:
+            print("Checkpoint doesnt exist, continuing with fine-tuning base model")
+
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
+        # Handle KL/CE loss
+        set_meta_loss_back = False
+        if self.model.meta_loss.lower() == "kl" and self.args.val_using_cross_entropy:
+            # Use cross entropy on gold labels as no teacher encoding is available
+            self.model.meta_loss = "ce"
+            set_meta_loss_back = True
+
+        # Load the dataset
+        task_suffix = self.args.finetune_task_suffix
+        test_dataloader = self.data.get_task_set_splits(task_suffix)
+
+        # Evaluate on test set
+        print("Evaluating model on test set")
+        losses = []
+        is_correct_preds = []
+
+        names_weights_copy = self.model.classifier.get_inner_loop_params()
+
+        print(f"Test samples : {test_dataloader}")
+        with torch.no_grad():
+            for batch in tqdm.tqdm(
+                test_dataloader,
+                desc="Evaluating",
+                leave=False,
+                total=len(test_dataloader),
+            ):
+                batch = tuple(t.to(self.device) for t in batch)
+                x, mask, y_true = batch
+
+                loss, is_correct = self.model.net_forward(
+                    x,
+                    mask=mask,
+                    teacher_unary=y_true,
+                    fast_model=names_weights_copy,
+                    training=False,
+                    return_nr_correct=True,
+                    num_step=self.args.number_of_training_steps_per_iter,
+                )
+                losses.append(loss.item())
+                is_correct_preds.extend(is_correct.tolist())
+
+        avg_loss = np.mean(losses)
+        accuracy = np.mean(is_correct_preds)
+
+        print(f"Average loss : {avg_loss}, Average accuracy : {accuracy}")
+
+
+        if set_meta_loss_back:
+            self.model.meta_loss = "kl"

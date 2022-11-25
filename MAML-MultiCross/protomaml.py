@@ -504,13 +504,15 @@ class ProtoMAMLFewShotClassifier(MAMLFewShotClassifier):
         self.inner_loop_optimizer.requires_grad_(True)
 
         avg_loss = {}
+        avg_loss_avg = None
         for k in losses[0].keys():
             avg_loss[k] = np.mean([loss[k] for loss in losses])
+            avg_loss_avg = avg_loss[k]
 
         accuracy = np.mean(is_correct_preds)
         print("Accuracy", accuracy)
-        if avg_loss < best_loss:
-            best_loss = avg_loss
+        if avg_loss_avg < best_loss:
+            best_loss = avg_loss_avg
             print("New best finetuned model with loss {:.05f}".format(best_loss))
             torch.save(
                 names_weights_copy,

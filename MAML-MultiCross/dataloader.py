@@ -221,17 +221,17 @@ class DistilDataLoader(DataLoader):
         self.index_to_label_name_dict_file = id2class
         self.label_name_to_map_dict_file = class2id
 
-        splits_ids = {
+        self.splits_ids = {
             'train': train_datasets_ids,
             'val': dev_dataset_ids,
             'test': test_dataset_ids
         }
-        dataset_splits = dict()
-        for dset in splits_ids:
-            dataset_splits[dset] = {}
-            for id in splits_ids[dset]:
+        self.dataset_splits = dict()
+        for dset in self.splits_ids:
+            self.dataset_splits[dset] = {}
+            for id in self.splits_ids[dset]:
                 lang = id2dataset_lang[id] # get language
-                dataset_splits[dset][lang] = {}
+                self.dataset_splits[dset][lang] = {}
                 if '.xlsx' in id2dataset_multi[id]: # read the dataframe of the corresponding language
                     df = pd.read_excel(id2dataset_multi[id])
                 else:
@@ -246,9 +246,9 @@ class DistilDataLoader(DataLoader):
                         sentence = row['Sentence']
                         samples.append(Sample(sentence=sentence, teacher_encoding=class2id[cls]))
 
-                    dataset_splits[dset][lang][cls] = samples
+                    self.dataset_splits[dset][lang][cls] = samples
 
-        return dataset_splits
+        return self.dataset_splits
 
     def load_parallel_batch(self, inputs):
         """
@@ -954,7 +954,7 @@ class MetaLearningSystemDataLoader(object):
 
     def get_finetune_dataloaders(self, task_name, percentage_train, seed):
 
-        self.dataset.switch_set(set_name="val")  # TODO: tmp
+        # self.dataset.switch_set(set_name="val")  # TODO: tmp
         (
             train_set_samples,
             train_set_lens,
@@ -1019,3 +1019,87 @@ class MetaLearningSystemDataLoader(object):
         )
 
         return res
+
+    def load_binary_finetune_split(self, task_name):
+        print(task_name)
+        # split_name, teacher_lang = task_name.split('/')
+        # teacher_name, lang_name = teacher_lang.split('_')
+
+        # class_dirs = next(os.walk(os.path.join(self.args.finetune_data_path, split_name, teacher_name, lang_name)))[1]
+
+        raw_data_sample_paths = []
+        dset = "test"
+        if task_name in dset:
+            for cls in self.dataset[dset][task_name]:
+                raw_data_sample_paths.append(self.dataset[dset][task_name][cls])
+        else:
+            raise ValueError("Task {} not preset in testing dataset".format(task_name))
+        # raw_data_sample_paths = []
+        # for class_dir in class_dirs:
+        #     raw_data_sample_paths.extend(
+        #         [
+        #             os.path.abspath(f)
+        #             for f in glob.glob(
+        #                 os.path.join(
+        #                     self.args.finetune_data_path, split_name, teacher_name, lang_name, class_dir, "*.json"
+        #                 )
+        #             )
+        #         ]
+        #     )
+
+        class_samples, teacher_encodings = self.dataset.load_batch(raw_data_sample_paths)
+
+        class_samples, sample_lens = stack_and_pad_tensors(
+            class_samples, padding_index=self.dataset.tokenizer.pad_token_id
+        )
+
+        return class_samples, sample_lens, teacher_encodings
+
+    def get_task_set_splits(self, task_suffix):
+        """
+        Retrieves the full dataset corresponding to task_name
+        :param task_name:
+        :return:
+        """
+
+        if not self.args.sets_are_pre_split:
+            raise Exception("Only pre-split datasets supported for now.")
+
+        x_test = []
+        len_test = []
+        y_test = []
+
+        print("Loading test data...")
+        # task_name = 'test/' + task_suffix
+        # task_samples, sample_lens, task_logits = self.load_binary_finetune_split(task_name)
+        task_samples, sample_lens, task_logits = self.load_binary_finetune_split(task_suffix)
+        x_test.append(task_samples)
+        len_test.append(sample_lens)
+        #y_test.append(task_logits)
+        y_test = torch.stack(task_logits)
+
+        x_test = [y.squeeze() for x in x_test for y in x.split(1)]
+        x_test, _ = stack_and_pad_tensors(
+            x_test, padding_index=self.dataset.tokenizer.pad_token_id
+        )
+
+        len_test = torch.cat(len_test)
+        #y_test = torch.cat(y_test)
+
+        test_mask = torch.ones_like(x_test)
+        test_mask = (
+            torch.arange(test_mask.size(1))
+            < len_test.contiguous().view(-1).unsqueeze(1)
+        ) * test_mask
+
+        test_dataset = TensorDataset(x_test, test_mask, y_test)
+        test_sampler = SequentialSampler(test_dataset)
+        test_dataloader = DataLoader(
+            test_dataset,
+            sampler=test_sampler,
+            batch_size=self.args.finetune_batch_size,
+        )
+
+        # return train_dataloader, dev_dataloader, test_dataloader
+        return test_dataloader
+
