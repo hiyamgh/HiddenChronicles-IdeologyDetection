@@ -45,4 +45,4 @@ if __name__ == "__main__":
 
     data = MetaLearningSystemDataLoader
     maml_system = ExperimentBuilder(model=model, data=data, args=args, device=device)
-    maml_system.run_experiment()
+    maml_system.run_experiment() # train

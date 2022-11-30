@@ -360,6 +360,24 @@ class MAMLFewShotClassifier(FewShotClassifier):
         aug_x=None,
         aug_mask=None,
     ):
+        def get_metrics(student_logits, teacher_unary):
+            student_preds = student_logits.max(1)
+            teacher_preds = teacher_unary.max(dim=1)
+
+            student_preds = student_preds[1].detach().cpu().numpy()
+            teacher_preds = teacher_preds[0].detach().cpu().numpy()
+
+            teacher_preds = [int(l) for l in teacher_preds]
+            student_preds = [int(l) for l in student_preds]
+
+            # get error metrics
+            from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+            accuracy = accuracy_score(y_true=teacher_preds, y_pred=student_preds)
+            precision = precision_score(y_true=teacher_preds, y_pred=student_preds, average='macro')
+            recall = recall_score(y_true=teacher_preds, y_pred=student_preds, average='macro')
+            f1 = f1_score(y_true=teacher_preds, y_pred=student_preds, average='macro')
+
+            return accuracy, precision, recall, f1
 
         #####################################################
         # CE loss
@@ -430,11 +448,24 @@ class MAMLFewShotClassifier(FewShotClassifier):
 
         if set_kl_loss:
             self.meta_loss = "kl"
+
+        # acc, prec, rec, f1 = get_metrics(student_logits, teacher_unary)
+
+        # res = {
+        #     "losses": losses,
+        #     "is_correct": is_correct,
+        #     "logits": student_logits.detach(),
+        #     "accuracy": acc,
+        #     "precision": prec,
+        #     "recall": rec,
+        #     "f1": f1
+        # }
         res = {
             "losses": losses,
             "is_correct": is_correct,
-            "logits": student_logits.detach(),
+            "logits": student_logits.detach()
         }
+
         return res
 
     def apply_consistency_training(self, fast_model, logits, aug_x, aug_mask, y_true):
@@ -509,7 +540,7 @@ class MAMLFewShotClassifier(FewShotClassifier):
         self.convex_feature_space_loss_nr_steps = (
             original_nr_convex_feature_space_loss_steps
         )
-        return losses, is_correct_preds
+        return losses, is_correct_preds, res
 
     def inner_update_step(
         self,
@@ -883,7 +914,7 @@ class MAMLFewShotClassifier(FewShotClassifier):
         #########################################################
         # Evaluate finetuned model
         #########################################################
-        losses, is_correct_preds = self.eval_dataset(
+        losses, is_correct_preds, res = self.eval_dataset(
             fast_weights=names_weights_copy,
             dataloader=dev_dataloader,
             to_gpu=train_on_cpu,
@@ -915,4 +946,12 @@ class MAMLFewShotClassifier(FewShotClassifier):
                     ),
                 ),
             )
+
+        acc = res["accuracy"]
+        prec = res["precision"]
+        rec = res["recall"]
+        f1 = res["f1"]
+        print(
+            "Accuracy: {:.5f}\nPrecision: {:.5f}\nRecall: {:.5f}\nF1: {:.5f}".format(acc, prec, rec, f1))
+
         return names_weights_copy, best_loss, avg_loss, accuracy

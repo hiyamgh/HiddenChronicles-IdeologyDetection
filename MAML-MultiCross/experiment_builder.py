@@ -33,6 +33,8 @@ class ExperimentBuilder(object):
             self.samples_filepath,
         ) = build_experiment_folder(experiment_name=self.args.experiment_name)
 
+        # self.saved_models_filepath = "E:\discourse_mining_protomaml\saved_models"
+
         self.per_task_performance = defaultdict(lambda: 0)
         self.total_losses = dict()
         self.state = dict()
@@ -236,6 +238,8 @@ class ExperimentBuilder(object):
                 model_idx="best",
             )
 
+            self.data.dataset.switch_set(set_name) # add this
+
         set_meta_loss_back = False
         if self.model.meta_loss.lower() == "kl" and self.args.val_using_cross_entropy:
             # Use cross entropy on gold labels as no teacher encoding is available
@@ -298,6 +302,80 @@ class ExperimentBuilder(object):
             self.model.meta_loss = "kl"
 
         return result
+
+
+    # def full_task_set_evaluation(self, epoch, set_name="val", **kwargs):
+    #
+    #     if set_name == "test":
+    #         print("Loading best model for evaluation..")
+    #         self.model.load_model(
+    #             model_save_dir=self.saved_models_filepath,
+    #             model_name="train_model",
+    #             model_idx="best",
+    #         )
+    #
+    #     set_meta_loss_back = False
+    #     if self.model.meta_loss.lower() == "kl" and self.args.val_using_cross_entropy:
+    #         # Use cross entropy on gold labels as no teacher encoding is available
+    #         self.model.meta_loss = "ce"
+    #         set_meta_loss_back = True
+    #     # list sets in dev set
+    #     val_tasks = list(self.data.dataset.task_set_sizes[set_name].keys())
+    #     # generate seeds
+    #     seeds = [42 + i for i in range(self.args.num_evaluation_seeds)]
+    #
+    #     per_val_set_performance = {k: [] for k in val_tasks}
+    #     # perform finetuning and evaluation
+    #     result = {}
+    #     losses = []
+    #     accuracies = []
+    #     saved_already = False
+    #     for task_name in val_tasks:
+    #         for seed in seeds:
+    #             print("Evaluating {} with seed {}...".format(task_name, seed))
+    #             res = self.data.get_finetune_dataloaders(task_name, 0, seed)
+    #             train_dataloader = res.pop(TRAIN_DATALOADER_KEY)
+    #             dev_dataloader = res.pop(DEV_DATALOADER_KEY)
+    #
+    #             _, best_loss, curr_loss, accuracy = self.model.finetune_epoch(
+    #                 None,
+    #                 self.model.bert_config,
+    #                 train_dataloader,
+    #                 dev_dataloader,
+    #                 task_name=task_name,
+    #                 epoch=epoch,
+    #                 eval_every=1,
+    #                 model_save_dir=self.saved_models_filepath,
+    #                 best_loss=0,
+    #                 **res
+    #             )
+    #
+    #             per_val_set_performance[task_name].append(accuracy)
+    #             accuracies.append(accuracy)
+    #             losses.append(curr_loss)
+    #         # Store and compare performance per validation task
+    #         avg_accuracy = np.mean(per_val_set_performance[task_name])
+    #         if avg_accuracy > self.per_task_performance[task_name]:
+    #             print("New best performance for task", task_name)
+    #             self.per_task_performance[task_name] = avg_accuracy
+    #             self.state["best_epoch_{}".format(task_name)] = int(
+    #                 self.state["current_iter"] / self.args.total_iter_per_epoch
+    #             )
+    #
+    #     result["{}_accuracy_mean".format(set_name)] = np.mean(accuracies)
+    #     result["{}_accuracy_std".format(set_name)] = np.std(accuracies)
+    #     for k in losses[0].keys():
+    #         result["{}_{}_mean".format(set_name, k)] = np.mean(
+    #             [loss[k] for loss in losses]
+    #         )
+    #         result["{}_{}_std".format(set_name, k)] = np.std(
+    #             [loss[k] for loss in losses]
+    #         )
+    #
+    #     if set_meta_loss_back:
+    #         self.model.meta_loss = "kl"
+    #
+    #     return result
 
     def evaluation_iteration(self, val_sample, total_losses, pbar_val, phase):
         """
@@ -478,9 +556,6 @@ class ExperimentBuilder(object):
                     # per_model_per_batch_targets[idx].extend(np.array(test_sample[3]))
                     per_model_per_batch_loss = self.test_evaluation_iteration(
                         val_sample=test_sample,
-                        sample_idx=sample_idx,
-                        model_idx=idx,
-                        per_model_per_batch_preds=per_model_per_batch_loss,
                         pbar_test=pbar_test,
                     )
 
@@ -792,6 +867,9 @@ class ExperimentBuilder(object):
             print(self.full_task_set_evaluation(epoch=self.epoch, set_name="test"))
             # self.evaluate_test_set_using_the_best_models(top_n_models=5)
 
+    def evaluate_model(self):
+        self.data.get_finetune_dataloaders(task_name='ar_test', percentage_train=0.8, seed=1)
+
     def finetune_task(self):
 
         from pathlib import Path
@@ -819,45 +897,65 @@ class ExperimentBuilder(object):
             self.model.meta_loss = "ce"
             set_meta_loss_back = True
 
-        # Load the dataset
-        task_suffix = self.args.finetune_task_suffix
-        test_dataloader = self.data.get_task_set_splits(task_suffix)
-
         # Evaluate on test set
         print("Evaluating model on test set")
         losses = []
         is_correct_preds = []
+        accuracies, precisions, recalls, f1s = [], [], [], []
 
         names_weights_copy = self.model.classifier.get_inner_loop_params()
 
-        print(f"Test samples : {test_dataloader}")
         with torch.no_grad():
-            for batch in tqdm.tqdm(
-                test_dataloader,
-                desc="Evaluating",
-                leave=False,
-                total=len(test_dataloader),
-            ):
-                batch = tuple(t.to(self.device) for t in batch)
-                x, mask, y_true = batch
+            # for batch in tqdm.tqdm(
+            #     test_dataloader,
+            #     desc="Evaluating",
+            #     leave=False,
+            #     total=len(test_dataloader),
+            # ):
+            #     batch = tuple(t.to(self.device) for t in batch)
+            #     x, mask, y_true = batch
 
-                loss, is_correct = self.model.net_forward(
-                    x,
-                    mask=mask,
-                    teacher_unary=y_true,
+            for _, test_sample in enumerate(
+                    self.data.get_test_batches(
+                        total_batches=int(
+                            self.args.num_evaluation_tasks
+                        )
+                    )
+            ):
+
+                res = self.model.net_forward(
+                    test_sample["support_set_samples"],
+                    mask=test_sample["support_set_lens"],
+                    teacher_unary=test_sample["support_set_encodings"],
                     fast_model=names_weights_copy,
                     training=False,
                     return_nr_correct=True,
-                    num_step=self.args.number_of_training_steps_per_iter,
+                    num_step=self.args.number_of_training_steps_per_iter - 1,
                 )
-                losses.append(loss.item())
+                eval_losses = res["losses"]
+                is_correct = res["is_correct"]
+                acc = res["accuracy"]
+                prec = res["precision"]
+                rec = res["recall"]
+                f1 = res["f1"]
+
+                losses.append(eval_losses["loss"].item())
                 is_correct_preds.extend(is_correct.tolist())
+                accuracies.append(acc)
+                precisions.append(prec)
+                recalls.append(rec)
+                f1s.append(f1)
 
         avg_loss = np.mean(losses)
         accuracy = np.mean(is_correct_preds)
 
-        print(f"Average loss : {avg_loss}, Average accuracy : {accuracy}")
+        accuracy2 = np.mean(accuracies)
+        precision = np.mean(precisions)
+        recall = np.mean(recalls)
+        f1 = np.mean(f1s)
 
+        print(f"Average loss : {avg_loss}, Average accuracy : {accuracy}")
+        print("Accuracy: {:.5f}\nPrecision: {:.5f}\nRecall: {:.5f}\nF1: {:.5f}".format(accuracy2, precision, recall, f1))
 
         if set_meta_loss_back:
             self.model.meta_loss = "kl"
