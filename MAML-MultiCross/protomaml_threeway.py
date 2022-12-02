@@ -756,7 +756,7 @@ class ThreeWayProtoMAMLFewShotClassifier(ProtoMAMLFewShotClassifier):
             #########################################################
             # Evaluate finetuned model
             #########################################################
-            losses, is_correct_preds = self.eval_dataset(
+            losses, is_correct_preds, res = self.eval_dataset(
                 fast_weights=fast_weights,
                 dataloader=dev_dataloader,
                 to_gpu=train_on_cpu,
@@ -787,4 +787,12 @@ class ThreeWayProtoMAMLFewShotClassifier(ProtoMAMLFewShotClassifier):
                     ),
                 ),
             )
+
+        acc = res["accuracy"]
+        prec = res["precision"]
+        rec = res["recall"]
+        f1 = res["f1"]
+        print(
+            "Accuracy: {:.5f}\nPrecision: {:.5f}\nRecall: {:.5f}\nF1: {:.5f}".format(acc, prec, rec, f1))
+
         return names_weights_copy, best_loss, avg_loss, accuracy

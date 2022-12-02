@@ -301,6 +301,9 @@ class ExperimentBuilder(object):
         if set_meta_loss_back:
             self.model.meta_loss = "kl"
 
+        for k in result:
+            print('{}: {:.5f}'.format(k, result[k]))
+
         return result
 
 
@@ -868,94 +871,7 @@ class ExperimentBuilder(object):
             # self.evaluate_test_set_using_the_best_models(top_n_models=5)
 
     def evaluate_model(self):
-        self.data.get_finetune_dataloaders(task_name='ar_test', percentage_train=0.8, seed=1)
-
-    def finetune_task(self):
-
-        from pathlib import Path
-        checkpoint = Path(self.saved_models_filepath) / "train_model_best"
-
-        if checkpoint.exists():
-            #Load the model
-            print("Loading model")
-            self.state = self.model.load_model(
-                model_save_dir=self.saved_models_filepath,
-                model_name="train_model",
-                model_idx="best",
-            )
-            del self.state
-        else:
-            print("Checkpoint doesnt exist, continuing with fine-tuning base model")
-
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-
-        # Handle KL/CE loss
-        set_meta_loss_back = False
-        if self.model.meta_loss.lower() == "kl" and self.args.val_using_cross_entropy:
-            # Use cross entropy on gold labels as no teacher encoding is available
-            self.model.meta_loss = "ce"
-            set_meta_loss_back = True
-
-        # Evaluate on test set
-        print("Evaluating model on test set")
-        losses = []
-        is_correct_preds = []
-        accuracies, precisions, recalls, f1s = [], [], [], []
-
-        names_weights_copy = self.model.classifier.get_inner_loop_params()
-
-        with torch.no_grad():
-            # for batch in tqdm.tqdm(
-            #     test_dataloader,
-            #     desc="Evaluating",
-            #     leave=False,
-            #     total=len(test_dataloader),
-            # ):
-            #     batch = tuple(t.to(self.device) for t in batch)
-            #     x, mask, y_true = batch
-
-            for _, test_sample in enumerate(
-                    self.data.get_test_batches(
-                        total_batches=int(
-                            self.args.num_evaluation_tasks
-                        )
-                    )
-            ):
-
-                res = self.model.net_forward(
-                    test_sample["support_set_samples"],
-                    mask=test_sample["support_set_lens"],
-                    teacher_unary=test_sample["support_set_encodings"],
-                    fast_model=names_weights_copy,
-                    training=False,
-                    return_nr_correct=True,
-                    num_step=self.args.number_of_training_steps_per_iter - 1,
-                )
-                eval_losses = res["losses"]
-                is_correct = res["is_correct"]
-                acc = res["accuracy"]
-                prec = res["precision"]
-                rec = res["recall"]
-                f1 = res["f1"]
-
-                losses.append(eval_losses["loss"].item())
-                is_correct_preds.extend(is_correct.tolist())
-                accuracies.append(acc)
-                precisions.append(prec)
-                recalls.append(rec)
-                f1s.append(f1)
-
-        avg_loss = np.mean(losses)
-        accuracy = np.mean(is_correct_preds)
-
-        accuracy2 = np.mean(accuracies)
-        precision = np.mean(precisions)
-        recall = np.mean(recalls)
-        f1 = np.mean(f1s)
-
-        print(f"Average loss : {avg_loss}, Average accuracy : {accuracy}")
-        print("Accuracy: {:.5f}\nPrecision: {:.5f}\nRecall: {:.5f}\nF1: {:.5f}".format(accuracy2, precision, recall, f1))
-
-        if set_meta_loss_back:
-            self.model.meta_loss = "kl"
+        # self.data.get_finetune_dataloaders(task_name='ar_test', percentage_train=0.8, seed=1)
+        # must use continue_from_epoch = latest when running this from batch
+        print('self.epoch chosen to evaluate on testing set: {}'.format(self.epoch))
+        self.full_task_set_evaluation(epoch=self.epoch, set_name="test")

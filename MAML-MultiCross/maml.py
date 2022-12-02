@@ -359,6 +359,7 @@ class MAMLFewShotClassifier(FewShotClassifier):
         consistency_training=False,
         aug_x=None,
         aug_mask=None,
+        return_metrics=False,
     ):
         def get_metrics(student_logits, teacher_unary):
             student_preds = student_logits.max(1)
@@ -449,21 +450,22 @@ class MAMLFewShotClassifier(FewShotClassifier):
         if set_kl_loss:
             self.meta_loss = "kl"
 
-        # acc, prec, rec, f1 = get_metrics(student_logits, teacher_unary)
-
-        # res = {
-        #     "losses": losses,
-        #     "is_correct": is_correct,
-        #     "logits": student_logits.detach(),
-        #     "accuracy": acc,
-        #     "precision": prec,
-        #     "recall": rec,
-        #     "f1": f1
-        # }
-        res = {
-            "losses": losses,
-            "is_correct": is_correct,
-            "logits": student_logits.detach()
+        if return_metrics:
+            acc, prec, rec, f1 = get_metrics(student_logits, teacher_unary)
+            res = {
+                "losses": losses,
+                "is_correct": is_correct,
+                "logits": student_logits.detach(),
+                "accuracy": acc,
+                "precision": prec,
+                "recall": rec,
+                "f1": f1
+            }
+        else:
+            res = {
+                "losses": losses,
+                "is_correct": is_correct,
+                "logits": student_logits.detach()
         }
 
         return res
@@ -524,6 +526,7 @@ class MAMLFewShotClassifier(FewShotClassifier):
                     training=False,
                     return_nr_correct=True,
                     num_step=self.args.number_of_training_steps_per_iter - 1,
+                    return_metrics=True
                 )
                 eval_losses = res["losses"]
                 is_correct = res["is_correct"]
