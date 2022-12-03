@@ -388,6 +388,7 @@ class DistilDataLoader(DataLoader):
         """
         rng = np.random.RandomState(seed)
         lens_by_classidx = None # won't be None when task_name is in the "test" set i.e. we are getting data loaders for "test"
+        task_name_in_test = False
         # get file corresponding to task
         for d, task_mappings in self.datasets.items():
             if task_name in task_mappings.keys():
@@ -397,6 +398,7 @@ class DistilDataLoader(DataLoader):
                     # get it for support
                     # get the rest of the tasks from test and make them the query for evaluation
                     lens_by_classidx = {}
+                    task_name_in_test = True
 
                     val_task_key_name = list(self.datasets["val"].keys())[0]
                     classes_key_names = list(self.datasets["val"][val_task_key_name].keys())
@@ -477,15 +479,18 @@ class DistilDataLoader(DataLoader):
                 num_support_samples=0,
             )
 
-            if lens_by_classidx is None:
+            # print('num_train_samples: {}'.format(num_train_samples))
+            # print('lens_by_classidx[class_name]: {}'.format(lens_by_classidx[class_name]))
+            # print('task_logits.shape: {}'.format(task_logits.shape))
+            if not task_name_in_test:
                 # split
                 train_set_samples = task_samples[:num_train_samples, :]
                 train_set_lens = sample_lens[:num_train_samples]
-                train_set_encodings = task_logits[:num_train_samples, :]
+                train_set_encodings = task_logits[:num_train_samples]
 
                 dev_set_samples = task_samples[num_train_samples:, :]
                 dev_set_lens = sample_lens[num_train_samples:]
-                dev_set_encodings = task_logits[num_train_samples:, :]
+                dev_set_encodings = task_logits[num_train_samples:]
 
                 x_train.append(train_set_samples)
                 len_train.append(train_set_lens)
@@ -498,11 +503,11 @@ class DistilDataLoader(DataLoader):
             else:
                 train_set_samples = task_samples[:lens_by_classidx[class_name], :]
                 train_set_lens = sample_lens[:lens_by_classidx[class_name]]
-                train_set_encodings = task_logits[:lens_by_classidx[class_name], :]
+                train_set_encodings = task_logits[:lens_by_classidx[class_name]]
 
                 dev_set_samples = task_samples[lens_by_classidx[class_name]:, :]
                 dev_set_lens = sample_lens[lens_by_classidx[class_name]:]
-                dev_set_encodings = task_logits[lens_by_classidx[class_name]:, :]
+                dev_set_encodings = task_logits[lens_by_classidx[class_name]:]
 
                 x_train.append(train_set_samples)
                 len_train.append(train_set_lens)
@@ -517,14 +522,18 @@ class DistilDataLoader(DataLoader):
             x_train, padding_index=self.tokenizer.pad_token_id
         )
         len_train = torch.cat(len_train)
-        y_train = torch.cat(y_train)
+        # y_train = torch.cat(y_train)
+        y_train = torch.cat([torch.stack(y_train[i]) for i in range(len(y_train))])
+        y_train = y_train.squeeze()
 
         x_dev = [y.squeeze() for x in x_dev for y in x.split(1)]
         len_dev = torch.cat(len_dev)
         x_dev, _ = stack_and_pad_tensors(
             x_dev, padding_index=self.tokenizer.pad_token_id
         )
-        y_dev = torch.cat(y_dev)
+        # y_dev = torch.cat(y_dev)
+        y_dev = torch.cat([torch.stack(y_dev[i]) for i in range(len(y_dev))])
+        y_dev = y_dev.squeeze()
 
         return (
             x_train,
