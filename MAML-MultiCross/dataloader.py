@@ -523,8 +523,11 @@ class DistilDataLoader(DataLoader):
         )
         len_train = torch.cat(len_train)
         # y_train = torch.cat(y_train)
-        y_train = torch.cat([torch.stack(y_train[i]) for i in range(len(y_train))])
-        y_train = y_train.squeeze()
+        if task_name_in_test:
+            y_train = torch.cat([torch.stack(y_train[i]) for i in range(len(y_train))])
+            y_train = y_train.squeeze()
+        else:
+            y_train = torch.cat(y_train)
 
         x_dev = [y.squeeze() for x in x_dev for y in x.split(1)]
         len_dev = torch.cat(len_dev)
@@ -532,8 +535,11 @@ class DistilDataLoader(DataLoader):
             x_dev, padding_index=self.tokenizer.pad_token_id
         )
         # y_dev = torch.cat(y_dev)
-        y_dev = torch.cat([torch.stack(y_dev[i]) for i in range(len(y_dev))])
-        y_dev = y_dev.squeeze()
+        if task_name_in_test:
+            y_dev = torch.cat([torch.stack(y_dev[i]) for i in range(len(y_dev))])
+            y_dev = y_dev.squeeze()
+        else:
+            y_dev = torch.cat(y_dev)
 
         return (
             x_train,
