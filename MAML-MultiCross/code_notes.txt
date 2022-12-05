@@ -1,0 +1,136 @@
+student_preds[0].detach().cpu().numpy()
+teacher_preds[0].detach().cpu().numpy()
+
+NOT OK YET - CODE SHOWS ONLY LOW-RESOURCE: low resource and high resource setting?
+NOT OK YET: augmenting with l_src = english?
+MLDoc: In limited resource setting, we randomly sample 64 samples per language in l_aux for training
+Amazon: In limited resource setting, a total of 128 samples per langiage in l_aux is used
+
+NOT OK YET: we use batch size of 16?
+OK: learning rate 3e-5
+OK: 100 epochs of 100 episodes
+OK: perform evaluation usinf 5 different seeds on the meta-validation set after each epoch
+
+OK: One epoch consists of 100 update steps (because 100 episodes = 100 updates -- se defenition of episode above)
+where each update step consists of a batch of 4 episodes -- because batch_size in json = 4????
+
+OK: early stopping with patience of 3 epochs
+--------------------------------------------------------------------
+
+episode definition: a cycle of fast-adaptation on
+a support set followed by updating the parameters initialization 
+of the base learner based on the loss of the query set is called
+an episode
+
+the get data loader:
+  * loads batches of num_gpus*batch_size*samples_per_iter = 1*4*1
+    so 4 tasks per batch??
+    where each task belongs to ONE language containing num_supp*3 and num_query*3 examples
+
+the get_set:
+  samples one language
+  for every lang in samples languages: 
+      for every class in language:
+         randomly sample num_supp samples from class for support set wihtout replacement
+         randomly sample num_query samples from class for query set without replacement
+   example:
+       chose spanish as lang
+       3 classes, num_supp = 16, num_query = 16
+       (1, 3, 16) --> supp --> 3 * 16 example
+       (1, 3, 16) --> query --> 3* 16 example
+
+training loop:
+for i in range(total_iter_per_epoch * total_epochs):
+    while(current_iter < total_iter_per_epoch * total_epochs):
+        for train_sample in get_train_batches(total_batches=total_iters_per_epoch * total_epochs): ???
+            run train_iteration on train_sample
+            train_iteration calls model.run_train_iter
+            model.run_train_iter calls model.train_forward_prop
+            model.train_forward_prop calls model.forward()
+
+            model.forward():
+                gets support samples
+                gets target samples
+                for task in zip(supports,queries): (remember, we have 4 tasks because batch_size=4, each task is a separate language)
+                    perform inner loop update on supp (num_steps times)
+                    perform outer loop update on query
+                    target_loss = target_loss / meta_batch_size
+                    where meta_batch_size = args.batch_size
+
+            if current_iter % total_iters_per_epoch == 0:
+                validate on validation data
+                if args.eval_using_full_task_set:
+                   call experiment_builder.full_task_set_evaluation()
+                else: 
+                    for val_sample in get_val_batches(total_batches=args.num_evaluation_tasks/args.batch_size)
+                        call experiment_builder.evaluation_iteration()
+
+Evaluation:
+* call full_task_set_evaluation(epocj, set_name)
+if set_name == 'test':
+   load the model that gave 'best' validation accuracy
+   get the tasks (langs) associated with testing dataset
+   generate 5 random seeds
+   for task in tasks:
+       for seed in seeds:
+           get fine tune data loaders: data loader for support, and data loader for query
+           call model.finetune_epoch(model, train_dataloader, dev_dataloader. epoch, eval_every=1, model_save_dir):
+                * inner_loop_optimizer.requires_grad_(False)
+                * num_freeze-epochs: 0 - Number of epochs to keep the encoder frozen: in meta-updates only the classification head is considered
+                * didn't understand the freezing bit
+                * for batch in train_dataloader(): # the support set
+                      - call model.inner_update_step() number_of_training_steps_per_iter
+                * call model.eval_dataset(fast weights, dev_dataloader) using fast_weights # the query set
+                * model.eval_dataset:
+                     - for batch in dev_dataloader:
+                           - call model.net_forward()
+                           - get losses, is_corrects means and stds (in every batch)
+                     - return averages of results
+                * set back inner_loop_optimizer.requires_grad_(True)
+                * return results
+ 
+in dev data loader - from dataloader.py, in function get_finetune_dataloaders:
+batch size of dev_dataloader: num_samples_per_class * num_classes_per_set * 5
+                             = 32 * 3 * 5 = 320, greater than the size of our testing dataset :)
+
+continue_from_epoch = latest
+                      
+------------------------------------------------------------------------------------------------------------------------------------------------
+tommorow: modify the code in 
+  * experiment_builder.full_task_set_evaluation 
+  * dataloader.fine_tune_data_loaders ==> this loads sequential data loaders for support and target, so its suitable for testing, 
+                                      ==> modify here to get the support from train and the target from testing
+  * dataloader.get_full_task_set (SPECIFICALLY HERE)
+
+so that, when set="test", to get the support from training data, and all query
+from test set, AS PER THE BELOW
+
+FROM THE PAPER
+For meta-testing, one batch (16 samples) is taken from
+the training data of each target language as support
+set, while we test on the whole test set per target
+language (i.e., the query set).
+
+exp2 gave memory error when batch size = 4 and num_support_samples/num_target_samples = 64
+
+so:
+exp1: train: ar,     dev: fa, test: ar
+exp2: train: en,ar   dev: fa, test: ar
+exp3: train: en      dev: fa, test: ar 
+
+
+   200576       gpu     exp3  lb21hg1  R       0:14      1 gpu12
+   200574       gpu     exp2  lb21hg1  R       9:02      1 gpu11
+   200572       gpu     exp1  lb21hg1  R      23:40      1 gpu06
+
+ 
+
+ black beauty (kristijan majic remix)
+ ridin'
+
+----------------------------------------------------------------------------------
+self.optimizer = contains a list of two:
+               * first has lr: meta_learning_rate
+               * second has lr: meta_inner_opptimizer_learning_rate
+
+self.inner_loop_optimizer contains init_learning_rate = self.task_learning_rate (taken from few_shot_learning_rate)

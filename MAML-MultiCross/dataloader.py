@@ -551,114 +551,6 @@ class DistilDataLoader(DataLoader):
             seed,
         )
 
-    # def get_full_task_set(self, task_name, percentage_train=0.8, seed=42):
-    #     """
-    #     Retrieves the full dataset corresponding to task_name
-    #     :param task_name:
-    #     :return:
-    #     """
-    #     rng = np.random.RandomState(seed)
-    #
-    #     # get file corresponding to task
-    #     for d, task_mappings in self.datasets.items():
-    #         if task_name in task_mappings.keys():
-    #             # Tasks files are indexed per class within task
-    #             task_sentences = [
-    #                 task_mappings[task_name][class_idx]
-    #                 for class_idx in task_mappings[task_name].keys() # we are coupling the sentence with its class
-    #             ]
-    #
-    #             task_classes = []
-    #             for class_idx in task_mappings[task_name].keys():
-    #                 task_classes.append(class_idx)
-    #
-    #     x_train = []
-    #     len_train = []
-    #     y_train = []
-    #     x_dev = []
-    #     len_dev = []
-    #     y_dev = []
-    #     label_indices = list(range(len(task_sentences)))
-    #     # label_names = list(
-    #     #     set([os.path.split(os.path.dirname(f[0]))[-1] for f in task_files])
-    #     # )
-    #     for label_ix, class_task_sentences in enumerate(task_sentences):
-    #
-    #         if type(class_task_sentences) == dict:
-    #             print('class_task_sentences are a dict, so will make them a list instead')
-    #             class_task_sentences = class_task_sentences['support'] + class_task_sentences['query']
-    #
-    #         rng.shuffle(class_task_sentences)
-    #
-    #         num_samples = len(class_task_sentences)
-    #         if self.args.finetune_base_model:
-    #             num_train_samples = int(percentage_train * num_samples)
-    #         else:
-    #             num_bootstrap_seeds = (
-    #                 1
-    #                 if not self.args.bootstrap_finetune
-    #                 else self.args.num_bootstrap_seeds
-    #             )
-    #             num_train_samples = (
-    #                 self.args.num_samples_per_class * num_bootstrap_seeds
-    #             )
-    #         # get actual class name and index
-    #         class_name = task_classes[label_ix] # Hiyam
-    #         class_label = class2id[class_name] # Hiyam
-    #
-    #         # load
-    #         task_samples, sample_lens, task_logits = self.get_class_samples(
-    #             class_task_sentences,
-    #             # label_ix,
-    #             class_label, # Hiyam
-    #             label_indices,
-    #             is_gold_label=self.args.val_using_cross_entropy
-    #             or self.args.meta_loss == "ce",
-    #             class_names=[],
-    #             num_support_samples=0,
-    #         )
-    #
-    #         # split
-    #         train_set_samples = task_samples[:num_train_samples, :]
-    #         train_set_lens = sample_lens[:num_train_samples]
-    #         train_set_encodings = task_logits[:num_train_samples, :]
-    #
-    #         dev_set_samples = task_samples[num_train_samples:, :]
-    #         dev_set_lens = sample_lens[num_train_samples:]
-    #         dev_set_encodings = task_logits[num_train_samples:, :]
-    #
-    #         x_train.append(train_set_samples)
-    #         len_train.append(train_set_lens)
-    #         y_train.append(train_set_encodings)
-    #
-    #         x_dev.append(dev_set_samples)
-    #         len_dev.append(dev_set_lens)
-    #         y_dev.append(dev_set_encodings)
-    #
-    #     x_train = [y.squeeze() for x in x_train for y in x.split(1)]
-    #     x_train, _ = stack_and_pad_tensors(
-    #         x_train, padding_index=self.tokenizer.pad_token_id
-    #     )
-    #     len_train = torch.cat(len_train)
-    #     y_train = torch.cat(y_train)
-    #
-    #     x_dev = [y.squeeze() for x in x_dev for y in x.split(1)]
-    #     len_dev = torch.cat(len_dev)
-    #     x_dev, _ = stack_and_pad_tensors(
-    #         x_dev, padding_index=self.tokenizer.pad_token_id
-    #     )
-    #     y_dev = torch.cat(y_dev)
-    #
-    #     return (
-    #         x_train,
-    #         len_train,
-    #         y_train,
-    #         x_dev,
-    #         len_dev,
-    #         y_dev,
-    #         seed,
-    #     )
-
 
     def get_num_samples_and_classes(self, num_available_classes, rng):
 
@@ -685,74 +577,6 @@ class DistilDataLoader(DataLoader):
                 num_samples = 1
 
         return num_classes, num_samples
-
-    def get_set_test(self, dataset_name, seed):
-
-        selected_classes = ["ar"]
-        is_gold_label = False
-
-        x_samples = []
-        x_sample_lens = []
-        teacher_encodings = []
-
-        choose_samples_list_all = []
-        for class_entry in selected_classes:
-            print()
-            selected_tasks = ["main_contents", "context_informing_contents", "additional_supportive_contents"]
-            random_label_ix = [class2id[c] for c in selected_tasks]
-
-            for task_entry, label_ix in zip(selected_tasks, random_label_ix):
-
-                choose_samples_list = self.datasets[dataset_name][class_entry][task_entry]
-
-                choose_samples_list_all.extend(choose_samples_list)
-
-        class_samples, sample_lens, class_encodings = self.get_class_samples(
-            choose_samples_list_all,
-            None,
-            None,
-            is_gold_label,
-            None,
-            None,
-        )
-
-        x_samples = class_samples
-        x_sample_lens = sample_lens
-
-        class_encodings, _ = stack_and_pad_tensors(class_encodings)
-        teacher_encodings = class_encodings
-
-        # x_samples = [x.permute(1, 0) for x in x_samples]
-        #
-        # x_samples, _ = stack_and_pad_tensors(
-        #     x_samples, padding_index=self.tokenizer.pad_token_id
-        # )
-
-        # x_samples = x_samples.permute(0, 2, 1)
-        # teacher_encodings = torch.stack(teacher_encodings)
-        # x_sample_lens = torch.stack(x_sample_lens)
-
-        # will not split into support and query
-        res = {}
-
-        res.update(
-            {
-                SUPPORT_SET_SAMPLES_KEY: x_samples,
-                SUPPORT_SET_LENS_KEY: x_sample_lens,
-                SUPPORT_SET_ENCODINGS_KEY: teacher_encodings
-            }
-        )
-        return res
-
-    # x_samples = [x.permute(1, 0) for x in x_samples]
-    # x_samples, _ = stack_and_pad_tensors(
-    #     x_samples, padding_index=self.tokenizer.pad_token_id
-    # )
-    #
-    # x_samples = x_samples.permute(0, 2, 1)
-    # teacher_encodings = torch.stack(teacher_encodings)
-    # x_sample_lens = torch.stack(x_sample_lens)
-
 
     def get_set(self, dataset_name, seed):
         """
@@ -1060,17 +884,9 @@ class DistilDataLoader(DataLoader):
         self.seed[dataset_name] = seed
 
     def __getitem__(self, idx):
-        # if self.current_set_name != "test":
-
         return self.get_set(
                 self.current_set_name, seed=self.seed[self.current_set_name] + idx
         )
-
-        # else:
-        #     return self.get_set_test( # Hiyam
-        #         self.current_set_name, seed=self.seed[self.current_set_name] + idx
-        #     )
-
 
     def reset_seed(self):
         self.seed = self.init_seed

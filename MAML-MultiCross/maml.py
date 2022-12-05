@@ -145,14 +145,14 @@ class MAMLFewShotClassifier(FewShotClassifier):
             args.convex_feature_space_loss_nr_steps
         )
 
-        print("Inner Loop parameters")
-        for key, value in self.inner_loop_optimizer.named_parameters():
-            print(key, value.shape)
-
-        print("Outer Loop parameters")
-        for name, param in self.named_parameters():
-            if param.requires_grad:
-                print(name, param.shape, param.device, param.requires_grad)
+        # print("Inner Loop parameters")
+        # for key, value in self.inner_loop_optimizer.named_parameters():
+        #     print(key, value.shape)
+        #
+        # print("Outer Loop parameters")
+        # for name, param in self.named_parameters():
+        #     if param.requires_grad:
+        #         print(name, param.shape, param.device, param.requires_grad)
 
         self.optimizer = Ranger(
             [

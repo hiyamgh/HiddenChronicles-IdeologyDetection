@@ -237,6 +237,11 @@ class ExperimentBuilder(object):
                 model_name="train_model",
                 model_idx="best",
             )
+            # self.model.load_model(
+            #     model_save_dir=self.saved_models_filepath,
+            #     model_name="train_model",
+            #     model_idx="latest",
+            # )
 
             self.data.dataset.switch_set(set_name) # add this
 
@@ -306,79 +311,6 @@ class ExperimentBuilder(object):
 
         return result
 
-
-    # def full_task_set_evaluation(self, epoch, set_name="val", **kwargs):
-    #
-    #     if set_name == "test":
-    #         print("Loading best model for evaluation..")
-    #         self.model.load_model(
-    #             model_save_dir=self.saved_models_filepath,
-    #             model_name="train_model",
-    #             model_idx="best",
-    #         )
-    #
-    #     set_meta_loss_back = False
-    #     if self.model.meta_loss.lower() == "kl" and self.args.val_using_cross_entropy:
-    #         # Use cross entropy on gold labels as no teacher encoding is available
-    #         self.model.meta_loss = "ce"
-    #         set_meta_loss_back = True
-    #     # list sets in dev set
-    #     val_tasks = list(self.data.dataset.task_set_sizes[set_name].keys())
-    #     # generate seeds
-    #     seeds = [42 + i for i in range(self.args.num_evaluation_seeds)]
-    #
-    #     per_val_set_performance = {k: [] for k in val_tasks}
-    #     # perform finetuning and evaluation
-    #     result = {}
-    #     losses = []
-    #     accuracies = []
-    #     saved_already = False
-    #     for task_name in val_tasks:
-    #         for seed in seeds:
-    #             print("Evaluating {} with seed {}...".format(task_name, seed))
-    #             res = self.data.get_finetune_dataloaders(task_name, 0, seed)
-    #             train_dataloader = res.pop(TRAIN_DATALOADER_KEY)
-    #             dev_dataloader = res.pop(DEV_DATALOADER_KEY)
-    #
-    #             _, best_loss, curr_loss, accuracy = self.model.finetune_epoch(
-    #                 None,
-    #                 self.model.bert_config,
-    #                 train_dataloader,
-    #                 dev_dataloader,
-    #                 task_name=task_name,
-    #                 epoch=epoch,
-    #                 eval_every=1,
-    #                 model_save_dir=self.saved_models_filepath,
-    #                 best_loss=0,
-    #                 **res
-    #             )
-    #
-    #             per_val_set_performance[task_name].append(accuracy)
-    #             accuracies.append(accuracy)
-    #             losses.append(curr_loss)
-    #         # Store and compare performance per validation task
-    #         avg_accuracy = np.mean(per_val_set_performance[task_name])
-    #         if avg_accuracy > self.per_task_performance[task_name]:
-    #             print("New best performance for task", task_name)
-    #             self.per_task_performance[task_name] = avg_accuracy
-    #             self.state["best_epoch_{}".format(task_name)] = int(
-    #                 self.state["current_iter"] / self.args.total_iter_per_epoch
-    #             )
-    #
-    #     result["{}_accuracy_mean".format(set_name)] = np.mean(accuracies)
-    #     result["{}_accuracy_std".format(set_name)] = np.std(accuracies)
-    #     for k in losses[0].keys():
-    #         result["{}_{}_mean".format(set_name, k)] = np.mean(
-    #             [loss[k] for loss in losses]
-    #         )
-    #         result["{}_{}_std".format(set_name, k)] = np.std(
-    #             [loss[k] for loss in losses]
-    #         )
-    #
-    #     if set_meta_loss_back:
-    #         self.model.meta_loss = "kl"
-    #
-    #     return result
 
     def evaluation_iteration(self, val_sample, total_losses, pbar_val, phase):
         """
@@ -466,6 +398,14 @@ class ExperimentBuilder(object):
                 ),
                 state=state,
             )
+
+        # add saving a model for every epoch
+        model.save_model(
+            model_save_dir=os.path.join(
+                self.saved_models_filepath, "train_model_{}".format(epoch)
+            ),
+            state=state,
+        )
 
         model.save_model(
             model_save_dir=os.path.join(

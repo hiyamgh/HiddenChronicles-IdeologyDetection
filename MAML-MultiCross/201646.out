@@ -1,0 +1,1555 @@
+nvcc: NVIDIA (R) Cuda compiler driver
+Copyright (c) 2005-2020 NVIDIA Corporation
+Built on Mon_Oct_12_20:09:46_PDT_2020
+Cuda compilation tools, release 11.1, V11.1.105
+Build cuda_11.1.TC455_06.29190527_0
+----------------------------------
+Mon Dec  5 07:58:10 2022       
++-----------------------------------------------------------------------------+
+| NVIDIA-SMI 460.32.03    Driver Version: 460.32.03    CUDA Version: 11.2     |
+|-------------------------------+----------------------+----------------------+
+| GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
+|                               |                      |               MIG M. |
+|===============================+======================+======================|
+|   0  Tesla V100-SXM2...  Off  | 00000000:3A:00.0 Off |                    0 |
+| N/A   35C    P0    54W / 300W |      0MiB / 32510MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+                                                                               
++-----------------------------------------------------------------------------+
+| Processes:                                                                  |
+|  GPU   GI   CI        PID   Type   Process name                  GPU Memory |
+|        ID   ID                                                   Usage      |
+|=============================================================================|
+|  No running processes found                                                 |
++-----------------------------------------------------------------------------+
+batch_size 4 <class 'int'>
+train_datasets_ids 11,12 <class 'str'>
+dev_dataset_id 3 <class 'str'>
+test_dataset_id 14 <class 'str'>
+reset_stored_filepaths False <class 'bool'>
+num_of_gpus 1 <class 'int'>
+indexes_of_folders_indicating_class [-2, -3] <class 'list'>
+train_val_test_split [0.73982737361, 0.26, 0.13008631319] <class 'list'>
+samples_per_iter 1 <class 'int'>
+seed 104 <class 'int'>
+gpu_to_use 0 <class 'int'>
+num_dataprovider_workers 4 <class 'int'>
+dataset_name omniglot_dataset <class 'str'>
+dataset_path /home/mrvoh/Desktop/datasets/multi_task_class_descr/datasets/omniglot_dataset
+dataset_path /home/mrvoh/Desktop/datasets/multi_task_class_descr/datasets/omniglot_dataset <class 'str'>
+pretrained_weights bert-base-multilingual-cased <class 'str'>
+reset_stored_paths False <class 'bool'>
+experiment_name all_experiments-threewayprotomaml/1/ <class 'str'>
+continue_from_epoch latest <class 'str'>
+num_target_samples 32 <class 'int'>
+second_order False <class 'bool'>
+first_order_to_second_order_epoch 50 <class 'int'>
+total_epochs 100 <class 'int'>
+total_iter_per_epoch 100 <class 'int'>
+total_epochs_before_pause 50 <class 'int'>
+per_step_layer_norm_weights True <class 'bool'>
+evalute_on_test_set_only False <class 'bool'>
+num_evaluation_tasks 50 <class 'int'>
+
+learnable_per_layer_per_step_inner_loop_learning_rate True <class 'bool'>
+enable_inner_loop_optimizable_ln_params None <class 'NoneType'>
+init_inner_loop_learning_rate 5e-05 <class 'float'>
+min_learning_rate 1e-06 <class 'float'>
+meta_learning_rate 3e-05 <class 'float'>
+meta_inner_optimizer_learning_rate 6e-05 <class 'float'>
+num_classes_per_set 3 <class 'int'>
+number_of_training_steps_per_iter 5 <class 'int'>
+number_of_evaluation_steps_per_iter 1 <class 'int'>
+num_samples_per_class 32 <class 'int'>
+eval_using_full_task_set True <class 'bool'>
+split_support_and_query True <class 'bool'>
+sample_task_to_size_ratio False <class 'bool'>
+enable_inner_loop_optimizable_bn_params True <class 'bool'>
+shuffle_labels True <class 'bool'>
+num_evaluation_seeds 5 <class 'int'>
+meta_update_method threewayprotomaml <class 'str'>
+init_class_head_lr_multiplier 10 <class 'int'>
+gold_label_task_sample_ratio 0 <class 'int'>
+num_freeze_epochs 0 <class 'int'>
+patience 10 <class 'int'>
+train_seed 42 <class 'int'>
+val_seed 0 <class 'int'>
+evaluate_on_test_set_only False <class 'bool'>
+num_start_epochs 0 <class 'int'>
+protomaml_do_centralize True <class 'bool'>
+val_using_cross_entropy False <class 'bool'>
+temperature 1 <class 'int'>
+meta_loss ce <class 'str'>
+gold_label_tasks [] <class 'list'>
+scale_losses False <class 'bool'>
+use_swa False <class 'bool'>
+num_swa 5 <class 'int'>
+use_majority_vote False <class 'bool'>
+num_majority_votes 5 <class 'int'>
+majority_vote_at_test_only False <class 'bool'>
+use_label_guided_learning False <class 'bool'>
+use_uncertainty_task_weighting False <class 'bool'>
+use_triplet_loss False <class 'bool'>
+triplet_loss_in_inner_loop False <class 'bool'>
+use_cosine_distance False <class 'bool'>
+triplet_loss_margin 0.5 <class 'float'>
+triplet_loss_lambda 1.0 <class 'float'>
+use_consistency_loss False <class 'bool'>
+use_multilingual_consistency_loss False <class 'bool'>
+consistency_loss_lambda 1.0 <class 'float'>
+consistency_loss_beta 1.0 <class 'float'>
+use_convex_feature_space_loss False <class 'bool'>
+convex_feature_space_loss_in_inner_loop False <class 'bool'>
+convex_feature_space_loss_lambda 1.0 <class 'float'>
+convex_feature_space_loss_nr_steps 10 <class 'int'>
+use_adapter False <class 'bool'>
+proportion_intra_task_sampling 0.85 <class 'float'>
+variable_nr_classes_and_samples False <class 'bool'>
+finetune_task_name val/RCV2_ja_gt <class 'str'>
+num_finetune_epochs 1 <class 'int'>
+eval_every_finetune 1 <class 'int'>
+finetune_base_model False <class 'bool'>
+percentage_train_finetune 0.95 <class 'float'>
+factory_finetune False <class 'bool'>
+finetune_on_cpu False <class 'bool'>
+factory_finetune_tasks_path finetune_tasks.txt <class 'str'>
+finetune_out_path finetune_log_old.json <class 'str'>
+bootstrap_finetune False <class 'bool'>
+num_bootstrap_seeds 5 <class 'int'>
+device: %s cuda
+Warning! Parameter classifier.dense.weight not loaded from pre-trained checkpoint.
+Warning! Parameter classifier.dense.bias not loaded from pre-trained checkpoint.
+Warning! Parameter classifier.out_proj.weight not loaded from pre-trained checkpoint.
+Warning! Parameter classifier.out_proj.bias not loaded from pre-trained checkpoint.
+5e-05
+Ranger optimizer loaded. 
+Gradient Centralization usage = True
+GC applied to both conv and fc layers
+Doubling the amount of samples in the support set to split prototype creation and fast adapation...
+attempting to find existing checkpoint
+data {'train': 6, 'val': 3, 'test': 3}
+train_seed 121959, val_seed: 985773, at start time
+6100 10000
+self.epoch chosen to evaluate on testing set: 61
+Loading best model for evaluation..
+Evaluating ar_test with seed 42...
+Evaluating model...
+Accuracy 0.6309523809523809
+Accuracy: 0.52381
+Precision: 0.47507
+Recall: 0.36343
+F1: 0.40265
+Evaluating ar_test with seed 43...
+Evaluating model...
+Accuracy 0.6071428571428571
+Accuracy: 0.51190
+Precision: 0.44286
+Recall: 0.34722
+F1: 0.38883
+Evaluating ar_test with seed 44...
+Evaluating model...
+Accuracy 0.5476190476190477
+Accuracy: 0.38095
+Precision: 0.39560
+Recall: 0.25926
+F1: 0.31239
+Evaluating ar_test with seed 45...
+Evaluating model...
+Accuracy 0.5714285714285714
+Accuracy: 0.48810
+Precision: 0.44061
+Recall: 0.33565
+F1: 0.37706
+Evaluating ar_test with seed 46...
+Evaluating model...
+Accuracy 0.6428571428571429
+Accuracy: 0.52381
+Precision: 0.49776
+Recall: 0.37037
+F1: 0.39549
+New best performance for task ar_test
+test_accuracy_mean: 0.60000
+test_accuracy_std: 0.03579
+test_loss_mean: 1.25853
+test_loss_std: 0.29525
+test_ce_loss_mean: 1.25853
+test_ce_loss_std: 0.29525
+----------------------------------
+batch_size 4 <class 'int'>
+train_datasets_ids 11,12 <class 'str'>
+dev_dataset_id 3 <class 'str'>
+test_dataset_id 14 <class 'str'>
+reset_stored_filepaths False <class 'bool'>
+num_of_gpus 1 <class 'int'>
+indexes_of_folders_indicating_class [-2, -3] <class 'list'>
+train_val_test_split [0.73982737361, 0.26, 0.13008631319] <class 'list'>
+samples_per_iter 1 <class 'int'>
+seed 104 <class 'int'>
+gpu_to_use 0 <class 'int'>
+num_dataprovider_workers 4 <class 'int'>
+dataset_name omniglot_dataset <class 'str'>
+dataset_path /home/mrvoh/Desktop/datasets/multi_task_class_descr/datasets/omniglot_dataset
+dataset_path /home/mrvoh/Desktop/datasets/multi_task_class_descr/datasets/omniglot_dataset <class 'str'>
+pretrained_weights bert-base-multilingual-cased <class 'str'>
+reset_stored_paths False <class 'bool'>
+experiment_name all_experiments-threewayprotomaml/2/ <class 'str'>
+continue_from_epoch latest <class 'str'>
+num_target_samples 32 <class 'int'>
+second_order False <class 'bool'>
+first_order_to_second_order_epoch 50 <class 'int'>
+total_epochs 100 <class 'int'>
+total_iter_per_epoch 100 <class 'int'>
+total_epochs_before_pause 50 <class 'int'>
+per_step_layer_norm_weights True <class 'bool'>
+evalute_on_test_set_only False <class 'bool'>
+num_evaluation_tasks 50 <class 'int'>
+
+learnable_per_layer_per_step_inner_loop_learning_rate True <class 'bool'>
+enable_inner_loop_optimizable_ln_params None <class 'NoneType'>
+init_inner_loop_learning_rate 5e-05 <class 'float'>
+min_learning_rate 1e-06 <class 'float'>
+meta_learning_rate 3e-05 <class 'float'>
+meta_inner_optimizer_learning_rate 6e-05 <class 'float'>
+num_classes_per_set 3 <class 'int'>
+number_of_training_steps_per_iter 5 <class 'int'>
+number_of_evaluation_steps_per_iter 1 <class 'int'>
+num_samples_per_class 32 <class 'int'>
+eval_using_full_task_set True <class 'bool'>
+split_support_and_query True <class 'bool'>
+sample_task_to_size_ratio False <class 'bool'>
+enable_inner_loop_optimizable_bn_params True <class 'bool'>
+shuffle_labels True <class 'bool'>
+num_evaluation_seeds 5 <class 'int'>
+meta_update_method threewayprotomaml <class 'str'>
+init_class_head_lr_multiplier 10 <class 'int'>
+gold_label_task_sample_ratio 0 <class 'int'>
+num_freeze_epochs 0 <class 'int'>
+patience 10 <class 'int'>
+train_seed 42 <class 'int'>
+val_seed 0 <class 'int'>
+evaluate_on_test_set_only False <class 'bool'>
+num_start_epochs 0 <class 'int'>
+protomaml_do_centralize True <class 'bool'>
+val_using_cross_entropy False <class 'bool'>
+temperature 1 <class 'int'>
+meta_loss ce <class 'str'>
+gold_label_tasks [] <class 'list'>
+scale_losses False <class 'bool'>
+use_swa False <class 'bool'>
+num_swa 5 <class 'int'>
+use_majority_vote False <class 'bool'>
+num_majority_votes 5 <class 'int'>
+majority_vote_at_test_only False <class 'bool'>
+use_label_guided_learning False <class 'bool'>
+use_uncertainty_task_weighting False <class 'bool'>
+use_triplet_loss False <class 'bool'>
+triplet_loss_in_inner_loop False <class 'bool'>
+use_cosine_distance False <class 'bool'>
+triplet_loss_margin 0.5 <class 'float'>
+triplet_loss_lambda 1.0 <class 'float'>
+use_consistency_loss False <class 'bool'>
+use_multilingual_consistency_loss False <class 'bool'>
+consistency_loss_lambda 1.0 <class 'float'>
+consistency_loss_beta 1.0 <class 'float'>
+use_convex_feature_space_loss False <class 'bool'>
+convex_feature_space_loss_in_inner_loop False <class 'bool'>
+convex_feature_space_loss_lambda 1.0 <class 'float'>
+convex_feature_space_loss_nr_steps 10 <class 'int'>
+use_adapter False <class 'bool'>
+proportion_intra_task_sampling 0.85 <class 'float'>
+variable_nr_classes_and_samples False <class 'bool'>
+finetune_task_name val/RCV2_ja_gt <class 'str'>
+num_finetune_epochs 1 <class 'int'>
+eval_every_finetune 1 <class 'int'>
+finetune_base_model False <class 'bool'>
+percentage_train_finetune 0.95 <class 'float'>
+factory_finetune False <class 'bool'>
+finetune_on_cpu False <class 'bool'>
+factory_finetune_tasks_path finetune_tasks.txt <class 'str'>
+finetune_out_path finetune_log_old.json <class 'str'>
+bootstrap_finetune False <class 'bool'>
+num_bootstrap_seeds 5 <class 'int'>
+device: %s cuda
+Warning! Parameter classifier.dense.weight not loaded from pre-trained checkpoint.
+Warning! Parameter classifier.dense.bias not loaded from pre-trained checkpoint.
+Warning! Parameter classifier.out_proj.weight not loaded from pre-trained checkpoint.
+Warning! Parameter classifier.out_proj.bias not loaded from pre-trained checkpoint.
+5e-05
+Ranger optimizer loaded. 
+Gradient Centralization usage = True
+GC applied to both conv and fc layers
+Doubling the amount of samples in the support set to split prototype creation and fast adapation...
+attempting to find existing checkpoint
+data {'train': 6, 'val': 3, 'test': 3}
+train_seed 121959, val_seed: 985773, at start time
+6100 10000
+self.epoch chosen to evaluate on testing set: 61
+Loading best model for evaluation..
+Evaluating ar_test with seed 42...
+Evaluating model...
+Accuracy 0.4880952380952381
+Accuracy: 0.48810
+Precision: 0.38522
+Recall: 0.32639
+F1: 0.35335
+Evaluating ar_test with seed 43...
+Evaluating model...
+Accuracy 0.5714285714285714
+Accuracy: 0.42857
+Precision: 0.41379
+Recall: 0.29630
+F1: 0.34366
+Evaluating ar_test with seed 44...
+Evaluating model...
+Accuracy 0.5952380952380952
+Accuracy: 0.61905
+Precision: 0.44518
+Recall: 0.41898
+F1: 0.42860
+Evaluating ar_test with seed 45...
+Evaluating model...
+Accuracy 0.5833333333333334
+Accuracy: 0.45238
+Precision: 0.43559
+Recall: 0.30093
+F1: 0.35539
+Evaluating ar_test with seed 46...
+Evaluating model...
+Accuracy 0.5476190476190477
+Accuracy: 0.44048
+Precision: 0.36540
+Recall: 0.29167
+F1: 0.32439
+New best performance for task ar_test
+test_accuracy_mean: 0.55714
+test_accuracy_std: 0.03795
+test_loss_mean: 1.53809
+test_loss_std: 0.16739
+test_ce_loss_mean: 1.53809
+test_ce_loss_std: 0.16739
+----------------------------------
+batch_size 4 <class 'int'>
+train_datasets_ids 11,12 <class 'str'>
+dev_dataset_id 3 <class 'str'>
+test_dataset_id 14 <class 'str'>
+reset_stored_filepaths False <class 'bool'>
+num_of_gpus 1 <class 'int'>
+indexes_of_folders_indicating_class [-2, -3] <class 'list'>
+train_val_test_split [0.73982737361, 0.26, 0.13008631319] <class 'list'>
+samples_per_iter 1 <class 'int'>
+seed 104 <class 'int'>
+gpu_to_use 0 <class 'int'>
+num_dataprovider_workers 4 <class 'int'>
+dataset_name omniglot_dataset <class 'str'>
+dataset_path /home/mrvoh/Desktop/datasets/multi_task_class_descr/datasets/omniglot_dataset
+dataset_path /home/mrvoh/Desktop/datasets/multi_task_class_descr/datasets/omniglot_dataset <class 'str'>
+pretrained_weights bert-base-multilingual-cased <class 'str'>
+reset_stored_paths False <class 'bool'>
+experiment_name all_experiments-threewayprotomaml/3/ <class 'str'>
+continue_from_epoch latest <class 'str'>
+num_target_samples 32 <class 'int'>
+second_order False <class 'bool'>
+first_order_to_second_order_epoch 50 <class 'int'>
+total_epochs 100 <class 'int'>
+total_iter_per_epoch 100 <class 'int'>
+total_epochs_before_pause 50 <class 'int'>
+per_step_layer_norm_weights True <class 'bool'>
+evalute_on_test_set_only False <class 'bool'>
+num_evaluation_tasks 50 <class 'int'>
+
+learnable_per_layer_per_step_inner_loop_learning_rate True <class 'bool'>
+enable_inner_loop_optimizable_ln_params None <class 'NoneType'>
+init_inner_loop_learning_rate 5e-05 <class 'float'>
+min_learning_rate 1e-06 <class 'float'>
+meta_learning_rate 3e-05 <class 'float'>
+meta_inner_optimizer_learning_rate 6e-05 <class 'float'>
+num_classes_per_set 3 <class 'int'>
+number_of_training_steps_per_iter 5 <class 'int'>
+number_of_evaluation_steps_per_iter 1 <class 'int'>
+num_samples_per_class 32 <class 'int'>
+eval_using_full_task_set True <class 'bool'>
+split_support_and_query True <class 'bool'>
+sample_task_to_size_ratio False <class 'bool'>
+enable_inner_loop_optimizable_bn_params True <class 'bool'>
+shuffle_labels True <class 'bool'>
+num_evaluation_seeds 5 <class 'int'>
+meta_update_method threewayprotomaml <class 'str'>
+init_class_head_lr_multiplier 10 <class 'int'>
+gold_label_task_sample_ratio 0 <class 'int'>
+num_freeze_epochs 0 <class 'int'>
+patience 10 <class 'int'>
+train_seed 42 <class 'int'>
+val_seed 0 <class 'int'>
+evaluate_on_test_set_only False <class 'bool'>
+num_start_epochs 0 <class 'int'>
+protomaml_do_centralize True <class 'bool'>
+val_using_cross_entropy False <class 'bool'>
+temperature 1 <class 'int'>
+meta_loss ce <class 'str'>
+gold_label_tasks [] <class 'list'>
+scale_losses False <class 'bool'>
+use_swa False <class 'bool'>
+num_swa 5 <class 'int'>
+use_majority_vote False <class 'bool'>
+num_majority_votes 5 <class 'int'>
+majority_vote_at_test_only False <class 'bool'>
+use_label_guided_learning False <class 'bool'>
+use_uncertainty_task_weighting False <class 'bool'>
+use_triplet_loss False <class 'bool'>
+triplet_loss_in_inner_loop False <class 'bool'>
+use_cosine_distance False <class 'bool'>
+triplet_loss_margin 0.5 <class 'float'>
+triplet_loss_lambda 1.0 <class 'float'>
+use_consistency_loss False <class 'bool'>
+use_multilingual_consistency_loss False <class 'bool'>
+consistency_loss_lambda 1.0 <class 'float'>
+consistency_loss_beta 1.0 <class 'float'>
+use_convex_feature_space_loss False <class 'bool'>
+convex_feature_space_loss_in_inner_loop False <class 'bool'>
+convex_feature_space_loss_lambda 1.0 <class 'float'>
+convex_feature_space_loss_nr_steps 10 <class 'int'>
+use_adapter False <class 'bool'>
+proportion_intra_task_sampling 0.85 <class 'float'>
+variable_nr_classes_and_samples False <class 'bool'>
+finetune_task_name val/RCV2_ja_gt <class 'str'>
+num_finetune_epochs 1 <class 'int'>
+eval_every_finetune 1 <class 'int'>
+finetune_base_model False <class 'bool'>
+percentage_train_finetune 0.95 <class 'float'>
+factory_finetune False <class 'bool'>
+finetune_on_cpu False <class 'bool'>
+factory_finetune_tasks_path finetune_tasks.txt <class 'str'>
+finetune_out_path finetune_log_old.json <class 'str'>
+bootstrap_finetune False <class 'bool'>
+num_bootstrap_seeds 5 <class 'int'>
+device: %s cuda
+Warning! Parameter classifier.dense.weight not loaded from pre-trained checkpoint.
+Warning! Parameter classifier.dense.bias not loaded from pre-trained checkpoint.
+Warning! Parameter classifier.out_proj.weight not loaded from pre-trained checkpoint.
+Warning! Parameter classifier.out_proj.bias not loaded from pre-trained checkpoint.
+5e-05
+Ranger optimizer loaded. 
+Gradient Centralization usage = True
+GC applied to both conv and fc layers
+Doubling the amount of samples in the support set to split prototype creation and fast adapation...
+attempting to find existing checkpoint
+data {'train': 6, 'val': 3, 'test': 3}
+train_seed 121959, val_seed: 985773, at start time
+6100 10000
+self.epoch chosen to evaluate on testing set: 61
+Loading best model for evaluation..
+Evaluating ar_test with seed 42...
+Evaluating model...
+Accuracy 0.5476190476190477
+Accuracy: 0.53571
+Precision: 0.45798
+Recall: 0.34491
+F1: 0.37951
+Evaluating ar_test with seed 43...
+Evaluating model...
+Accuracy 0.5595238095238095
+Accuracy: 0.50000
+Precision: 0.48571
+Recall: 0.31944
+F1: 0.36408
+Evaluating ar_test with seed 44...
+Evaluating model...
+Accuracy 0.5952380952380952
+Accuracy: 0.48810
+Precision: 0.42717
+Recall: 0.33333
+F1: 0.37167
+Evaluating ar_test with seed 45...
+Evaluating model...
+Accuracy 0.5714285714285714
+Accuracy: 0.47619
+Precision: 0.38801
+Recall: 0.31481
+F1: 0.34709
+Evaluating ar_test with seed 46...
+Evaluating model...
+Accuracy 0.5595238095238095
+Accuracy: 0.44048
+Precision: 0.36343
+Recall: 0.29861
+F1: 0.32726
+New best performance for task ar_test
+test_accuracy_mean: 0.56667
+test_accuracy_std: 0.01615
+test_loss_mean: 1.45180
+test_loss_std: 0.24417
+test_ce_loss_mean: 1.45180
+test_ce_loss_std: 0.24417
+----------------------------------
+batch_size 4 <class 'int'>
+train_datasets_ids 11,12 <class 'str'>
+dev_dataset_id 3 <class 'str'>
+test_dataset_id 14 <class 'str'>
+reset_stored_filepaths False <class 'bool'>
+num_of_gpus 1 <class 'int'>
+indexes_of_folders_indicating_class [-2, -3] <class 'list'>
+train_val_test_split [0.73982737361, 0.26, 0.13008631319] <class 'list'>
+samples_per_iter 1 <class 'int'>
+seed 104 <class 'int'>
+gpu_to_use 0 <class 'int'>
+num_dataprovider_workers 4 <class 'int'>
+dataset_name omniglot_dataset <class 'str'>
+dataset_path /home/mrvoh/Desktop/datasets/multi_task_class_descr/datasets/omniglot_dataset
+dataset_path /home/mrvoh/Desktop/datasets/multi_task_class_descr/datasets/omniglot_dataset <class 'str'>
+pretrained_weights bert-base-multilingual-cased <class 'str'>
+reset_stored_paths False <class 'bool'>
+experiment_name all_experiments-threewayprotomaml/4/ <class 'str'>
+continue_from_epoch latest <class 'str'>
+num_target_samples 32 <class 'int'>
+second_order False <class 'bool'>
+first_order_to_second_order_epoch 50 <class 'int'>
+total_epochs 100 <class 'int'>
+total_iter_per_epoch 100 <class 'int'>
+total_epochs_before_pause 50 <class 'int'>
+per_step_layer_norm_weights True <class 'bool'>
+evalute_on_test_set_only False <class 'bool'>
+num_evaluation_tasks 50 <class 'int'>
+
+learnable_per_layer_per_step_inner_loop_learning_rate True <class 'bool'>
+enable_inner_loop_optimizable_ln_params None <class 'NoneType'>
+init_inner_loop_learning_rate 5e-05 <class 'float'>
+min_learning_rate 1e-06 <class 'float'>
+meta_learning_rate 3e-05 <class 'float'>
+meta_inner_optimizer_learning_rate 6e-05 <class 'float'>
+num_classes_per_set 3 <class 'int'>
+number_of_training_steps_per_iter 5 <class 'int'>
+number_of_evaluation_steps_per_iter 1 <class 'int'>
+num_samples_per_class 32 <class 'int'>
+eval_using_full_task_set True <class 'bool'>
+split_support_and_query True <class 'bool'>
+sample_task_to_size_ratio False <class 'bool'>
+enable_inner_loop_optimizable_bn_params True <class 'bool'>
+shuffle_labels True <class 'bool'>
+num_evaluation_seeds 5 <class 'int'>
+meta_update_method threewayprotomaml <class 'str'>
+init_class_head_lr_multiplier 10 <class 'int'>
+gold_label_task_sample_ratio 0 <class 'int'>
+num_freeze_epochs 0 <class 'int'>
+patience 10 <class 'int'>
+train_seed 42 <class 'int'>
+val_seed 0 <class 'int'>
+evaluate_on_test_set_only False <class 'bool'>
+num_start_epochs 0 <class 'int'>
+protomaml_do_centralize True <class 'bool'>
+val_using_cross_entropy False <class 'bool'>
+temperature 1 <class 'int'>
+meta_loss ce <class 'str'>
+gold_label_tasks [] <class 'list'>
+scale_losses False <class 'bool'>
+use_swa False <class 'bool'>
+num_swa 5 <class 'int'>
+use_majority_vote False <class 'bool'>
+num_majority_votes 5 <class 'int'>
+majority_vote_at_test_only False <class 'bool'>
+use_label_guided_learning False <class 'bool'>
+use_uncertainty_task_weighting False <class 'bool'>
+use_triplet_loss False <class 'bool'>
+triplet_loss_in_inner_loop False <class 'bool'>
+use_cosine_distance False <class 'bool'>
+triplet_loss_margin 0.5 <class 'float'>
+triplet_loss_lambda 1.0 <class 'float'>
+use_consistency_loss False <class 'bool'>
+use_multilingual_consistency_loss False <class 'bool'>
+consistency_loss_lambda 1.0 <class 'float'>
+consistency_loss_beta 1.0 <class 'float'>
+use_convex_feature_space_loss False <class 'bool'>
+convex_feature_space_loss_in_inner_loop False <class 'bool'>
+convex_feature_space_loss_lambda 1.0 <class 'float'>
+convex_feature_space_loss_nr_steps 10 <class 'int'>
+use_adapter False <class 'bool'>
+proportion_intra_task_sampling 0.85 <class 'float'>
+variable_nr_classes_and_samples False <class 'bool'>
+finetune_task_name val/RCV2_ja_gt <class 'str'>
+num_finetune_epochs 1 <class 'int'>
+eval_every_finetune 1 <class 'int'>
+finetune_base_model False <class 'bool'>
+percentage_train_finetune 0.95 <class 'float'>
+factory_finetune False <class 'bool'>
+finetune_on_cpu False <class 'bool'>
+factory_finetune_tasks_path finetune_tasks.txt <class 'str'>
+finetune_out_path finetune_log_old.json <class 'str'>
+bootstrap_finetune False <class 'bool'>
+num_bootstrap_seeds 5 <class 'int'>
+device: %s cuda
+Warning! Parameter classifier.dense.weight not loaded from pre-trained checkpoint.
+Warning! Parameter classifier.dense.bias not loaded from pre-trained checkpoint.
+Warning! Parameter classifier.out_proj.weight not loaded from pre-trained checkpoint.
+Warning! Parameter classifier.out_proj.bias not loaded from pre-trained checkpoint.
+5e-05
+Ranger optimizer loaded. 
+Gradient Centralization usage = True
+GC applied to both conv and fc layers
+Doubling the amount of samples in the support set to split prototype creation and fast adapation...
+attempting to find existing checkpoint
+data {'train': 6, 'val': 3, 'test': 3}
+train_seed 121959, val_seed: 985773, at start time
+6100 10000
+self.epoch chosen to evaluate on testing set: 61
+Loading best model for evaluation..
+Evaluating ar_test with seed 42...
+Evaluating model...
+Accuracy 0.5119047619047619
+Accuracy: 0.45238
+Precision: 0.41036
+Recall: 0.31019
+F1: 0.34837
+Evaluating ar_test with seed 43...
+Evaluating model...
+Accuracy 0.6190476190476191
+Accuracy: 0.45238
+Precision: 0.45299
+Recall: 0.30556
+F1: 0.36449
+Evaluating ar_test with seed 44...
+Evaluating model...
+Accuracy 0.5238095238095238
+Accuracy: 0.45238
+Precision: 0.42411
+Recall: 0.30787
+F1: 0.35625
+Evaluating ar_test with seed 45...
+Evaluating model...
+Accuracy 0.5238095238095238
+Accuracy: 0.42857
+Precision: 0.41859
+Recall: 0.28935
+F1: 0.34217
+Evaluating ar_test with seed 46...
+Evaluating model...
+Accuracy 0.5476190476190477
+Accuracy: 0.44048
+Precision: 0.41371
+Recall: 0.28009
+F1: 0.32019
+New best performance for task ar_test
+test_accuracy_mean: 0.54524
+test_accuracy_std: 0.03869
+test_loss_mean: 1.57291
+test_loss_std: 0.09302
+test_ce_loss_mean: 1.57291
+test_ce_loss_std: 0.09302
+----------------------------------
+batch_size 4 <class 'int'>
+train_datasets_ids 11,12 <class 'str'>
+dev_dataset_id 3 <class 'str'>
+test_dataset_id 14 <class 'str'>
+reset_stored_filepaths False <class 'bool'>
+num_of_gpus 1 <class 'int'>
+indexes_of_folders_indicating_class [-2, -3] <class 'list'>
+train_val_test_split [0.73982737361, 0.26, 0.13008631319] <class 'list'>
+samples_per_iter 1 <class 'int'>
+seed 104 <class 'int'>
+gpu_to_use 0 <class 'int'>
+num_dataprovider_workers 4 <class 'int'>
+dataset_name omniglot_dataset <class 'str'>
+dataset_path /home/mrvoh/Desktop/datasets/multi_task_class_descr/datasets/omniglot_dataset
+dataset_path /home/mrvoh/Desktop/datasets/multi_task_class_descr/datasets/omniglot_dataset <class 'str'>
+pretrained_weights bert-base-multilingual-cased <class 'str'>
+reset_stored_paths False <class 'bool'>
+experiment_name all_experiments-threewayprotomaml/5/ <class 'str'>
+continue_from_epoch latest <class 'str'>
+num_target_samples 32 <class 'int'>
+second_order False <class 'bool'>
+first_order_to_second_order_epoch 50 <class 'int'>
+total_epochs 100 <class 'int'>
+total_iter_per_epoch 100 <class 'int'>
+total_epochs_before_pause 50 <class 'int'>
+per_step_layer_norm_weights True <class 'bool'>
+evalute_on_test_set_only False <class 'bool'>
+num_evaluation_tasks 50 <class 'int'>
+
+learnable_per_layer_per_step_inner_loop_learning_rate True <class 'bool'>
+enable_inner_loop_optimizable_ln_params None <class 'NoneType'>
+init_inner_loop_learning_rate 5e-05 <class 'float'>
+min_learning_rate 1e-06 <class 'float'>
+meta_learning_rate 3e-05 <class 'float'>
+meta_inner_optimizer_learning_rate 6e-05 <class 'float'>
+num_classes_per_set 3 <class 'int'>
+number_of_training_steps_per_iter 5 <class 'int'>
+number_of_evaluation_steps_per_iter 1 <class 'int'>
+num_samples_per_class 32 <class 'int'>
+eval_using_full_task_set True <class 'bool'>
+split_support_and_query True <class 'bool'>
+sample_task_to_size_ratio False <class 'bool'>
+enable_inner_loop_optimizable_bn_params True <class 'bool'>
+shuffle_labels True <class 'bool'>
+num_evaluation_seeds 5 <class 'int'>
+meta_update_method threewayprotomaml <class 'str'>
+init_class_head_lr_multiplier 10 <class 'int'>
+gold_label_task_sample_ratio 0 <class 'int'>
+num_freeze_epochs 0 <class 'int'>
+patience 10 <class 'int'>
+train_seed 42 <class 'int'>
+val_seed 0 <class 'int'>
+evaluate_on_test_set_only False <class 'bool'>
+num_start_epochs 0 <class 'int'>
+protomaml_do_centralize True <class 'bool'>
+val_using_cross_entropy False <class 'bool'>
+temperature 1 <class 'int'>
+meta_loss ce <class 'str'>
+gold_label_tasks [] <class 'list'>
+scale_losses False <class 'bool'>
+use_swa False <class 'bool'>
+num_swa 5 <class 'int'>
+use_majority_vote False <class 'bool'>
+num_majority_votes 5 <class 'int'>
+majority_vote_at_test_only False <class 'bool'>
+use_label_guided_learning False <class 'bool'>
+use_uncertainty_task_weighting False <class 'bool'>
+use_triplet_loss False <class 'bool'>
+triplet_loss_in_inner_loop False <class 'bool'>
+use_cosine_distance False <class 'bool'>
+triplet_loss_margin 0.5 <class 'float'>
+triplet_loss_lambda 1.0 <class 'float'>
+use_consistency_loss False <class 'bool'>
+use_multilingual_consistency_loss False <class 'bool'>
+consistency_loss_lambda 1.0 <class 'float'>
+consistency_loss_beta 1.0 <class 'float'>
+use_convex_feature_space_loss False <class 'bool'>
+convex_feature_space_loss_in_inner_loop False <class 'bool'>
+convex_feature_space_loss_lambda 1.0 <class 'float'>
+convex_feature_space_loss_nr_steps 10 <class 'int'>
+use_adapter False <class 'bool'>
+proportion_intra_task_sampling 0.85 <class 'float'>
+variable_nr_classes_and_samples False <class 'bool'>
+finetune_task_name val/RCV2_ja_gt <class 'str'>
+num_finetune_epochs 1 <class 'int'>
+eval_every_finetune 1 <class 'int'>
+finetune_base_model False <class 'bool'>
+percentage_train_finetune 0.95 <class 'float'>
+factory_finetune False <class 'bool'>
+finetune_on_cpu False <class 'bool'>
+factory_finetune_tasks_path finetune_tasks.txt <class 'str'>
+finetune_out_path finetune_log_old.json <class 'str'>
+bootstrap_finetune False <class 'bool'>
+num_bootstrap_seeds 5 <class 'int'>
+device: %s cuda
+Warning! Parameter classifier.dense.weight not loaded from pre-trained checkpoint.
+Warning! Parameter classifier.dense.bias not loaded from pre-trained checkpoint.
+Warning! Parameter classifier.out_proj.weight not loaded from pre-trained checkpoint.
+Warning! Parameter classifier.out_proj.bias not loaded from pre-trained checkpoint.
+5e-05
+Ranger optimizer loaded. 
+Gradient Centralization usage = True
+GC applied to both conv and fc layers
+Doubling the amount of samples in the support set to split prototype creation and fast adapation...
+attempting to find existing checkpoint
+data {'train': 6, 'val': 3, 'test': 3}
+train_seed 121959, val_seed: 985773, at start time
+6100 10000
+self.epoch chosen to evaluate on testing set: 61
+Loading best model for evaluation..
+Evaluating ar_test with seed 42...
+Evaluating model...
+Accuracy 0.5357142857142857
+Accuracy: 0.48810
+Precision: 0.39540
+Recall: 0.32407
+F1: 0.35618
+Evaluating ar_test with seed 43...
+Evaluating model...
+Accuracy 0.5476190476190477
+Accuracy: 0.44048
+Precision: 0.44762
+Recall: 0.29167
+F1: 0.35215
+Evaluating ar_test with seed 44...
+Evaluating model...
+Accuracy 0.5357142857142857
+Accuracy: 0.54762
+Precision: 0.40278
+Recall: 0.36806
+F1: 0.38384
+Evaluating ar_test with seed 45...
+Evaluating model...
+Accuracy 0.5952380952380952
+Accuracy: 0.50000
+Precision: 0.46908
+Recall: 0.33565
+F1: 0.39129
+Evaluating ar_test with seed 46...
+Evaluating model...
+Accuracy 0.5238095238095238
+Accuracy: 0.47619
+Precision: 0.39970
+Recall: 0.32176
+F1: 0.35340
+New best performance for task ar_test
+test_accuracy_mean: 0.54762
+test_accuracy_std: 0.02497
+test_loss_mean: 1.53703
+test_loss_std: 0.25977
+test_ce_loss_mean: 1.53703
+test_ce_loss_std: 0.25977
+----------------------------------
+batch_size 4 <class 'int'>
+train_datasets_ids 11,12 <class 'str'>
+dev_dataset_id 3 <class 'str'>
+test_dataset_id 14 <class 'str'>
+reset_stored_filepaths False <class 'bool'>
+num_of_gpus 1 <class 'int'>
+indexes_of_folders_indicating_class [-2, -3] <class 'list'>
+train_val_test_split [0.73982737361, 0.26, 0.13008631319] <class 'list'>
+samples_per_iter 1 <class 'int'>
+seed 104 <class 'int'>
+gpu_to_use 0 <class 'int'>
+num_dataprovider_workers 4 <class 'int'>
+dataset_name omniglot_dataset <class 'str'>
+dataset_path /home/mrvoh/Desktop/datasets/multi_task_class_descr/datasets/omniglot_dataset
+dataset_path /home/mrvoh/Desktop/datasets/multi_task_class_descr/datasets/omniglot_dataset <class 'str'>
+pretrained_weights bert-base-multilingual-cased <class 'str'>
+reset_stored_paths False <class 'bool'>
+experiment_name all_experiments-threewayprotomaml/6/ <class 'str'>
+continue_from_epoch latest <class 'str'>
+num_target_samples 32 <class 'int'>
+second_order False <class 'bool'>
+first_order_to_second_order_epoch 50 <class 'int'>
+total_epochs 100 <class 'int'>
+total_iter_per_epoch 100 <class 'int'>
+total_epochs_before_pause 50 <class 'int'>
+per_step_layer_norm_weights True <class 'bool'>
+evalute_on_test_set_only False <class 'bool'>
+num_evaluation_tasks 50 <class 'int'>
+
+learnable_per_layer_per_step_inner_loop_learning_rate True <class 'bool'>
+enable_inner_loop_optimizable_ln_params None <class 'NoneType'>
+init_inner_loop_learning_rate 5e-05 <class 'float'>
+min_learning_rate 1e-06 <class 'float'>
+meta_learning_rate 3e-05 <class 'float'>
+meta_inner_optimizer_learning_rate 6e-05 <class 'float'>
+num_classes_per_set 3 <class 'int'>
+number_of_training_steps_per_iter 5 <class 'int'>
+number_of_evaluation_steps_per_iter 1 <class 'int'>
+num_samples_per_class 32 <class 'int'>
+eval_using_full_task_set True <class 'bool'>
+split_support_and_query True <class 'bool'>
+sample_task_to_size_ratio False <class 'bool'>
+enable_inner_loop_optimizable_bn_params True <class 'bool'>
+shuffle_labels True <class 'bool'>
+num_evaluation_seeds 5 <class 'int'>
+meta_update_method threewayprotomaml <class 'str'>
+init_class_head_lr_multiplier 10 <class 'int'>
+gold_label_task_sample_ratio 0 <class 'int'>
+num_freeze_epochs 0 <class 'int'>
+patience 10 <class 'int'>
+train_seed 42 <class 'int'>
+val_seed 0 <class 'int'>
+evaluate_on_test_set_only False <class 'bool'>
+num_start_epochs 0 <class 'int'>
+protomaml_do_centralize True <class 'bool'>
+val_using_cross_entropy False <class 'bool'>
+temperature 1 <class 'int'>
+meta_loss ce <class 'str'>
+gold_label_tasks [] <class 'list'>
+scale_losses False <class 'bool'>
+use_swa False <class 'bool'>
+num_swa 5 <class 'int'>
+use_majority_vote False <class 'bool'>
+num_majority_votes 5 <class 'int'>
+majority_vote_at_test_only False <class 'bool'>
+use_label_guided_learning False <class 'bool'>
+use_uncertainty_task_weighting False <class 'bool'>
+use_triplet_loss False <class 'bool'>
+triplet_loss_in_inner_loop False <class 'bool'>
+use_cosine_distance False <class 'bool'>
+triplet_loss_margin 0.5 <class 'float'>
+triplet_loss_lambda 1.0 <class 'float'>
+use_consistency_loss False <class 'bool'>
+use_multilingual_consistency_loss False <class 'bool'>
+consistency_loss_lambda 1.0 <class 'float'>
+consistency_loss_beta 1.0 <class 'float'>
+use_convex_feature_space_loss False <class 'bool'>
+convex_feature_space_loss_in_inner_loop False <class 'bool'>
+convex_feature_space_loss_lambda 1.0 <class 'float'>
+convex_feature_space_loss_nr_steps 10 <class 'int'>
+use_adapter False <class 'bool'>
+proportion_intra_task_sampling 0.85 <class 'float'>
+variable_nr_classes_and_samples False <class 'bool'>
+finetune_task_name val/RCV2_ja_gt <class 'str'>
+num_finetune_epochs 1 <class 'int'>
+eval_every_finetune 1 <class 'int'>
+finetune_base_model False <class 'bool'>
+percentage_train_finetune 0.95 <class 'float'>
+factory_finetune False <class 'bool'>
+finetune_on_cpu False <class 'bool'>
+factory_finetune_tasks_path finetune_tasks.txt <class 'str'>
+finetune_out_path finetune_log_old.json <class 'str'>
+bootstrap_finetune False <class 'bool'>
+num_bootstrap_seeds 5 <class 'int'>
+device: %s cuda
+Warning! Parameter classifier.dense.weight not loaded from pre-trained checkpoint.
+Warning! Parameter classifier.dense.bias not loaded from pre-trained checkpoint.
+Warning! Parameter classifier.out_proj.weight not loaded from pre-trained checkpoint.
+Warning! Parameter classifier.out_proj.bias not loaded from pre-trained checkpoint.
+5e-05
+Ranger optimizer loaded. 
+Gradient Centralization usage = True
+GC applied to both conv and fc layers
+Doubling the amount of samples in the support set to split prototype creation and fast adapation...
+attempting to find existing checkpoint
+data {'train': 6, 'val': 3, 'test': 3}
+train_seed 121959, val_seed: 985773, at start time
+6000 10000
+self.epoch chosen to evaluate on testing set: 60
+Loading best model for evaluation..
+Evaluating ar_test with seed 42...
+Evaluating model...
+Accuracy 0.5119047619047619
+Accuracy: 0.47619
+Precision: 0.40513
+Recall: 0.31481
+F1: 0.35386
+Evaluating ar_test with seed 43...
+Evaluating model...
+Accuracy 0.5833333333333334
+Accuracy: 0.46429
+Precision: 0.46831
+Recall: 0.30324
+F1: 0.35925
+Evaluating ar_test with seed 44...
+Evaluating model...
+Accuracy 0.6309523809523809
+Accuracy: 0.46429
+Precision: 0.41940
+Recall: 0.32176
+F1: 0.35768
+Evaluating ar_test with seed 45...
+Evaluating model...
+Accuracy 0.5714285714285714
+Accuracy: 0.50000
+Precision: 0.41288
+Recall: 0.32639
+F1: 0.36232
+Evaluating ar_test with seed 46...
+Evaluating model...
+Accuracy 0.6547619047619048
+Accuracy: 0.48810
+Precision: 0.42188
+Recall: 0.33333
+F1: 0.37156
+New best performance for task ar_test
+test_accuracy_mean: 0.59048
+test_accuracy_std: 0.04972
+test_loss_mean: 1.30929
+test_loss_std: 0.33510
+test_ce_loss_mean: 1.30929
+test_ce_loss_std: 0.33510
+----------------------------------
+batch_size 4 <class 'int'>
+train_datasets_ids 11,12 <class 'str'>
+dev_dataset_id 3 <class 'str'>
+test_dataset_id 14 <class 'str'>
+reset_stored_filepaths False <class 'bool'>
+num_of_gpus 1 <class 'int'>
+indexes_of_folders_indicating_class [-2, -3] <class 'list'>
+train_val_test_split [0.73982737361, 0.26, 0.13008631319] <class 'list'>
+samples_per_iter 1 <class 'int'>
+seed 104 <class 'int'>
+gpu_to_use 0 <class 'int'>
+num_dataprovider_workers 4 <class 'int'>
+dataset_name omniglot_dataset <class 'str'>
+dataset_path /home/mrvoh/Desktop/datasets/multi_task_class_descr/datasets/omniglot_dataset
+dataset_path /home/mrvoh/Desktop/datasets/multi_task_class_descr/datasets/omniglot_dataset <class 'str'>
+pretrained_weights bert-base-multilingual-cased <class 'str'>
+reset_stored_paths False <class 'bool'>
+experiment_name all_experiments-threewayprotomaml/7/ <class 'str'>
+continue_from_epoch latest <class 'str'>
+num_target_samples 32 <class 'int'>
+second_order False <class 'bool'>
+first_order_to_second_order_epoch 50 <class 'int'>
+total_epochs 100 <class 'int'>
+total_iter_per_epoch 100 <class 'int'>
+total_epochs_before_pause 50 <class 'int'>
+per_step_layer_norm_weights True <class 'bool'>
+evalute_on_test_set_only False <class 'bool'>
+num_evaluation_tasks 50 <class 'int'>
+
+learnable_per_layer_per_step_inner_loop_learning_rate True <class 'bool'>
+enable_inner_loop_optimizable_ln_params None <class 'NoneType'>
+init_inner_loop_learning_rate 5e-05 <class 'float'>
+min_learning_rate 1e-06 <class 'float'>
+meta_learning_rate 3e-05 <class 'float'>
+meta_inner_optimizer_learning_rate 6e-05 <class 'float'>
+num_classes_per_set 3 <class 'int'>
+number_of_training_steps_per_iter 5 <class 'int'>
+number_of_evaluation_steps_per_iter 1 <class 'int'>
+num_samples_per_class 32 <class 'int'>
+eval_using_full_task_set True <class 'bool'>
+split_support_and_query True <class 'bool'>
+sample_task_to_size_ratio False <class 'bool'>
+enable_inner_loop_optimizable_bn_params True <class 'bool'>
+shuffle_labels True <class 'bool'>
+num_evaluation_seeds 5 <class 'int'>
+meta_update_method threewayprotomaml <class 'str'>
+init_class_head_lr_multiplier 10 <class 'int'>
+gold_label_task_sample_ratio 0 <class 'int'>
+num_freeze_epochs 0 <class 'int'>
+patience 10 <class 'int'>
+train_seed 42 <class 'int'>
+val_seed 0 <class 'int'>
+evaluate_on_test_set_only False <class 'bool'>
+num_start_epochs 0 <class 'int'>
+protomaml_do_centralize True <class 'bool'>
+val_using_cross_entropy False <class 'bool'>
+temperature 1 <class 'int'>
+meta_loss ce <class 'str'>
+gold_label_tasks [] <class 'list'>
+scale_losses False <class 'bool'>
+use_swa False <class 'bool'>
+num_swa 5 <class 'int'>
+use_majority_vote False <class 'bool'>
+num_majority_votes 5 <class 'int'>
+majority_vote_at_test_only False <class 'bool'>
+use_label_guided_learning False <class 'bool'>
+use_uncertainty_task_weighting False <class 'bool'>
+use_triplet_loss False <class 'bool'>
+triplet_loss_in_inner_loop False <class 'bool'>
+use_cosine_distance False <class 'bool'>
+triplet_loss_margin 0.5 <class 'float'>
+triplet_loss_lambda 1.0 <class 'float'>
+use_consistency_loss False <class 'bool'>
+use_multilingual_consistency_loss False <class 'bool'>
+consistency_loss_lambda 1.0 <class 'float'>
+consistency_loss_beta 1.0 <class 'float'>
+use_convex_feature_space_loss False <class 'bool'>
+convex_feature_space_loss_in_inner_loop False <class 'bool'>
+convex_feature_space_loss_lambda 1.0 <class 'float'>
+convex_feature_space_loss_nr_steps 10 <class 'int'>
+use_adapter False <class 'bool'>
+proportion_intra_task_sampling 0.85 <class 'float'>
+variable_nr_classes_and_samples False <class 'bool'>
+finetune_task_name val/RCV2_ja_gt <class 'str'>
+num_finetune_epochs 1 <class 'int'>
+eval_every_finetune 1 <class 'int'>
+finetune_base_model False <class 'bool'>
+percentage_train_finetune 0.95 <class 'float'>
+factory_finetune False <class 'bool'>
+finetune_on_cpu False <class 'bool'>
+factory_finetune_tasks_path finetune_tasks.txt <class 'str'>
+finetune_out_path finetune_log_old.json <class 'str'>
+bootstrap_finetune False <class 'bool'>
+num_bootstrap_seeds 5 <class 'int'>
+device: %s cuda
+Warning! Parameter classifier.dense.weight not loaded from pre-trained checkpoint.
+Warning! Parameter classifier.dense.bias not loaded from pre-trained checkpoint.
+Warning! Parameter classifier.out_proj.weight not loaded from pre-trained checkpoint.
+Warning! Parameter classifier.out_proj.bias not loaded from pre-trained checkpoint.
+5e-05
+Ranger optimizer loaded. 
+Gradient Centralization usage = True
+GC applied to both conv and fc layers
+Doubling the amount of samples in the support set to split prototype creation and fast adapation...
+attempting to find existing checkpoint
+data {'train': 6, 'val': 3, 'test': 3}
+train_seed 121959, val_seed: 985773, at start time
+5700 10000
+self.epoch chosen to evaluate on testing set: 57
+Loading best model for evaluation..
+Evaluating ar_test with seed 42...
+Evaluating model...
+Accuracy 0.5238095238095238
+Accuracy: 0.40476
+Precision: 0.39022
+Recall: 0.28009
+F1: 0.32141
+Evaluating ar_test with seed 43...
+Evaluating model...
+Accuracy 0.5833333333333334
+Accuracy: 0.44048
+Precision: 0.43188
+Recall: 0.29398
+F1: 0.34947
+Evaluating ar_test with seed 44...
+Evaluating model...
+Accuracy 0.5357142857142857
+Accuracy: 0.50000
+Precision: 0.41832
+Recall: 0.33565
+F1: 0.37231
+Evaluating ar_test with seed 45...
+Evaluating model...
+Accuracy 0.5476190476190477
+Accuracy: 0.41667
+Precision: 0.40317
+Recall: 0.28472
+F1: 0.33280
+Evaluating ar_test with seed 46...
+Evaluating model...
+Accuracy 0.5595238095238095
+Accuracy: 0.45238
+Precision: 0.39881
+Recall: 0.28704
+F1: 0.32064
+New best performance for task ar_test
+test_accuracy_mean: 0.55000
+test_accuracy_std: 0.02048
+test_loss_mean: 1.41281
+test_loss_std: 0.18363
+test_ce_loss_mean: 1.41281
+test_ce_loss_std: 0.18363
+----------------------------------
+batch_size 4 <class 'int'>
+train_datasets_ids 11,12 <class 'str'>
+dev_dataset_id 3 <class 'str'>
+test_dataset_id 14 <class 'str'>
+reset_stored_filepaths False <class 'bool'>
+num_of_gpus 1 <class 'int'>
+indexes_of_folders_indicating_class [-2, -3] <class 'list'>
+train_val_test_split [0.73982737361, 0.26, 0.13008631319] <class 'list'>
+samples_per_iter 1 <class 'int'>
+seed 104 <class 'int'>
+gpu_to_use 0 <class 'int'>
+num_dataprovider_workers 4 <class 'int'>
+dataset_name omniglot_dataset <class 'str'>
+dataset_path /home/mrvoh/Desktop/datasets/multi_task_class_descr/datasets/omniglot_dataset
+dataset_path /home/mrvoh/Desktop/datasets/multi_task_class_descr/datasets/omniglot_dataset <class 'str'>
+pretrained_weights bert-base-multilingual-cased <class 'str'>
+reset_stored_paths False <class 'bool'>
+experiment_name all_experiments-threewayprotomaml/8/ <class 'str'>
+continue_from_epoch latest <class 'str'>
+num_target_samples 32 <class 'int'>
+second_order False <class 'bool'>
+first_order_to_second_order_epoch 50 <class 'int'>
+total_epochs 100 <class 'int'>
+total_iter_per_epoch 100 <class 'int'>
+total_epochs_before_pause 50 <class 'int'>
+per_step_layer_norm_weights True <class 'bool'>
+evalute_on_test_set_only False <class 'bool'>
+num_evaluation_tasks 50 <class 'int'>
+
+learnable_per_layer_per_step_inner_loop_learning_rate True <class 'bool'>
+enable_inner_loop_optimizable_ln_params None <class 'NoneType'>
+init_inner_loop_learning_rate 5e-05 <class 'float'>
+min_learning_rate 1e-06 <class 'float'>
+meta_learning_rate 3e-05 <class 'float'>
+meta_inner_optimizer_learning_rate 6e-05 <class 'float'>
+num_classes_per_set 3 <class 'int'>
+number_of_training_steps_per_iter 5 <class 'int'>
+number_of_evaluation_steps_per_iter 1 <class 'int'>
+num_samples_per_class 32 <class 'int'>
+eval_using_full_task_set True <class 'bool'>
+split_support_and_query True <class 'bool'>
+sample_task_to_size_ratio False <class 'bool'>
+enable_inner_loop_optimizable_bn_params True <class 'bool'>
+shuffle_labels True <class 'bool'>
+num_evaluation_seeds 5 <class 'int'>
+meta_update_method threewayprotomaml <class 'str'>
+init_class_head_lr_multiplier 10 <class 'int'>
+gold_label_task_sample_ratio 0 <class 'int'>
+num_freeze_epochs 0 <class 'int'>
+patience 10 <class 'int'>
+train_seed 42 <class 'int'>
+val_seed 0 <class 'int'>
+evaluate_on_test_set_only False <class 'bool'>
+num_start_epochs 0 <class 'int'>
+protomaml_do_centralize True <class 'bool'>
+val_using_cross_entropy False <class 'bool'>
+temperature 1 <class 'int'>
+meta_loss ce <class 'str'>
+gold_label_tasks [] <class 'list'>
+scale_losses False <class 'bool'>
+use_swa False <class 'bool'>
+num_swa 5 <class 'int'>
+use_majority_vote False <class 'bool'>
+num_majority_votes 5 <class 'int'>
+majority_vote_at_test_only False <class 'bool'>
+use_label_guided_learning False <class 'bool'>
+use_uncertainty_task_weighting False <class 'bool'>
+use_triplet_loss False <class 'bool'>
+triplet_loss_in_inner_loop False <class 'bool'>
+use_cosine_distance False <class 'bool'>
+triplet_loss_margin 0.5 <class 'float'>
+triplet_loss_lambda 1.0 <class 'float'>
+use_consistency_loss False <class 'bool'>
+use_multilingual_consistency_loss False <class 'bool'>
+consistency_loss_lambda 1.0 <class 'float'>
+consistency_loss_beta 1.0 <class 'float'>
+use_convex_feature_space_loss False <class 'bool'>
+convex_feature_space_loss_in_inner_loop False <class 'bool'>
+convex_feature_space_loss_lambda 1.0 <class 'float'>
+convex_feature_space_loss_nr_steps 10 <class 'int'>
+use_adapter False <class 'bool'>
+proportion_intra_task_sampling 0.85 <class 'float'>
+variable_nr_classes_and_samples False <class 'bool'>
+finetune_task_name val/RCV2_ja_gt <class 'str'>
+num_finetune_epochs 1 <class 'int'>
+eval_every_finetune 1 <class 'int'>
+finetune_base_model False <class 'bool'>
+percentage_train_finetune 0.95 <class 'float'>
+factory_finetune False <class 'bool'>
+finetune_on_cpu False <class 'bool'>
+factory_finetune_tasks_path finetune_tasks.txt <class 'str'>
+finetune_out_path finetune_log_old.json <class 'str'>
+bootstrap_finetune False <class 'bool'>
+num_bootstrap_seeds 5 <class 'int'>
+device: %s cuda
+Warning! Parameter classifier.dense.weight not loaded from pre-trained checkpoint.
+Warning! Parameter classifier.dense.bias not loaded from pre-trained checkpoint.
+Warning! Parameter classifier.out_proj.weight not loaded from pre-trained checkpoint.
+Warning! Parameter classifier.out_proj.bias not loaded from pre-trained checkpoint.
+5e-05
+Ranger optimizer loaded. 
+Gradient Centralization usage = True
+GC applied to both conv and fc layers
+Doubling the amount of samples in the support set to split prototype creation and fast adapation...
+attempting to find existing checkpoint
+data {'train': 6, 'val': 3, 'test': 3}
+train_seed 121959, val_seed: 985773, at start time
+6000 10000
+self.epoch chosen to evaluate on testing set: 60
+Loading best model for evaluation..
+Evaluating ar_test with seed 42...
+Evaluating model...
+Accuracy 0.5714285714285714
+Accuracy: 0.47619
+Precision: 0.41970
+Recall: 0.33102
+F1: 0.36036
+Evaluating ar_test with seed 43...
+Evaluating model...
+Accuracy 0.5357142857142857
+Accuracy: 0.36905
+Precision: 0.44823
+Recall: 0.25463
+F1: 0.32222
+Evaluating ar_test with seed 44...
+Evaluating model...
+Accuracy 0.5595238095238095
+Accuracy: 0.55952
+Precision: 0.45378
+Recall: 0.37731
+F1: 0.41033
+Evaluating ar_test with seed 45...
+Evaluating model...
+Accuracy 0.5119047619047619
+Accuracy: 0.40476
+Precision: 0.38518
+Recall: 0.27546
+F1: 0.32054
+Evaluating ar_test with seed 46...
+Evaluating model...
+Accuracy 0.5119047619047619
+Accuracy: 0.40476
+Precision: 0.38225
+Recall: 0.25926
+F1: 0.29842
+New best performance for task ar_test
+test_accuracy_mean: 0.53810
+test_accuracy_std: 0.02428
+test_loss_mean: 1.39866
+test_loss_std: 0.20098
+test_ce_loss_mean: 1.39866
+test_ce_loss_std: 0.20098
+----------------------------------
+batch_size 4 <class 'int'>
+train_datasets_ids 11,12 <class 'str'>
+dev_dataset_id 3 <class 'str'>
+test_dataset_id 14 <class 'str'>
+reset_stored_filepaths False <class 'bool'>
+num_of_gpus 1 <class 'int'>
+indexes_of_folders_indicating_class [-2, -3] <class 'list'>
+train_val_test_split [0.73982737361, 0.26, 0.13008631319] <class 'list'>
+samples_per_iter 1 <class 'int'>
+seed 104 <class 'int'>
+gpu_to_use 0 <class 'int'>
+num_dataprovider_workers 4 <class 'int'>
+dataset_name omniglot_dataset <class 'str'>
+dataset_path /home/mrvoh/Desktop/datasets/multi_task_class_descr/datasets/omniglot_dataset
+dataset_path /home/mrvoh/Desktop/datasets/multi_task_class_descr/datasets/omniglot_dataset <class 'str'>
+pretrained_weights bert-base-multilingual-cased <class 'str'>
+reset_stored_paths False <class 'bool'>
+experiment_name all_experiments-threewayprotomaml/9/ <class 'str'>
+continue_from_epoch latest <class 'str'>
+num_target_samples 32 <class 'int'>
+second_order False <class 'bool'>
+first_order_to_second_order_epoch 50 <class 'int'>
+total_epochs 100 <class 'int'>
+total_iter_per_epoch 100 <class 'int'>
+total_epochs_before_pause 50 <class 'int'>
+per_step_layer_norm_weights True <class 'bool'>
+evalute_on_test_set_only False <class 'bool'>
+num_evaluation_tasks 50 <class 'int'>
+
+learnable_per_layer_per_step_inner_loop_learning_rate True <class 'bool'>
+enable_inner_loop_optimizable_ln_params None <class 'NoneType'>
+init_inner_loop_learning_rate 5e-05 <class 'float'>
+min_learning_rate 1e-06 <class 'float'>
+meta_learning_rate 3e-05 <class 'float'>
+meta_inner_optimizer_learning_rate 6e-05 <class 'float'>
+num_classes_per_set 3 <class 'int'>
+number_of_training_steps_per_iter 5 <class 'int'>
+number_of_evaluation_steps_per_iter 1 <class 'int'>
+num_samples_per_class 32 <class 'int'>
+eval_using_full_task_set True <class 'bool'>
+split_support_and_query True <class 'bool'>
+sample_task_to_size_ratio False <class 'bool'>
+enable_inner_loop_optimizable_bn_params True <class 'bool'>
+shuffle_labels True <class 'bool'>
+num_evaluation_seeds 5 <class 'int'>
+meta_update_method threewayprotomaml <class 'str'>
+init_class_head_lr_multiplier 10 <class 'int'>
+gold_label_task_sample_ratio 0 <class 'int'>
+num_freeze_epochs 0 <class 'int'>
+patience 10 <class 'int'>
+train_seed 42 <class 'int'>
+val_seed 0 <class 'int'>
+evaluate_on_test_set_only False <class 'bool'>
+num_start_epochs 0 <class 'int'>
+protomaml_do_centralize True <class 'bool'>
+val_using_cross_entropy False <class 'bool'>
+temperature 1 <class 'int'>
+meta_loss ce <class 'str'>
+gold_label_tasks [] <class 'list'>
+scale_losses False <class 'bool'>
+use_swa False <class 'bool'>
+num_swa 5 <class 'int'>
+use_majority_vote False <class 'bool'>
+num_majority_votes 5 <class 'int'>
+majority_vote_at_test_only False <class 'bool'>
+use_label_guided_learning False <class 'bool'>
+use_uncertainty_task_weighting False <class 'bool'>
+use_triplet_loss False <class 'bool'>
+triplet_loss_in_inner_loop False <class 'bool'>
+use_cosine_distance False <class 'bool'>
+triplet_loss_margin 0.5 <class 'float'>
+triplet_loss_lambda 1.0 <class 'float'>
+use_consistency_loss False <class 'bool'>
+use_multilingual_consistency_loss False <class 'bool'>
+consistency_loss_lambda 1.0 <class 'float'>
+consistency_loss_beta 1.0 <class 'float'>
+use_convex_feature_space_loss False <class 'bool'>
+convex_feature_space_loss_in_inner_loop False <class 'bool'>
+convex_feature_space_loss_lambda 1.0 <class 'float'>
+convex_feature_space_loss_nr_steps 10 <class 'int'>
+use_adapter False <class 'bool'>
+proportion_intra_task_sampling 0.85 <class 'float'>
+variable_nr_classes_and_samples False <class 'bool'>
+finetune_task_name val/RCV2_ja_gt <class 'str'>
+num_finetune_epochs 1 <class 'int'>
+eval_every_finetune 1 <class 'int'>
+finetune_base_model False <class 'bool'>
+percentage_train_finetune 0.95 <class 'float'>
+factory_finetune False <class 'bool'>
+finetune_on_cpu False <class 'bool'>
+factory_finetune_tasks_path finetune_tasks.txt <class 'str'>
+finetune_out_path finetune_log_old.json <class 'str'>
+bootstrap_finetune False <class 'bool'>
+num_bootstrap_seeds 5 <class 'int'>
+device: %s cuda
+Warning! Parameter classifier.dense.weight not loaded from pre-trained checkpoint.
+Warning! Parameter classifier.dense.bias not loaded from pre-trained checkpoint.
+Warning! Parameter classifier.out_proj.weight not loaded from pre-trained checkpoint.
+Warning! Parameter classifier.out_proj.bias not loaded from pre-trained checkpoint.
+5e-05
+Ranger optimizer loaded. 
+Gradient Centralization usage = True
+GC applied to both conv and fc layers
+Doubling the amount of samples in the support set to split prototype creation and fast adapation...
+attempting to find existing checkpoint
+data {'train': 6, 'val': 3, 'test': 3}
+train_seed 121959, val_seed: 985773, at start time
+5800 10000
+self.epoch chosen to evaluate on testing set: 58
+Loading best model for evaluation..
+Evaluating ar_test with seed 42...
+Evaluating model...
+Accuracy 0.5714285714285714
+Accuracy: 0.53571
+Precision: 0.42339
+Recall: 0.35880
+F1: 0.38840
+Evaluating ar_test with seed 43...
+Evaluating model...
+Accuracy 0.5357142857142857
+Accuracy: 0.40476
+Precision: 0.41726
+Recall: 0.26620
+F1: 0.32228
+Evaluating ar_test with seed 44...
+Evaluating model...
+Accuracy 0.5833333333333334
+Accuracy: 0.42857
+Precision: 0.40668
+Recall: 0.29398
+F1: 0.33818
+Evaluating ar_test with seed 45...
+Evaluating model...
+Accuracy 0.5238095238095238
+Accuracy: 0.48810
+Precision: 0.42067
+Recall: 0.31250
+F1: 0.35113
+Evaluating ar_test with seed 46...
+Evaluating model...
+Accuracy 0.5833333333333334
+Accuracy: 0.52381
+Precision: 0.40721
+Recall: 0.35417
+F1: 0.37758
+New best performance for task ar_test
+test_accuracy_mean: 0.55952
+test_accuracy_std: 0.02497
+test_loss_mean: 1.38787
+test_loss_std: 0.14340
+test_ce_loss_mean: 1.38787
+test_ce_loss_std: 0.14340
+----------------------------------
+batch_size 4 <class 'int'>
+train_datasets_ids 11,12 <class 'str'>
+dev_dataset_id 3 <class 'str'>
+test_dataset_id 14 <class 'str'>
+reset_stored_filepaths False <class 'bool'>
+num_of_gpus 1 <class 'int'>
+indexes_of_folders_indicating_class [-2, -3] <class 'list'>
+train_val_test_split [0.73982737361, 0.26, 0.13008631319] <class 'list'>
+samples_per_iter 1 <class 'int'>
+seed 104 <class 'int'>
+gpu_to_use 0 <class 'int'>
+num_dataprovider_workers 4 <class 'int'>
+dataset_name omniglot_dataset <class 'str'>
+dataset_path /home/mrvoh/Desktop/datasets/multi_task_class_descr/datasets/omniglot_dataset
+dataset_path /home/mrvoh/Desktop/datasets/multi_task_class_descr/datasets/omniglot_dataset <class 'str'>
+pretrained_weights bert-base-multilingual-cased <class 'str'>
+reset_stored_paths False <class 'bool'>
+experiment_name all_experiments-threewayprotomaml/10/ <class 'str'>
+continue_from_epoch latest <class 'str'>
+num_target_samples 32 <class 'int'>
+second_order False <class 'bool'>
+first_order_to_second_order_epoch 50 <class 'int'>
+total_epochs 100 <class 'int'>
+total_iter_per_epoch 100 <class 'int'>
+total_epochs_before_pause 50 <class 'int'>
+per_step_layer_norm_weights True <class 'bool'>
+evalute_on_test_set_only False <class 'bool'>
+num_evaluation_tasks 50 <class 'int'>
+
+learnable_per_layer_per_step_inner_loop_learning_rate True <class 'bool'>
+enable_inner_loop_optimizable_ln_params None <class 'NoneType'>
+init_inner_loop_learning_rate 5e-05 <class 'float'>
+min_learning_rate 1e-06 <class 'float'>
+meta_learning_rate 3e-05 <class 'float'>
+meta_inner_optimizer_learning_rate 6e-05 <class 'float'>
+num_classes_per_set 3 <class 'int'>
+number_of_training_steps_per_iter 5 <class 'int'>
+number_of_evaluation_steps_per_iter 1 <class 'int'>
+num_samples_per_class 32 <class 'int'>
+eval_using_full_task_set True <class 'bool'>
+split_support_and_query True <class 'bool'>
+sample_task_to_size_ratio False <class 'bool'>
+enable_inner_loop_optimizable_bn_params True <class 'bool'>
+shuffle_labels True <class 'bool'>
+num_evaluation_seeds 5 <class 'int'>
+meta_update_method threewayprotomaml <class 'str'>
+init_class_head_lr_multiplier 10 <class 'int'>
+gold_label_task_sample_ratio 0 <class 'int'>
+num_freeze_epochs 0 <class 'int'>
+patience 10 <class 'int'>
+train_seed 42 <class 'int'>
+val_seed 0 <class 'int'>
+evaluate_on_test_set_only False <class 'bool'>
+num_start_epochs 0 <class 'int'>
+protomaml_do_centralize True <class 'bool'>
+val_using_cross_entropy False <class 'bool'>
+temperature 1 <class 'int'>
+meta_loss ce <class 'str'>
+gold_label_tasks [] <class 'list'>
+scale_losses False <class 'bool'>
+use_swa False <class 'bool'>
+num_swa 5 <class 'int'>
+use_majority_vote False <class 'bool'>
+num_majority_votes 5 <class 'int'>
+majority_vote_at_test_only False <class 'bool'>
+use_label_guided_learning False <class 'bool'>
+use_uncertainty_task_weighting False <class 'bool'>
+use_triplet_loss False <class 'bool'>
+triplet_loss_in_inner_loop False <class 'bool'>
+use_cosine_distance False <class 'bool'>
+triplet_loss_margin 0.5 <class 'float'>
+triplet_loss_lambda 1.0 <class 'float'>
+use_consistency_loss False <class 'bool'>
+use_multilingual_consistency_loss False <class 'bool'>
+consistency_loss_lambda 1.0 <class 'float'>
+consistency_loss_beta 1.0 <class 'float'>
+use_convex_feature_space_loss False <class 'bool'>
+convex_feature_space_loss_in_inner_loop False <class 'bool'>
+convex_feature_space_loss_lambda 1.0 <class 'float'>
+convex_feature_space_loss_nr_steps 10 <class 'int'>
+use_adapter False <class 'bool'>
+proportion_intra_task_sampling 0.85 <class 'float'>
+variable_nr_classes_and_samples False <class 'bool'>
+finetune_task_name val/RCV2_ja_gt <class 'str'>
+num_finetune_epochs 1 <class 'int'>
+eval_every_finetune 1 <class 'int'>
+finetune_base_model False <class 'bool'>
+percentage_train_finetune 0.95 <class 'float'>
+factory_finetune False <class 'bool'>
+finetune_on_cpu False <class 'bool'>
+factory_finetune_tasks_path finetune_tasks.txt <class 'str'>
+finetune_out_path finetune_log_old.json <class 'str'>
+bootstrap_finetune False <class 'bool'>
+num_bootstrap_seeds 5 <class 'int'>
+device: %s cuda
+Warning! Parameter classifier.dense.weight not loaded from pre-trained checkpoint.
+Warning! Parameter classifier.dense.bias not loaded from pre-trained checkpoint.
+Warning! Parameter classifier.out_proj.weight not loaded from pre-trained checkpoint.
+Warning! Parameter classifier.out_proj.bias not loaded from pre-trained checkpoint.
+5e-05
+Ranger optimizer loaded. 
+Gradient Centralization usage = True
+GC applied to both conv and fc layers
+Doubling the amount of samples in the support set to split prototype creation and fast adapation...
+attempting to find existing checkpoint
+data {'train': 6, 'val': 3, 'test': 3}
+train_seed 121959, val_seed: 985773, at start time
+4800 10000
+self.epoch chosen to evaluate on testing set: 48
+Loading best model for evaluation..
+Evaluating ar_test with seed 42...
+Evaluating model...
+Accuracy 0.4880952380952381
+Accuracy: 0.48810
+Precision: 0.38928
+Recall: 0.31944
+F1: 0.34970
+Evaluating ar_test with seed 43...
+Evaluating model...
+Accuracy 0.5595238095238095
+Accuracy: 0.40476
+Precision: 0.45490
+Recall: 0.26620
+F1: 0.33220
+Evaluating ar_test with seed 44...
+Evaluating model...
+Accuracy 0.6071428571428571
+Accuracy: 0.51190
+Precision: 0.42943
+Recall: 0.35185
+F1: 0.38099
+Evaluating ar_test with seed 45...
+Evaluating model...
+Accuracy 0.5476190476190477
+Accuracy: 0.45238
+Precision: 0.37685
+Recall: 0.29861
+F1: 0.33297
+Evaluating ar_test with seed 46...
+Evaluating model...
+Accuracy 0.5952380952380952
+Accuracy: 0.47619
+Precision: 0.39881
+Recall: 0.32407
+F1: 0.35672
+New best performance for task ar_test
+test_accuracy_mean: 0.55952
+test_accuracy_std: 0.04192
+test_loss_mean: 1.28732
+test_loss_std: 0.21354
+test_ce_loss_mean: 1.28732
+test_ce_loss_std: 0.21354

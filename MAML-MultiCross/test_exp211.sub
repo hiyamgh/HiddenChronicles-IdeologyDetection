@@ -1,0 +1,46 @@
+#!/bin/bash -l
+
+#SBATCH --job-name=T-exp211 # Job name
+#SBATCH --partition=gpu # Partition
+#SBATCH --nodes=1 # Number of nodes
+#SBATCH --gres=gpu:1 # Number of GPUs
+#SBATCH --ntasks-per-node=1  # Number of tasks
+#SBATCH --output=%j.out # Stdout (%j=jobId)
+#SBATCH --error=%j.err # Stderr (%j=jobId)
+#SBATCH --time=1:00:00 # Walltime
+#SBATCH --mem-per-gpu=100000
+#SBATCH -A p118
+
+# Load any necessary modules, in this case OpenMPI with CUDA
+module purge
+module load Python/3.6.8-GCCcore-8.2.0
+module load PyTorch/1.9.1-fosscuda-2020b
+module load SciPy-bundle/2020.11-fosscuda-2020b
+
+nvcc --version
+
+echo "----------------------------------"
+
+nvidia-smi
+
+python test_maml_system.py --meta_update_method threewayprotomaml --total_epochs 100 --total_iter_per_epoch 100 --total_epochs_before_pause 50 --init_inner_loop_learning_rate 5e-5 --meta_learning_rate 3e-5 --meta_inner_optimizer_learning_rate 6e-5 --continue_from_epoch latest --experiment_name all_experiments-threewayprotomaml/1/
+echo "----------------------------------"
+
+python test_maml_system.py --meta_update_method threewayprotomaml --total_epochs 100 --total_iter_per_epoch 100 --total_epochs_before_pause 50 --init_inner_loop_learning_rate 5e-5 --meta_learning_rate 3e-5 --meta_inner_optimizer_learning_rate 6e-5 --continue_from_epoch latest --experiment_name all_experiments-threewayprotomaml/2/
+
+echo "----------------------------------"
+python test_maml_system.py --meta_update_method threewayprotomaml --total_epochs 100 --total_iter_per_epoch 100 --total_epochs_before_pause 50 --init_inner_loop_learning_rate 5e-5 --meta_learning_rate 3e-5 --meta_inner_optimizer_learning_rate 6e-5 --continue_from_epoch latest --experiment_name all_experiments-threewayprotomaml/3/
+echo "----------------------------------"
+python test_maml_system.py --meta_update_method threewayprotomaml --total_epochs 100 --total_iter_per_epoch 100 --total_epochs_before_pause 50 --init_inner_loop_learning_rate 5e-5 --meta_learning_rate 3e-5 --meta_inner_optimizer_learning_rate 6e-5 --continue_from_epoch latest --experiment_name all_experiments-threewayprotomaml/4/
+echo "----------------------------------"
+python test_maml_system.py --meta_update_method threewayprotomaml --total_epochs 100 --total_iter_per_epoch 100 --total_epochs_before_pause 50 --init_inner_loop_learning_rate 5e-5 --meta_learning_rate 3e-5 --meta_inner_optimizer_learning_rate 6e-5 --continue_from_epoch latest --experiment_name all_experiments-threewayprotomaml/5/
+echo "----------------------------------"
+python test_maml_system.py --meta_update_method threewayprotomaml --total_epochs 100 --total_iter_per_epoch 100 --total_epochs_before_pause 50 --init_inner_loop_learning_rate 5e-5 --meta_learning_rate 3e-5 --meta_inner_optimizer_learning_rate 6e-5 --continue_from_epoch latest --experiment_name all_experiments-threewayprotomaml/6/
+echo "----------------------------------"
+python test_maml_system.py --meta_update_method threewayprotomaml --total_epochs 100 --total_iter_per_epoch 100 --total_epochs_before_pause 50 --init_inner_loop_learning_rate 5e-5 --meta_learning_rate 3e-5 --meta_inner_optimizer_learning_rate 6e-5 --continue_from_epoch latest --experiment_name all_experiments-threewayprotomaml/7/
+echo "----------------------------------"
+python test_maml_system.py --meta_update_method threewayprotomaml --total_epochs 100 --total_iter_per_epoch 100 --total_epochs_before_pause 50 --init_inner_loop_learning_rate 5e-5 --meta_learning_rate 3e-5 --meta_inner_optimizer_learning_rate 6e-5 --continue_from_epoch latest --experiment_name all_experiments-threewayprotomaml/8/
+echo "----------------------------------"
+python test_maml_system.py --meta_update_method threewayprotomaml --total_epochs 100 --total_iter_per_epoch 100 --total_epochs_before_pause 50 --init_inner_loop_learning_rate 5e-5 --meta_learning_rate 3e-5 --meta_inner_optimizer_learning_rate 6e-5 --continue_from_epoch latest --experiment_name all_experiments-threewayprotomaml/9/
+echo "----------------------------------"
+python test_maml_system.py --meta_update_method threewayprotomaml --total_epochs 100 --total_iter_per_epoch 100 --total_epochs_before_pause 50 --init_inner_loop_learning_rate 5e-5 --meta_learning_rate 3e-5 --meta_inner_optimizer_learning_rate 6e-5 --continue_from_epoch latest --experiment_name all_experiments-threewayprotomaml/10/

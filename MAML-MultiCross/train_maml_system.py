@@ -72,7 +72,8 @@ if __name__ == "__main__":
         "--experiment_name",
         nargs="?",
         type=str,
-        default="eng_text_class-threeway"
+        # default="eng_text_class-threeway"
+        default="E:/discourse_mining_protomaml/"
     )
     parser.add_argument(
         "--continue_from_epoch",

@@ -433,7 +433,7 @@
 #     return args_dict
 
 class2id = {"main_contents": 0, "context_informing_contents": 1, "additional_supportive_contents": 2}
-class2oheid = {"main_contents": [1, 0, 0], "context_informing_contents": [0, 1, 0], "additional_supportive_contents": [0, 0, 2]}
+class2oheid = {"main_contents": [1, 0, 0], "context_informing_contents": [0, 1, 0], "additional_supportive_contents": [0, 0, 1]}
 id2class = {0: "main_contents", 1: "context_informing_contents", 2: "additional_supportive_contents"}
 
 
