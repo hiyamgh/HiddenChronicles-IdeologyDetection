@@ -246,6 +246,7 @@ class DistilDataLoader(DataLoader):
                     samples = []
                     for i, row in df_cls.iterrows():
                         sentence = row['Sentence']
+                        sentence = ' '.join(sentence.split()[:128]) # Hiyam, let them all be mid-sized sentences
                         samples.append(Sample(sentence=sentence, teacher_encoding=class2oheid[cls]))
 
                     dataset_splits[dset][lang][cls] = samples
@@ -332,11 +333,11 @@ class DistilDataLoader(DataLoader):
                 text,
                 text_pair=None,
                 add_special_tokens=True,
-                # max_length=512,
+                max_length=128,
                 truncation=False,
             )
         )
-        input_ids = input_ids[-512:]
+        input_ids = input_ids[-128:]
         teacher_encodings = torch.FloatTensor([sample.teacher_encoding])
 
         return input_ids, teacher_encodings
@@ -1128,87 +1129,3 @@ class MetaLearningSystemDataLoader(object):
         )
 
         return res
-
-
-    # def load_binary_finetune_split(self, task_name):
-    #     print(task_name)
-    #     # split_name, teacher_lang = task_name.split('/')
-    #     # teacher_name, lang_name = teacher_lang.split('_')
-    #
-    #     # class_dirs = next(os.walk(os.path.join(self.args.finetune_data_path, split_name, teacher_name, lang_name)))[1]
-    #
-    #     raw_data_sample_paths = []
-    #     dset = "test"
-    #     if task_name in self.dataset.datasets[dset]:
-    #         for cls in self.dataset.datasets[dset][task_name]:
-    #             raw_data_sample_paths.extend(self.dataset.datasets[dset][task_name][cls])
-    #     else:
-    #         raise ValueError("Task {} not preset in testing dataset".format(task_name))
-    #     # raw_data_sample_paths = []
-    #     # for class_dir in class_dirs:
-    #     #     raw_data_sample_paths.extend(
-    #     #         [
-    #     #             os.path.abspath(f)
-    #     #             for f in glob.glob(
-    #     #                 os.path.join(
-    #     #                     self.args.finetune_data_path, split_name, teacher_name, lang_name, class_dir, "*.json"
-    #     #                 )
-    #     #             )
-    #     #         ]
-    #     #     )
-    #
-    #     class_samples, teacher_encodings = self.dataset.load_batch(raw_data_sample_paths)
-    #
-    #     class_samples, sample_lens = stack_and_pad_tensors(
-    #         class_samples, padding_index=self.dataset.tokenizer.pad_token_id
-    #     )
-    #
-    #     return class_samples, sample_lens, teacher_encodings
-
-    # def get_task_set_splits(self, task_suffix):
-    #     """
-    #     Retrieves the full dataset corresponding to task_name
-    #     :param task_name:
-    #     :return:
-    #     """
-    #
-    #     if not self.args.sets_are_pre_split:
-    #         raise Exception("Only pre-split datasets supported for now.")
-    #
-    #     x_test = []
-    #     len_test = []
-    #     y_test = []
-    #
-    #     print("Loading test data...")
-    #     # task_name = 'test/' + task_suffix
-    #     # task_samples, sample_lens, task_logits = self.load_binary_finetune_split(task_name)
-    #     task_samples, sample_lens, task_logits = self.load_binary_finetune_split(task_suffix)
-    #     x_test.append(task_samples)
-    #     len_test.append(sample_lens)
-    #     #y_test.append(task_logits)
-    #     y_test = torch.stack(task_logits)
-    #
-    #     x_test = [y.squeeze() for x in x_test for y in x.split(1)]
-    #     x_test, _ = stack_and_pad_tensors(
-    #         x_test, padding_index=self.dataset.tokenizer.pad_token_id
-    #     )
-    #
-    #     len_test = torch.cat(len_test)
-    #     #y_test = torch.cat(y_test)
-    #
-    #     test_mask = torch.ones_like(x_test)
-    #     test_mask = (
-    #         torch.arange(test_mask.size(1))
-    #         < len_test.contiguous().view(-1).unsqueeze(1)
-    #     ) * test_mask
-    #
-    #     test_dataset = TensorDataset(x_test, test_mask, y_test)
-    #     test_sampler = SequentialSampler(test_dataset)
-    #     test_dataloader = DataLoader(
-    #         test_dataset,
-    #         sampler=test_sampler,
-    #         batch_size=self.args.finetune_batch_size,
-    #     )
-    #
-    #     # return train_dataloader, dev_dataloader, test_dataloader
-    #     return test_dataloader

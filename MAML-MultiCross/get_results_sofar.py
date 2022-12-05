@@ -5,7 +5,7 @@ import pickle
 # df = pd.DataFrame(columns=['accuracy', 'precision', 'recall', 'f1'])
 df = pd.DataFrame(columns=['val_accuracy_mean', 'train_accuracy_mean', 'epoch', 'model'])
 # /onyx/data/p118/MAML-MultiCross/all_experiments-threewayprotomaml/
-for subdir, dirs, files in os.walk('all_experiments-threewayprotomaml/'):
+for subdir, dirs, files in os.walk('all_experiments-threewayprotomaml2/'):
     for file in files:
         val_acc, train_acc = [], []
         if file == 'summary_statistics.csv':
