@@ -15,3 +15,16 @@ dev_file_path = os.path.join(data_dir, dev_file)
 # if not os.path.exists(train_file_path) or not os.path.exists(dev_file_path):
 print("Creating train/dev files: %s, %s", train_file_path, dev_file_path)
 get_train_dev_files(articles, ref_articles_id, ref_span_starts, ref_span_ends, labels, train_file_path, dev_file_path)
+
+import pandas as pd
+
+df_train = pd.read_csv('annotations/train.csv')
+df_val = pd.read_csv('annotations/dev.csv')
+
+print('df_train.shape before dropping duplicates: {}'.format(df_train.shape))
+df_train = df_train.drop_duplicates(subset=['context'])
+print('df_train.shape after dropping duplicates: {}'.format(df_train.shape))
+
+print('df_val.shape before dropping duplicates: {}'.format(df_val.shape))
+df_val = df_val.drop_duplicates(subset=['context'])
+print('df_val.shape after dropping duplicates: {}'.format(df_val.shape))
