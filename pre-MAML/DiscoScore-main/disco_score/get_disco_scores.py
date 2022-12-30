@@ -5,6 +5,9 @@ from nltk.tag.stanford import StanfordPOSTagger
 from nltk.tokenize import word_tokenize
 import json
 from scorer import DiscoScorer
+import pandas as pd
+import numpy as np
+from sklearn import preprocessing
 
 
 def mkdir(folder):
@@ -27,6 +30,107 @@ def get_annotations(file, sentences):
                 "group": sentences[i][2]
             })
     return annotations
+
+
+def get_distribution(annotations):
+    # get unique years
+    # get unique labels
+    years, labels = set(), set()
+    for ann in annotations:
+        years.add(ann["year"])
+        labels.add(ann["label"])
+
+    years = sorted(list(years))
+    labels = list(labels)
+
+    labels2i = {label: i for i, label in enumerate(labels)}
+    years2i = {year: i for i, year in enumerate(years)}
+
+    distributions = np.zeros((len(labels), len(years)))
+
+    for ann in annotations:
+        year = ann["year"]
+        label = ann["label"]
+
+        distributions[labels2i[label], years2i[year]] += 1
+
+    return distributions
+
+def entropy_timeseries(usage_distribution, intervals=None):
+    """
+    :param usage_distribution: a CxT diachronic usage distribution matrix
+    :return: array of entropy values, one for each usage distribution
+    """
+    if intervals:
+        usage_distribution = usage_distribution[:, intervals]
+
+    usage_distribution = preprocessing.normalize(usage_distribution, norm='l1', axis=0)
+
+    H = []
+    for t in range(usage_distribution.shape[1]):
+        c = usage_distribution[:, t]
+        if any(c):
+            h = entropy(c)
+        else:
+            continue  # h = 0.
+        H.append(h)
+
+    return np.array(H)
+
+
+def entropy_difference_timeseries(usage_distribution, absolute=True, intervals=None):
+    """
+    :param usage_distribution: a CxT diachronic usage distribution matrix
+    :return: array of entropy differences between contiguous usage distributions
+    """
+    if absolute:
+        return np.array([abs(d) for d in np.diff(entropy_timeseries(usage_distribution, intervals))])
+    else:
+        return np.diff(entropy_timeseries(usage_distribution, intervals))
+
+
+def js_divergence(*usage_distribution):
+    """
+    :param usage_distribution: a CxT diachronic usage distribution matrix
+    :return: Jensen-Shannon Divergence between multiple usage distributions
+    """
+    clusters = np.vstack(usage_distribution)
+    n = clusters.shape[1]
+    entropy_of_sum = entropy(1 / n * np.sum(clusters, axis=1))
+    sum_of_entropies = 1 / n * np.sum([entropy(clusters[:, t]) for t in range(n)])
+    return entropy_of_sum - sum_of_entropies
+
+
+def js_distance(*usage_distribution):
+    """
+    :param usage_distribution: a CxT diachronic usage distribution matrix
+    :return: Jensen-Shannon Distance between two usage distributions
+    """
+    return np.sqrt(js_divergence(usage_distribution))
+
+
+def jsd_timeseries(usage_distribution, dfunction=js_divergence, intervals=None):
+    """
+    :param usage_distribution: a CxT diachronic usage distribution matrix
+    :param dfunction: a JSD function (js_divergence or js_distance)
+    :return: array of JSD between contiguous usage distributions
+    """
+    if intervals:
+        usage_distribution = usage_distribution[:, intervals]
+
+    usage_distribution = preprocessing.normalize(usage_distribution, norm='l1', axis=0)
+    distances = []
+    for t in range(usage_distribution.shape[1] - 1):
+        c = usage_distribution[:, t]
+        c_next = usage_distribution[:, t + 1]
+
+        if any(c) and any(c_next):
+            d = dfunction(c_next, c)
+        else:
+            continue  # d = 0.
+        distances.append(d)
+
+    return np.array(distances)
 
 
 group = ''
@@ -80,6 +184,13 @@ years_unique = sorted(list(set(years)))
 shift_types = [annotations_content, annotations_argumentation, annotations_propaganda, annotations_speech]
 shift_types_names = ["Van_Dijk_Contents", "Argumentation", "Propaganda", "Van_Dijk_Speeches"]
 
+shift2ann = {
+    "Van_Dijk_Contents": annotations_content,
+    "Argumentation": annotations_argumentation,
+    "Propaganda": annotations_propaganda,
+    "Van_Dijk_Speeches": annotations_speech
+}
+
 # create directory for saving plots
 save_dir = 'shifts_plots/'
 mkdir(save_dir)
@@ -101,99 +212,215 @@ for i, shift_type in enumerate(shift_types):
                     annotations_shifts[shift_type_name][group][year].append(text)
 
 
-java_path = 'C:/Program Files/Java/jdk1.8.0_211/bin/'
-os.environ["JAVAHOME"] = java_path
+# consider JSD and Entropy as the ground truth - per year
+# plot coherence general vs coherenec ereference vs JSD/Entropy to see correlation between coherence and change in probability distributions
+# add paired t-test to check difference between general and specific coherence
+# bias? detect bias (1) inside a single discourse group (2) vs. across all the discourse groups as a whole
+# do above for every year
+
+# usage_distr = get_distribution(annotations_propaganda)
+# usage_distr = preprocessing.normalize(usage_distr, norm='l1', axis=0)
+#
+# intervals = [5, 6, 7, 8]
+# interval_labels = [1960, 1970, 1980, 1990]
+#         # intervals = [5, 8]
+#         # interval_labels = [1960, 1990]
+#
+#         # JSD
+# jsd = jsd_timeseries(usage_distr, dfunction=js_divergence) / usage_distr.shape[0]
+# jsd_multi.append(js_divergence([usage_distr[:, t] for t in intervals]))
+# jsd_mean.append(np.mean(jsd))
+# jsd_max.append(np.max(jsd))
+# jsd_min.append(np.min(jsd))
+# jsd_median.append(np.median(jsd))
+#
+# # Entropy difference
+# dh = entropy_difference_timeseries(usage_distr, absolute=False, intervals=intervals) / usage_distr.shape[0]
+# dh_mean.append(np.mean(dh))
+# dh_max.append(np.max(dh))
+# dh_min.append(np.min(dh))
+# dh_median.append(np.median(dh))
+
+
 
 # this hypothesis is 1982 based
-hypothesis = 'لذلك فان تهديدات اسرائيل بضرب المقاومه الفلسطينيه بحجه انها تخرق وقف النار تسمح بخرقه الجنوب مكان العالم تستهدف المقاومه بقدر تستهدف الجنوب نفسه تحقيقا لاهدافها وهي تهديدات ستنفذها الوقت المناسب حاجاتها الخاصه'
+# hypothesis = 'لذلك فان تهديدات اسرائيل بضرب المقاومه الفلسطينيه بحجه انها تخرق وقف النار تسمح بخرقه الجنوب مكان العالم تستهدف المقاومه بقدر تستهدف الجنوب نفسه تحقيقا لاهدافها وهي تهديدات ستنفذها الوقت المناسب حاجاتها الخاصه'
+hypothesis = 'واكد ان اسرائيل هي المسؤول الاول والاخير مجزره مخيمي صبرا وشاتيلا'
+
 
 # disco_scorer = DiscoScorer(device='cpu', model_name='bert-base-multilingual-cased')
 # disco_scorer = DiscoScorer(device='cpu', model_name='bert-base-uncased')
 disco_scorer = DiscoScorer(device='cpu', model_name='aubmindlab/bert-base-arabertv2')
-group = 'Palestinian Resistance South Lebanon'
+# group = 'Palestinian Resistance South Lebanon'
+group = 'Sabra and Shatila Massacre'
+# annotation_style = "Propaganda"
+df = pd.DataFrame(columns=['annotation', '1982', '1984', '1985', '1986', '1987'])
 
-# refs1 = annotations_shifts["Van_Dijk_Contents"][group][1982]
-# refs2 = annotations_shifts["Van_Dijk_Contents"][group][1984]
-# refs3 = annotations_shifts["Van_Dijk_Contents"][group][1985]
-# refs4 = annotations_shifts["Van_Dijk_Contents"][group][1986]
-# refs5 = annotations_shifts["Van_Dijk_Contents"][group][1987]
+for annotation_style in shift_types_names:
 
-refs1 = annotations_shifts["Propaganda"][group][1982]
-refs2 = annotations_shifts["Propaganda"][group][1984]
-refs3 = annotations_shifts["Propaganda"][group][1985]
-refs4 = annotations_shifts["Propaganda"][group][1986]
-refs5 = annotations_shifts["Propaganda"][group][1987]
+    print('annotations style: {}'.format(annotation_style))
 
-# refs1 = annotations_shifts["Argumentation"][group][1982]
-# refs2 = annotations_shifts["Argumentation"][group][1984]
-# refs3 = annotations_shifts["Argumentation"][group][1985]
-# refs4 = annotations_shifts["Argumentation"][group][1986]
-# refs5 = annotations_shifts["Argumentation"][group][1987]
+    coherences_general, coherences_specific = [], []
 
-# print('DiscoScore 1982: {}'.format(disco_scorer.DS_Focus_NN(hypothesis, refs1)))  # FocusDiff
-# print('DiscoScore 1984: {}'.format(disco_scorer.DS_Focus_NN(hypothesis, refs2))) # FocusDiff
-# print('DiscoScore 1985: {}'.format(disco_scorer.DS_Focus_NN(hypothesis, refs3))) # FocusDiff
-# print('DiscoScore 1986: {}'.format(disco_scorer.DS_Focus_NN(hypothesis, refs4))) # FocusDiff
-# print('DiscoScore 1987: {}'.format(disco_scorer.DS_Focus_NN(hypothesis, refs5))) # FocusDiff
+    refs1 = annotations_shifts[annotation_style][group][1982]
+    refs2 = annotations_shifts[annotation_style][group][1984]
+    refs3 = annotations_shifts[annotation_style][group][1985]
+    refs4 = annotations_shifts[annotation_style][group][1986]
+    refs5 = annotations_shifts[annotation_style][group][1987]
 
-annotations = annotations_propaganda
+    # print('DiscoScore 1982: {}'.format(disco_scorer.DS_Focus_NN(hypothesis, refs1)))  # FocusDiff
+    # print('DiscoScore 1984: {}'.format(disco_scorer.DS_Focus_NN(hypothesis, refs2))) # FocusDiff
+    # print('DiscoScore 1985: {}'.format(disco_scorer.DS_Focus_NN(hypothesis, refs3))) # FocusDiff
+    # print('DiscoScore 1986: {}'.format(disco_scorer.DS_Focus_NN(hypothesis, refs4))) # FocusDiff
+    # print('DiscoScore 1987: {}'.format(disco_scorer.DS_Focus_NN(hypothesis, refs5))) # FocusDiff
 
-# get the score when having the same annotation
-for ann in annotations:
-    if ann["text"] == hypothesis.strip():
-        label = ann["label"]
-        break
+    annotations = shift2ann[annotation_style]
 
-refs1_sub = []
-for r in refs1:
+    # get the score when having the same annotation
     for ann in annotations:
-        if ann["text"] == r.strip() and ann["label"] == label:
-            refs1_sub.append(r)
+        if ann["text"] == hypothesis.strip():
+            label = ann["label"]
             break
-print('{} out of {}'.format(len(refs1_sub), len(refs1)))
-print('DiscoScore 1982: {}'.format(disco_scorer.DS_Focus_NN(hypothesis, refs1)))  # FocusDiff
-print('DiscoScore 1982: {}'.format(disco_scorer.DS_Focus_NN(hypothesis, refs1_sub)))  # FocusDiff
 
-refs2_sub = []
-for r in refs2:
-    for ann in annotations:
-        if ann["text"] == r.strip() and ann["label"] == label:
-            refs2_sub.append(r)
-            break
-print('{} out of {}'.format(len(refs2_sub), len(refs2)))
-print('DiscoScore 1984: {}'.format(disco_scorer.DS_Focus_NN(hypothesis, refs2)))  # FocusDiff
-print('DiscoScore 1984: {}'.format(disco_scorer.DS_Focus_NN(hypothesis, refs2_sub))) # FocusDiff
+    refs1_sub = []
+    for r in refs1:
+        for ann in annotations:
+            if ann["text"] == r.strip() and ann["label"] == label:
+                refs1_sub.append(r)
+                break
+    print('{} out of {}'.format(len(refs1_sub), len(refs1)))
+
+    cg = disco_scorer.DS_Focus_NN(hypothesis, refs1)
+    cs = disco_scorer.DS_Focus_NN(hypothesis, refs1_sub)
+
+    print('DiscoScore 1982: {}'.format(cg))  # FocusDiff
+    print('DiscoScore 1982: {}'.format(cs))  # FocusDiff
+
+    coherences_general.append(str(cg))
+    coherences_specific.append(str(cs))
+
+    if len(refs1_sub) <= 5:
+        print('hypothesis: {}'.format(hypothesis))
+        for i, s in enumerate(refs1_sub):
+            print('s {}: {}'.format(i+1, s))
+
+    refs2_sub = []
+    for r in refs2:
+        for ann in annotations:
+            if ann["text"] == r.strip() and ann["label"] == label:
+                refs2_sub.append(r)
+                break
+    print('{} out of {}'.format(len(refs2_sub), len(refs2)))
+
+    cg = disco_scorer.DS_Focus_NN(hypothesis, refs2)
+    cs = disco_scorer.DS_Focus_NN(hypothesis, refs2_sub)
+
+    print('DiscoScore 1984: {}'.format(cg))  # FocusDiff
+    print('DiscoScore 1984: {}'.format(cs)) # FocusDiff
+
+    coherences_general.append(str(cg))
+    coherences_specific.append(str(cs))
+
+    if len(refs2_sub) <= 5:
+        print('hypothesis: {}'.format(hypothesis))
+        for i, s in enumerate(refs2_sub):
+            print('s {}: {}'.format(i+1, s))
+
+    refs3_sub = []
+    for r in refs3:
+        for ann in annotations:
+            if ann["text"] == r.strip() and ann["label"] == label:
+                refs3_sub.append(r)
+                break
+    print('{} out of {}'.format(len(refs3_sub), len(refs3)))
+    cg = disco_scorer.DS_Focus_NN(hypothesis, refs3)
+    cs = disco_scorer.DS_Focus_NN(hypothesis, refs3_sub)
+
+    print('DiscoScore 1985: {}'.format(cg))  # FocusDiff
+    print('DiscoScore 1985: {}'.format(cs)) # FocusDiff
+
+    coherences_general.append(str(cg))
+    coherences_specific.append(str(cs))
+
+    if len(refs3_sub) <= 5:
+        print('hypothesis: {}'.format(hypothesis))
+        for i, s in enumerate(refs3_sub):
+            print('s {}: {}'.format(i+1, s))
+
+    refs4_sub = []
+    for r in refs4:
+        for ann in annotations:
+            if ann["text"] == r.strip() and ann["label"] == label:
+                refs4_sub.append(r)
+                break
+    print('{} out of {}'.format(len(refs4_sub), len(refs4)))
+    cg = disco_scorer.DS_Focus_NN(hypothesis, refs4)
+    cs = disco_scorer.DS_Focus_NN(hypothesis, refs4_sub)
+
+    print('DiscoScore 1986: {}'.format(cg))  # FocusDiff
+    print('DiscoScore 1986: {}'.format(cs)) # FocusDiff
+
+    coherences_general.append(str(cg))
+    coherences_specific.append(str(cs))
+
+    if len(refs4_sub) <= 5:
+        print('hypothesis: {}'.format(hypothesis))
+        for i, s in enumerate(refs4_sub):
+            print('s {}: {}'.format(i+1, s))
 
 
-refs3_sub = []
-for r in refs3:
-    for ann in annotations:
-        if ann["text"] == r.strip() and ann["label"] == label:
-            refs3_sub.append(r)
-            break
-print('{} out of {}'.format(len(refs3_sub), len(refs3)))
-print('DiscoScore 1985: {}'.format(disco_scorer.DS_Focus_NN(hypothesis, refs3)))  # FocusDiff
-print('DiscoScore 1985: {}'.format(disco_scorer.DS_Focus_NN(hypothesis, refs3_sub))) # FocusDiff
+    refs5_sub = []
+    for r in refs5:
+        for ann in annotations:
+            if ann["text"] == r.strip() and ann["label"] == label:
+                refs5_sub.append(r)
+                break
+    print('{} out of {}'.format(len(refs5_sub), len(refs5)))
+    cg = disco_scorer.DS_Focus_NN(hypothesis, refs5)
+    cs = disco_scorer.DS_Focus_NN(hypothesis, refs5_sub)
+    print('DiscoScore 1987: {}'.format(cg))  # FocusDiff
+    print('DiscoScore 1987: {}'.format(cs)) # FocusDiff
 
-refs4_sub = []
-for r in refs4:
-    for ann in annotations:
-        if ann["text"] == r.strip() and ann["label"] == label:
-            refs4_sub.append(r)
-            break
-print('{} out of {}'.format(len(refs4_sub), len(refs4)))
-print('DiscoScore 1986: {}'.format(disco_scorer.DS_Focus_NN(hypothesis, refs4)))  # FocusDiff
-print('DiscoScore 1986: {}'.format(disco_scorer.DS_Focus_NN(hypothesis, refs4_sub))) # FocusDiff
+    coherences_general.append(str(cg))
+    coherences_specific.append(str(cs))
 
-refs5_sub = []
-for r in refs5:
-    for ann in annotations:
-        if ann["text"] == r.strip() and ann["label"] == label:
-            refs5_sub.append(r)
-            break
-print('{} out of {}'.format(len(refs5_sub), len(refs5)))
-print('DiscoScore 1987: {}'.format(disco_scorer.DS_Focus_NN(hypothesis, refs5)))  # FocusDiff
-print('DiscoScore 1987: {}'.format(disco_scorer.DS_Focus_NN(hypothesis, refs5_sub))) # FocusDiff
+    if len(refs5_sub) <= 5:
+        print('hypothesis: {}'.format(hypothesis))
+        for i, s in enumerate(refs5_sub):
+            print('s {}: {}'.format(i+1, s))
+
+    df = df.append({
+        'annotation': '{}_general'.format(annotation_style),
+        '1982': coherences_general[0],
+        '1984': coherences_general[1],
+        '1985': coherences_general[2],
+        '1986': coherences_general[3],
+        '1987': coherences_general[4]
+    }, ignore_index=True)
+
+    df = df.append({
+        'annotation': '{}_specific'.format(annotation_style),
+        '1982': coherences_specific[0],
+        '1984': coherences_specific[1],
+        '1985': coherences_specific[2],
+        '1986': coherences_specific[3],
+        '1987': coherences_specific[4]
+    }, ignore_index=True)
+
+    df = df.append({
+        'annotation': '',
+        '1982': '',
+        '1984': '',
+        '1985': '',
+        '1986': '',
+        '1987': ''
+    }, ignore_index=True)
+
+    df.to_csv('results_{}.csv'.format(name2savename[group]), index=False)
+
+    print('===================================================================================================================')
+
+df.to_csv('results_{}.csv'.format(name2savename[group]), index=False)
 
 # system = ["Paul Merson has restarted his row with andros townsend after the Tottenham midfielder was brought on with only seven minutes remaining in his team 's 0-0 draw with burnley. Townsend was brought on in the 83rd minute for Tottenham as they drew 0-0 against Burnley ."]
 # references = [["Paul Merson has restarted his row with burnley on sunday. Townsend was brought on in the 83rd minute for tottenham. Andros Townsend scores england 's equaliser in their 1-1 friendly draw. Townsend hit a stunning equaliser for england against italy."]]
