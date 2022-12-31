@@ -340,7 +340,7 @@ group = 'Sabra and Shatila Massacre'
 # annotation_style = "Propaganda"
 
 
-years = list(sorted(list(annotations_shifts[annotation_style][group].keys())))
+# years = list(sorted(list(annotations_shifts[annotation_style][group].keys())))
 ref2score = {}
 for group in group2hypothesis:
     years = [1982, 1984, 1985, 1986, 1987]
