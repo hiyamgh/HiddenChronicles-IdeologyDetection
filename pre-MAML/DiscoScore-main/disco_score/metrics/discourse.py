@@ -142,7 +142,7 @@ def DS_Focus(model, tokenizer, sys, ref, is_semantic_entity=False, we=None, thre
         R = diff.sum().item() / (len(r_noun_positions) + 1e-9)    
         F = (P + R)/2
         scores.append(P)        
-    return np.mean(scores)
+    return np.mean(scores), scores
 
 
 def DS_Sent(model, tokenizer, sys, ref, is_lexical_graph=False, we=None, threshold=0):
