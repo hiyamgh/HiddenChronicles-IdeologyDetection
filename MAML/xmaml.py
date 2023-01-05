@@ -26,7 +26,8 @@ from transformers import (
     BertForMaskedLM,
     BertTokenizer,
     AutoTokenizer,
-    BertForSequenceClassification,
+    AutoTokenizer,
+    BertForSequenceClassification, AutoModelForSequenceClassification,
     PreTrainedModel,
     PreTrainedTokenizer,
     get_linear_schedule_with_warmup,
@@ -38,7 +39,7 @@ import itertools
 from utils_xmaml import processors as processors
 from utils_xmaml import output_modes as output_modes
 from utils_xmaml import convert_examples_to_features, load_cache_examples
-from utils_xmaml import id2dataset
+from utils_xmaml import id2dataset, id2dataset_multi
 
 from sklearn.metrics import *
 import pandas as pd
@@ -368,6 +369,15 @@ def evaluate_task(args, model, eval_dataset, label_list, early=False, prefix="")
     print(report)
     print(confusion)
 
+    print('saving results to {} ....'.format(os.path.join(eval_output_dir, 'results.pickle')))
+    with open(os.path.join(eval_output_dir, 'results.pickle'), 'wb') as handle:
+        pickle.dump(result, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+    hyperparams = get_hyperparams(args=args)
+    print('saving hyperparams to {} ....'.format(os.path.join(eval_output_dir, 'hyperparams.pickle')))
+    with open(os.path.join(eval_output_dir, 'hyperparams.pickle'), 'wb') as handle:
+        pickle.dump(hyperparams, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
     print('saving results to {} ....'.format(os.path.join(eval_output_dir, 'test_actual_predicted.csv')))
     label_map = {i: label for i, label in enumerate(label_list)}
     df = pd.DataFrame()
@@ -401,6 +411,19 @@ def get_results(labels, preds):
     }
 
 
+def get_hyperparams(args):
+    return {
+        "bert_model": args.bert_model,
+        "dev_datasets_ids": args.dev_datasets_ids,
+        "dev_dataset_finetune": args.dev_dataset_finetune,
+        "test_dataset_eval": args.test_dataset_eval,
+        "max_seq_length": args.max_seq_length,
+        "per_gpu_train_batch_size": args.per_gpu_train_batch_size,
+        "per_gpu_eval_batch_size": args.per_gpu_eval_batch_size,
+        "meta_learn_iter": args.meta_learn_iter,
+        "inner_train_steps": args.inner_train_steps
+    }
+
 def main():
     parser = argparse.ArgumentParser()
 
@@ -408,19 +431,18 @@ def main():
     parser.add_argument("--data_dir", default="../../data/XNLI-1.0", type=str,
                         help="The input data dir. Should contain the .tsv files (or other data files) for the task.")
 
-    parser.add_argument("--bert_model", default="bert-base-uncased", type=str)
-
-    parser.add_argument("--dev_datasets_ids", type=str, default="1,3")
-    parser.add_argument("--dev_dataset_finetune", type=str, default="1")
-    parser.add_argument("--test_dataset_eval", type=str, default="2")
+    # parser.add_argument("--bert_model", default="bert-base-uncased", type=str)
+    # parser.add_argument("--bert_model", default="bert-base-multilingual-cased", type=str)
+    parser.add_argument("--bert_model", default="xlm-roberta-base", type=str)
+    parser.add_argument("--dev_datasets_ids", type=str, default="1,2,3,4,5,6")
+    parser.add_argument("--dev_dataset_finetune", type=str, default="5")
+    parser.add_argument("--test_dataset_eval", type=str, default="7")
     parser.add_argument("--label_col", type=str, default="")
     parser.add_argument("--labels", type=str, default="")
 
     parser.add_argument("--model_type", default='BERT', type=str,
                         help="Model type selected in the list: ")
-    # parser.add_argument("--model_name_or_path", default='', type=str,
-    #                     help="Path to pre-trained model or shortcut name selected in the list: " + ", ".join(
-    #                         ALL_MODELS))
+
     parser.add_argument("--model_name_or_path", default='', type=str,
                         help="Path to pre-trained model or shortcut name selected in the list:")
 
@@ -437,7 +459,7 @@ def main():
                         help="Pretrained tokenizer name or path if not the same as model_name")
 
 
-    parser.add_argument("--num_classes", default=8, type=int, help="number of classes")
+    parser.add_argument("--num_classes", default=3, type=int, help="number of classes")
 
     parser.add_argument("--max_seq_length", default=128, type=int,
                         help="The maximum total input sequence length after tokenization. Sequences longer "
@@ -562,6 +584,8 @@ def main():
 
     args = parser.parse_args()
 
+    args.local_rank = int(os.environ["LOCAL_RANK"])
+
     # Setup CUDA, GPU & distributed training
     if args.local_rank == -1 or args.no_cuda:
         device = torch.device("cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu")
@@ -571,6 +595,7 @@ def main():
         device = torch.device("cuda", args.local_rank)
         torch.distributed.init_process_group(backend='nccl')
         args.n_gpu = 1
+
     args.device = device
 
     # Setup logging
@@ -601,8 +626,12 @@ def main():
 
     args.model_type = args.model_type.lower()
 
-    model = BertForSequenceClassification.from_pretrained(args.bert_model, num_labels=num_labels)
-    tokenizer = BertTokenizer.from_pretrained(args.bert_model, do_lower_case=args.do_lower_case)
+    if 'xlm' in args.bert_model:
+        tokenizer = AutoTokenizer.from_pretrained(args.bert_model)
+        model = AutoModelForSequenceClassification.from_pretrained(args.bert_model, num_labels=num_labels)
+    else:
+        tokenizer = BertTokenizer.from_pretrained(args.bert_model, do_lower_case=args.do_lower_case)
+        model = BertForSequenceClassification.from_pretrained(args.bert_model, num_labels=num_labels)
 
     if args.local_rank == 0:
         torch.distributed.barrier()  # Make sure only the first process in distributed training will download model & vocab
@@ -614,7 +643,7 @@ def main():
     print('dev ids: {}'.format(dev_ids))
     domains_to_maml = {}
     for id in dev_ids:
-        df_path = id2dataset[id]
+        df_path = id2dataset_multi[id]
         tmp_examples = processor.get_examples(df_path=df_path)
         features = convert_examples_to_features(examples=tmp_examples, label_list=label_list,
                                                 max_seq_length=args.max_seq_length,
@@ -626,7 +655,7 @@ def main():
 
     # get dev dataset for fine tuning
     id_dev_dataset_finetune = args.dev_dataset_finetune
-    df_path = id2dataset[id_dev_dataset_finetune]
+    df_path = id2dataset_multi[id_dev_dataset_finetune]
     tmp_examples = processor.get_examples(df_path=df_path)
     features = convert_examples_to_features(examples=tmp_examples, label_list=label_list,
                                             max_seq_length=args.max_seq_length,
@@ -636,7 +665,7 @@ def main():
 
     # get test dataset for evaluation after fine tuning
     id_test_dataset_eval = args.test_dataset_eval
-    df_path = id2dataset[id_test_dataset_eval]
+    df_path = id2dataset_multi[id_test_dataset_eval]
     tmp_examples = processor.get_examples(df_path=df_path)
     features = convert_examples_to_features(examples=tmp_examples, label_list=label_list,
                                             max_seq_length=args.max_seq_length,
