@@ -1,0 +1,47 @@
+#!/bin/bash -l
+
+#SBATCH --job-name=test # Job name
+#SBATCH --partition=gpu # Partition
+#SBATCH --nodes=2 # Number of nodes
+#SBATCH --gpus-per-node=2
+#SBATCH --ntasks-per-node=1  # Number of tasks
+#SBATCH --output=%j.out # Stdout (%j=jobId)
+#SBATCH --error=%j.err # Stderr (%j=jobId)
+#SBATCH --mem-per-gpu=5000
+#SBATCH --time=18:00:00 # Walltime
+#SBATCH -A p118
+
+# if some error happens in the initialation of parallel process then you can
+# get the debug info. This can easily increase the size of out.txt.
+export NCCL_DEBUG=INFO  # comment it if you are not debugging distributed parallel setup
+
+export NCCL_DEBUG_SUBSYS=ALL # comment it if you are not debugging distributed parallel setup
+
+
+# find the ip-address of one of the node. Treat it as master
+ip1=`hostname -I | awk '{print $2}'`
+echo $ip1
+
+# Store the master node’s IP address in the MASTER_ADDR environment variable.
+export MASTER_ADDR=$(hostname)
+
+echo "$SLURM_NODEID master: $MASTER_ADDR"
+
+echo "$SLURM_NODEID Launching python script"
+
+echo "$SLURM_JOB_NUM_NODES - Number of nodes allocated to the job"
+echo "$SLURM_GPUS_PER_NODE - GPU count per allocated node"
+
+# Load any necessary modules, in this case OpenMPI with CUDA
+module purge
+module load Python/3.6.8-GCCcore-8.2.0
+module load PyTorch/1.9.1-fosscuda-2020b
+module load SciPy-bundle/2020.11-fosscuda-2020b
+
+nvcc --version
+
+echo "----------------------------------"
+
+nvidia-smi
+
+srun python mnist-distributed.py --nodes $SLURM_JOB_NUM_NODES --gpus $SLURM_GPUS_PER_NODE --ip_address $ip1
