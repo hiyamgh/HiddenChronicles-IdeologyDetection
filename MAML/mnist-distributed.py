@@ -20,6 +20,7 @@ def main():
     parser.add_argument('--ip_address', type=str)
     parser.add_argument('--epochs', default=2, type=int, metavar='N',
                         help='number of total epochs to run')
+    parser.add_argument('--backend', type=str, default='nccl')
     args = parser.parse_args()
     args.world_size = args.gpus * args.nodes
     os.environ['MASTER_ADDR'] = args.ip_address
@@ -58,7 +59,7 @@ def train(gpu, args):
     rank = int(os.environ.get("SLURM_NODEID")) * args.gpus + gpu
     print('rank:', rank)
     print(f'setting up rank={rank} (with world_size={args.world_size})')
-    dist.init_process_group(backend='nccl', init_method='env://', world_size=args.world_size, rank=rank)
+    dist.init_process_group(backend=args.backend, init_method='env://', world_size=args.world_size, rank=rank)
     print(f'--> done setting up rank={rank}')
     torch.manual_seed(0)
     model = ConvNet()
