@@ -2,7 +2,7 @@
 
 #SBATCH --job-name=test # Job name
 #SBATCH --partition=gpu # Partition
-#SBATCH --nodes=2 # Number of nodes
+#SBATCH --nodes=1 # Number of nodes
 #SBATCH --gpus-per-node=2
 #SBATCH --ntasks-per-node=1  # Number of tasks
 #SBATCH --output=%j.out # Stdout (%j=jobId)
@@ -44,4 +44,4 @@ echo "----------------------------------"
 
 nvidia-smi
 
-srun python mnist-distributed.py --nodes $SLURM_JOB_NUM_NODES --gpus $SLURM_GPUS_PER_NODE --ip_address $ip1
+srun python mnist-distributed.py --backend nccl --nodes $SLURM_JOB_NUM_NODES --gpus $SLURM_GPUS_PER_NODE --ip_address $ip1
