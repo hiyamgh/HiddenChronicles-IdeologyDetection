@@ -10,7 +10,8 @@ import numpy as np
 from sklearn import preprocessing
 import scipy.stats as stats
 from scipy.stats import entropy
-
+import itertools
+import matplotlib.pyplot as plt
 
 def mkdir(folder):
     if not os.path.exists(folder):
@@ -33,6 +34,53 @@ def get_annotations(file, sentences):
             })
     return annotations
 
+
+def plot_entropy_evolution_comparison(ann2et, annspec2et, group_name, save_dir):
+    start = 0.0
+    stop = 1.0
+    number_of_lines = len(ann2et)
+    cm_subsection = np.linspace(start, stop, number_of_lines)
+    #
+    colors = [plt.cm.Paired(x) for x in cm_subsection]
+
+    i = 0
+    for annotation_style in ann2et:
+        years = ['1982', '1985', '1986', '1987']
+        marker = itertools.cycle(('p', 's', 'D', 'X'))
+        plt.plot(years, ann2et[annotation_style][[0, 2, 3, 4]], marker=next(marker), color=colors[i], label= 'General Entropy')
+        plt.plot(years, annspec2et[annotation_style], marker=next(marker), color=colors[i], linestyle='dashed', label='Entropy of Coherent Sentences')
+
+        plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.05), ncol=3, fancybox=True, shadow=True, prop={'size': 6})
+        plt.xlabel('Years')
+        plt.ylabel('General Entropy vs. Entropy of\nCoherent Sentences through {}'.format(annotation_style))
+
+        fig = plt.gcf()
+        fig.set_size_inches(8, 4)
+
+        plt.tight_layout()
+        mkdir(save_dir)
+        plt.savefig(os.path.join(save_dir, 'entropy_comparison_{}_{}.png'.format(group_name, annotation_style)), dpi=300)
+        plt.close()
+
+        i += 1
+
+
+def plot_entropy_evolution(ann2et, group_name, save_dir):
+
+    for annotation_style in ann2et:
+        years = ['1982', '1984', '1985', '1986', '1987']
+        marker = itertools.cycle(('p', 's', 'D', 'X'))
+        plt.plot(years, ann2et[annotation_style], marker=next(marker), label=annotation_style)
+
+    plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.05), ncol=3, fancybox=True, shadow=True, prop={'size': 6})
+    plt.xlabel('Years')
+    plt.ylabel('Entropy')
+    plt.tight_layout()
+    mkdir(save_dir)
+    plt.savefig(os.path.join(save_dir, 'entropy_{}.png'.format(group_name)), dpi=300)
+    plt.close()
+
+
 def plot_disco_scores(df, group_name, save_dir):
     annotation_styles, annotation_vals = [], []
     cols = [col for col in df.columns if col != 'annotation']
@@ -48,8 +96,7 @@ def plot_disco_scores(df, group_name, save_dir):
             vals = [np.float(row[col]) for col in cols]
             annotation_styles.append(annotation_style)
             annotation_vals.append(vals)
-    import itertools
-    import matplotlib.pyplot as plt
+
     marker = itertools.cycle(('p', 's', 'D', 'X'))
 
     for i, style in enumerate(annotation_styles):
@@ -57,15 +104,64 @@ def plot_disco_scores(df, group_name, save_dir):
 
     plt.xticks(list(range(len(annotation_vals[0]))), cols)
     plt.ylim(-0.5, 1.5)
-    plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.05),
-          ncol=3, fancybox=True, shadow=True, prop={'size': 6})
+    plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.05), ncol=3, fancybox=True, shadow=True, prop={'size': 6})
     plt.xlabel('Year')
     plt.ylabel('DiscoScore')
     plt.tight_layout()
     mkdir(save_dir)
-    plt.savefig(os.path.join(save_dir, group_name + '.png'), dpi=300)
-    plt.savefig(os.path.join(save_dir, group_name + '.pdf'), dpi=300)
+    plt.savefig(os.path.join(save_dir, 'coherence_specific_{}.png'.format(group_name)), dpi=300)
+    plt.savefig(os.path.join(save_dir, 'coherence_specific_{}.pdf'.format(group_name)), dpi=300)
     plt.close()
+
+
+# def plot_disco_scores(df, group_name, save_dir, ann2et=None):
+#     fig, ax1 = plt.subplots()
+#     ax2 = ax1.twinx() # twin y-axis
+#
+#     annotation_styles, annotation_vals, et_vals = [], [], []
+#     cols = [col for col in df.columns if col != 'annotation']
+#     for i, row in df.iterrows():
+#         if 'specific' in str(row['annotation']):
+#             annotation_style = row['annotation']
+#             vals = []
+#             for col in cols:
+#                 if '*' in str(row[col]):
+#                     vals.append(np.float(str(row[col]).replace('*', '')))
+#                 else:
+#                     vals.append(np.float(row[col]))
+#             vals = [np.float(row[col]) for col in cols]
+#             annotation_styles.append(annotation_style)
+#             annotation_vals.append(vals)
+#             et_vals.append(ann2et[str(annotation_style[:-9]).strip()])
+#
+#     marker = itertools.cycle(('p', 's', 'D', 'X'))
+#
+#     start = 0.0
+#     stop = 1.0
+#     number_of_lines = len(annotation_styles)
+#     cm_subsection = np.linspace(start, stop, number_of_lines)
+#
+#     colors = [plt.cm.Paired(x) for x in cm_subsection]
+#
+#     for i, style in enumerate(annotation_styles):
+#         ax1.plot(list(range(len(annotation_vals[i]))), annotation_vals[i], marker=next(marker), label=annotation_styles[i], color=colors[i])
+#         ax2.plot(list(range(len(annotation_vals[i]))), annotation_vals[i], marker=next(marker), label=annotation_styles[i], color=colors[i], linestyle='dashed')
+#
+#     plt.xticks(list(range(len(annotation_vals[0]))), cols)
+#     ax1.axis(ymin=-0.5, ymax=1.5)
+#     plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.05),
+#           ncol=3, fancybox=True, shadow=True, prop={'size': 6})
+#     plt.xlabel('Year')
+#     ax1.set_ylabel('DiscoScore')
+#     ax2.set_ylabel('Entropy')
+#
+#     fig = plt.gcf()
+#     fig.set_size_inches(12, 6)
+#     plt.tight_layout()
+#     mkdir(save_dir)
+#     plt.savefig(os.path.join(save_dir, group_name + '.png'), dpi=300)
+#     plt.savefig(os.path.join(save_dir, group_name + '.pdf'), dpi=300)
+#     plt.close()
 
 
 def get_distribution(annotations):
@@ -185,7 +281,7 @@ group2name = {
 
 name2savename = {
     'Sabra and Shatila Massacre': 'sabra_shatila_massacre',
-    'Palestinian Resistance South Lebanon': 'palestinian_resistance_south_lebanon',
+    # 'Palestinian Resistance South Lebanon': 'palestinian_resistance_south_lebanon',
 }
 
 with open('sentences.txt', 'r', encoding='utf-8') as f:
@@ -261,61 +357,6 @@ for i, shift_type in enumerate(shift_types):
 # the choice of the hypothesis is to choose an opinionated one (discousre having an ideology - works with
 # Distant_evaluation/argumentation/propaganda, etc) and see if coherence in an ideology is maintained
 
-usage_distr = get_distribution(annotations_content)
-# usage_distr = preprocessing.normalize(usage_distr, norm='l1', axis=0)
-#
-# intervals = [5, 6, 7, 8]
-# interval_labels = [1960, 1970, 1980, 1990]
-#         # intervals = [5, 8]
-#         # interval_labels = [1960, 1990]
-#
-#         # JSD
-# jsd = jsd_timeseries(usage_distr, dfunction=js_divergence) / usage_distr.shape[0]
-# print('jsd: {}'.format(jsd))
-# jsd_multi.append(js_divergence([usage_distr[:, t] for t in intervals]))
-# jsd_mean.append(np.mean(jsd))
-# jsd_max.append(np.max(jsd))
-# jsd_min.append(np.min(jsd))
-# jsd_median.append(np.median(jsd))
-#
-# # Entropy difference
-print('content')
-usage_distr = get_distribution(annotations_content)
-dh = entropy_timeseries(usage_distr) / usage_distr.shape[0]
-print('ed: {}'.format(dh))
-print('ed mean: {}'.format(np.mean(dh)))
-print('ed max: {}'.format(np.max(dh)))
-print('ed min: {}'.format(np.min(dh)))
-print('ed median: {}'.format(np.median(dh)))
-
-print('argumentation')
-usage_distr = get_distribution(annotations_argumentation)
-dh = entropy_timeseries(usage_distr) / usage_distr.shape[0]
-print('ed: {}'.format(dh))
-print('ed mean: {}'.format(np.mean(dh)))
-print('ed max: {}'.format(np.max(dh)))
-print('ed min: {}'.format(np.min(dh)))
-print('ed median: {}'.format(np.median(dh)))
-
-print('propaganda')
-usage_distr = get_distribution(annotations_propaganda)
-dh = entropy_timeseries(usage_distr) / usage_distr.shape[0]
-print('ed: {}'.format(dh))
-print('ed mean: {}'.format(np.mean(dh)))
-print('ed max: {}'.format(np.max(dh)))
-print('ed min: {}'.format(np.min(dh)))
-print('ed median: {}'.format(np.median(dh)))
-
-print('speech')
-usage_distr = get_distribution(annotations_speech)
-dh = entropy_timeseries(usage_distr) / usage_distr.shape[0]
-print('ed: {}'.format(dh))
-print('ed mean: {}'.format(np.mean(dh)))
-print('ed max: {}'.format(np.max(dh)))
-print('ed min: {}'.format(np.min(dh)))
-print('ed median: {}'.format(np.median(dh)))
-
-
 
 # this hypothesis is 1982 based
 # hypothesis = 'لذلك فان تهديدات اسرائيل بضرب المقاومه الفلسطينيه بحجه انها تخرق وقف النار تسمح بخرقه الجنوب مكان العالم تستهدف المقاومه بقدر تستهدف الجنوب نفسه تحقيقا لاهدافها وهي تهديدات ستنفذها الوقت المناسب حاجاتها الخاصه'
@@ -323,7 +364,7 @@ hypothesis = 'واكد ان اسرائيل هي المسؤول الاول وال
 
 group2hypothesis = {
     'Sabra and Shatila Massacre': 'واكد ان اسرائيل هي المسؤول الاول والاخير مجزره مخيمي صبرا وشاتيلا',
-    'Palestinian Resistance South Lebanon': 'لذلك فان تهديدات اسرائيل بضرب المقاومه الفلسطينيه بحجه انها تخرق وقف النار تسمح بخرقه الجنوب مكان العالم تستهدف المقاومه بقدر تستهدف الجنوب نفسه تحقيقا لاهدافها وهي تهديدات ستنفذها الوقت المناسب حاجاتها الخاصه'
+    # 'Palestinian Resistance South Lebanon': 'لذلك فان تهديدات اسرائيل بضرب المقاومه الفلسطينيه بحجه انها تخرق وقف النار تسمح بخرقه الجنوب مكان العالم تستهدف المقاومه بقدر تستهدف الجنوب نفسه تحقيقا لاهدافها وهي تهديدات ستنفذها الوقت المناسب حاجاتها الخاصه'
 }
 
 # name2savename = {
@@ -340,42 +381,131 @@ group = 'Sabra and Shatila Massacre'
 # annotation_style = "Propaganda"
 
 
-# years = list(sorted(list(annotations_shifts[annotation_style][group].keys())))
-ref2score = {}
-for group in group2hypothesis:
-    years = [1982, 1984, 1985, 1986, 1987]
-    hypothesis = group2hypothesis[group]
-    ref2score[group] = {}
-    for year in years:
-        scores, idxs = [], []
-        refs = annotations_shifts["Propaganda"][group][year]
-        i = 0
-        for ref in refs:
-            score = disco_scorer.DS_Focus_NN(hypothesis, [ref])
-            scores.append(score[0])
-            ref2score[group][ref] = score[0]
-            idxs.append(i)
-            i += 1
-        from operator import itemgetter
-
-        res = [list(x) for x in zip(*sorted(zip(scores, idxs), key=itemgetter(0)))]
-        res[0].reverse()
-        res[1].reverse()
-
-        scores = res[0]
-        idxs = res[1]
-        print(scores)
+# # years = list(sorted(list(annotations_shifts[annotation_style][group].keys())))
+# ref2score = {}
+# for group in group2hypothesis:
+#     years = [1982, 1984, 1985, 1986, 1987]
+#     hypothesis = group2hypothesis[group]
+#     ref2score[group] = {}
+#     for year in years:
+#         scores, idxs = [], []
+#         refs = annotations_shifts["Propaganda"][group][year]
+#         i = 0
+#         for ref in refs:
+#             score = disco_scorer.DS_Focus_NN(hypothesis, [ref])
+#             scores.append(score[0])
+#             ref2score[group][ref] = score[0]
+#             idxs.append(i)
+#             i += 1
+#         from operator import itemgetter
+#
+#         res = [list(x) for x in zip(*sorted(zip(scores, idxs), key=itemgetter(0)))]
+#         res[0].reverse()
+#         res[1].reverse()
+#
+#         scores = res[0]
+#         idxs = res[1]
+#         print(scores)
 #
 import pickle
-
+#
 # with open('ref2score.pickle', 'wb') as handle:
 #     pickle.dump(ref2score, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 with open('ref2score.pickle', 'rb') as handle:
     ref2score = pickle.load(handle)
 
-# pick top 10 most coherent sentences in each year
+save_dir_box = 'coherence_plots/'
+all_scores = []
+years = list(sorted(list(annotations_shifts['Propaganda'][group].keys())))
+for year in years:
+    refs = annotations_shifts['Propaganda'][group][year]
+    coherence_scores = []
+    # plot the distribution of coherence scores in reference to the hypothesis
+    for ref in refs:
+        score = ref2score[group][ref]
+        if float(score) != 0.0:
+            coherence_scores.append(ref2score[group][ref])
+    all_scores.append(coherence_scores)
 
+plt.boxplot(all_scores)
+plt.xticks(list(range(1, len(years) + 1)), [y for y in years])
+plt.xlabel('Years')
+plt.ylabel('Distribution of DiscoScores w.r.t Hypothesis')
+plt.tight_layout()
+mkdir(save_dir_box)
+plt.savefig(os.path.join(save_dir_box, 'coherence_boxplots_{}.png'.format(group)), dpi=300)
+plt.close()
+
+# pick a threshold for coherence value.
+# The threshold currently picked is based on the box plot distribution of coherence values of the references
+# with respect to the hypothesis, tracked by every year
+# Methodology:
+# For every year: Take all references <= threshold
+# stacked bar plot of the annotation labels associated with these
+threshold = 0.1
+years = list(sorted(list(annotations_shifts['Propaganda'][group].keys())))
+annspec2et = {}
+for annotation_style in annotations_shifts:
+    labels = set()
+    for ann in shift2ann[annotation_style]:
+        labels.add(ann["label"])
+    labels = list(labels)
+    distr = np.zeros((len(labels), len(years)))
+    labels2i = {label: i for i, label in enumerate(labels)}
+    years2i = {year: i for i, year in enumerate(years)}
+
+    distributions = np.zeros((len(years), len(labels)))
+
+    distributions_et = np.zeros((len(labels), len(years)))
+
+    for year in years:
+        refs = annotations_shifts['Propaganda'][group][year]
+        # plot the distribution of coherence scores in reference to the hypothesis
+        for ref in refs:
+            score = ref2score[group][ref]
+            if float(score) != 0.0 and float(score) <= threshold:
+                # get the label
+                for ann in shift2ann[annotation_style]:
+                    text = ann["text"]
+                    label = ann["label"]
+
+                    if text.strip() == ref.strip():
+                        distributions[years2i[year], labels2i[label]] += 1
+                        distributions_et[labels2i[label], years2i[year]] += 1
+                        break
+
+    et = entropy_timeseries(distributions_et)
+    annspec2et[annotation_style] = et
+
+    for i in range(distributions.shape[0]):
+        year_sum = np.sum(distributions[i, :])
+        distributions[i, :] = distributions[i, :] / year_sum
+    coherence_threshold_df = pd.DataFrame(distributions, columns=labels)
+    coherence_threshold_df['Years'] = years
+    coherence_threshold_df.plot(x='Years', kind='bar', stacked=True)
+
+    fig = plt.gcf()
+    fig.set_size_inches(12, 6)
+    ax = plt.subplot(111)
+    # ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), fancybox=True, shadow=True)
+    if annotation_style not in ['Propaganda', 'Van_Dijk_Contents']:
+        ax.legend(loc='upper center', bbox_to_anchor=(0.5, 1.05), ncol=6, fancybox=True, shadow=True)
+    else:
+        box = ax.get_position()
+        ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+
+        # Put a legend to the right of the current axis
+        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+
+    plt.xticks(rotation=45)
+    plt.xlabel('Years')
+    plt.ylabel('Distribution of {} labels having coherence <= {}'.format(annotation_style, threshold))
+    plt.tight_layout()
+    plt.savefig(os.path.join(save_dir_box, 'coherence_threshold_{}_{}.png'.format(group, annotation_style)))
+    plt.close()
+
+# pick top 10 most coherent sentences in each year
 for group in name2savename:
 
     print('group name: {}'.format(group))
@@ -384,6 +514,7 @@ for group in name2savename:
 
     highest_corr = 0
     highest_ann = ''
+    ann2et = {}
 
     for annotation_style in shift2ann:
 
@@ -391,6 +522,10 @@ for group in name2savename:
 
         coherences_general, coherences_specific = [], []
         scores_general, scores_specific = [], []
+
+        usage_distr = get_distribution(shift2ann[annotation_style])
+        et = entropy_timeseries(usage_distr)
+        ann2et[annotation_style] = et
 
         years = list(sorted(list(annotations_shifts[annotation_style][group].keys())))
 
@@ -416,6 +551,7 @@ for group in name2savename:
 
             list_gen = list(ref2score[group].values())
             list_spec = list(ref2score[group][r] for r in refs_sub)
+            list_spec = [s for s in list_spec if s != 0.0] # remove scores of 0 because they indicate non-coherenece and they will be confused with perfectly coherent
 
             cg = np.mean(list_gen)
             cs = np.mean(list_spec)
@@ -469,7 +605,7 @@ for group in name2savename:
 
         from scipy.stats import pearsonr
         try:
-            corr, _ = pearsonr(dh, [np.float(v) for v in coherences_specific])
+            corr, _ = pearsonr(et, [np.float(v) for v in coherences_specific])
             print('Pearsons correlation: %.3f' % corr)
 
             if corr > highest_corr:
@@ -489,139 +625,5 @@ for group in name2savename:
     print('Highest corr: {} by {}'.format(highest_corr, highest_ann))
 
     plot_disco_scores(df=df, group_name=group, save_dir='coherence_plots/')
-
-
-# for group in name2savename:
-#
-#     print('group name: {}'.format(group))
-#     df = pd.DataFrame(columns=['annotation', '1982', '1984', '1985', '1986', '1987'])
-#     hypothesis = group2hypothesis[group]
-#
-#     for annotation_style in shift2ann:
-#
-#         print('annotations style: {}'.format(annotation_style))
-#
-#         coherences_general, coherences_specific = [], []
-#         scores_general, scores_specific = [], []
-#
-#         years = list(sorted(list(annotations_shifts[annotation_style][group].keys())))
-#
-#         for year in years:
-#
-#             refs = annotations_shifts[annotation_style][group][year]
-#
-#             annotations = shift2ann[annotation_style]
-#
-#             # get the score when having the same annotation
-#             for ann in annotations:
-#                 if ann["text"] == hypothesis.strip():
-#                     label = ann["label"]
-#                     break
-#
-#             refs_sub = []
-#             for r in refs:
-#                 for ann in annotations:
-#                     if ann["text"] == r.strip() and ann["label"] == label:
-#                         refs_sub.append(r)
-#                         break
-#             print('{} out of {}'.format(len(refs_sub), len(refs)))
-#
-#             cg, scores_g = disco_scorer.DS_Focus_NN(hypothesis, refs)
-#             cs, scores_s = disco_scorer.DS_Focus_NN(hypothesis, refs_sub)
-#
-#             print('DiscoScore {}: {}'.format(year, cg))  # FocusDiff
-#             print('DiscoScore {}: {}'.format(year, cs))  # FocusDiff
-#
-#             coherences_general.append(str(cg))
-#             coherences_specific.append(str(cs))
-#
-#             scores_general.append(scores_g)
-#             scores_specific.append(scores_s)
-#
-#             # res = stats.ttest_ind(scores_g, scores_s)
-#             # if res.pvalue < 0.05:
-#             #     print('difference in coherence scores between general and specific in year {} are statistically significant: {}'.format(year, res.pvalue))
-#             # else:
-#             #     print('difference in coherence NOT statistically significant FOR YEAR {}: {}'.format(year, res.pvalue))
-#
-#             res2 = stats.mannwhitneyu(scores_g, scores_s)
-#             if res2.pvalue < 0.05:
-#                 print('difference in coherence scores between general and specific in year {} are statistically significant: {}'.format(year, res2.pvalue))
-#             else:
-#                 print('difference in coherence NOT statistically significant FOR YEAR {}: {}'.format(year, res2.pvalue))
-#
-#             if len(refs_sub) <= 5:
-#                 print('hypothesis: {}'.format(hypothesis))
-#                 for i, s in enumerate(refs_sub):
-#                     print('s {}: {}'.format(i+1, s))
-#
-#         data_gen = {'annotation': '{}_general'.format(annotation_style)}
-#         for i, year in enumerate(years):
-#             year = str(year)
-#             data_gen[year] = coherences_general[i]
-#         df = df.append(data_gen, ignore_index=True)
-#
-#         data_sp = {'annotation': '{}_specific'.format(annotation_style)}
-#         for i, year in enumerate(years):
-#             year = str(year)
-#             # res = stats.ttest_ind(scores_general[i], scores_specific[i]) # check if differences in coherence scores are statistically significant
-#             res = stats.mannwhitneyu(scores_general[i], scores_specific[i])
-#             if res.pvalue < 0.05:
-#                 data_sp[year] = '*' + str(coherences_specific[i])
-#             else:
-#                 data_sp[year] = coherences_specific[i]
-#         df = df.append(data_sp, ignore_index=True)
-#
-#         df = df.append({k: '' for k in data_sp}, ignore_index=True)
-#
-#         df.to_csv('results1_{}.csv'.format(name2savename[group]), index=False)
-#
-#         print('===================================================================================================================')
-#
-#     df.to_csv('results1_{}.csv'.format(name2savename[group]), index=False)
-#
-#     plot_disco_scores(df=df, group_name=group, save_dir='coherence_plots/')
-
-
-# # system = ["Paul Merson has restarted his row with andros townsend after the Tottenham midfielder was brought on with only seven minutes remaining in his team 's 0-0 draw with burnley. Townsend was brought on in the 83rd minute for Tottenham as they drew 0-0 against Burnley ."]
-# # references = [["Paul Merson has restarted his row with burnley on sunday. Townsend was brought on in the 83rd minute for tottenham. Andros Townsend scores england 's equaliser in their 1-1 friendly draw. Townsend hit a stunning equaliser for england against italy."]]
-# #
-# # for s, refs in zip(system, references):
-# #    s = s.lower()
-# #    # refs = [r.lower() for r in refs]
-# #    # print(disco_scorer.EntityGraph(s, refs))
-# #    # print(disco_scorer.LexicalChain(s, refs))
-# #    # print(disco_scorer.RC(s, refs))
-# #    # print(disco_scorer.LC(s, refs))
-# #    print(disco_scorer.DS_Focus_NN(s, refs)) # FocusDiff
-# #    # print(disco_scorer.DS_SENT_NN(s, refs)) # SentGraph
-#
-#
-#
-# # C:\Users\96171\AppData\Local\Programs\Python\Python36\python.exe C:/Users/96171/Desktop/political_discourse_mining_hiyam/pre-MAML/DiscoScore-main/disco_score/get_disco_scores.py
-# # C:\Users\96171\AppData\Local\Programs\Python\Python36\lib\site-packages\requests\__init__.py:104: RequestsDependencyWarning: urllib3 (1.25.3) or chardet (5.0.0)/charset_normalizer (2.0.12) doesn't match a supported version!
-# #   RequestsDependencyWarning)
-# # Some weights of the model checkpoint at aubmindlab/bert-base-arabertv2 were not used when initializing BertModel: ['cls.predictions.decoder.bias', 'cls.predictions.transform.dense.weight', 'cls.seq_relationship.weight', 'cls.seq_relationship.bias', 'cls.predictions.transform.dense.bias', 'cls.predictions.bias', 'cls.predictions.transform.LayerNorm.weight', 'cls.predictions.transform.LayerNorm.bias', 'cls.predictions.decoder.weight']
-# # - This IS expected if you are initializing BertModel from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
-# # - This IS NOT expected if you are initializing BertModel from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
-# # 1 out of 15
-# # DiscoScore 1982: 0.07640937661003895
-# # DiscoScore 1982: 0.0
-# # 0 out of 8
-# # DiscoScore 1984: 0.05147233587400243
-# # DiscoScore 1984: nan
-# # 6 out of 79
-# # C:\Users\96171\AppData\Local\Programs\Python\Python36\lib\site-packages\numpy\core\fromnumeric.py:3373: RuntimeWarning: Mean of empty slice.
-# #   out=out, **kwargs)
-# # C:\Users\96171\AppData\Local\Programs\Python\Python36\lib\site-packages\numpy\core\_methods.py:170: RuntimeWarning: invalid value encountered in double_scalars
-# #   ret = ret.dtype.type(ret / rcount)
-# # DiscoScore 1985: 0.08328885960570327
-# # DiscoScore 1985: 0.07521219669468293
-# # 6 out of 115
-# # DiscoScore 1986: 0.07822415574117911
-# # DiscoScore 1986: 0.12207263802143871
-# # 2 out of 90
-# # DiscoScore 1987: 0.07469119311757882
-# # DiscoScore 1987: 0.14872830253982758
-# #
-# # Process finished with exit code 0
+    plot_entropy_evolution(ann2et, group_name=group, save_dir='coherence_plots/')
+    plot_entropy_evolution_comparison(ann2et, annspec2et, group_name=group, save_dir='coherence_plots/')
