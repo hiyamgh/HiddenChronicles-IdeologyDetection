@@ -82,7 +82,7 @@ if __name__ == '__main__':
         ['Oslo_Accords', 'أوسلو,اسرائيل', (1993, 1996)],
         ['September_11_attacks', 'هجمات,ايلول,قاعده', (2001, 2003)],
         ['Rafik_Hariri_Assassination',  'اغتيال,رفيق,الحريري', (2005, 2009)],
-        ['Lebanon_Israel_War_2006', 'حرب,تموز,اسرائيل', (2006, 2008)]
+        ['Lebanon_Israel_War_2006', 'حرب,تموز,اسرائيل', (2006, 2009)]
     ]
 
     directory = '/scratch/7613491_hkg02/political_discourse_mining_hiyam/Train_Word_Embedidng/fasttext/data/{}/'.format(args.archive)
