@@ -47,12 +47,21 @@ if __name__ == '__main__':
         t1 = time.time()
         for j, row in tqdm(df_train.iterrows(), total=df_train.shape[0], desc='Translating train_multiclass to {}'.format(languages_names[i])):
             sentence = row['context'].strip()
-            translated = translator.translate('{}'.format(sentence), src='en', dest=languages_codes[i])
+
+            if sentence != "":
+                translated = translator.translate('{}'.format(sentence), src='en', dest=languages_codes[i]).text
+            else:
+                translated = ""
+
             df_trans = df_trans.append({
                 'Sentence': translated,
                 'Label': row['label']
             }, ignore_index=True)
+
             sleep(3)
+
+            if j % 50 == 0:
+                sleep(60)
 
             if j%100 == 0:
                 df_trans.to_excel(os.path.join(save_dir, 'train_multiclass_{}.xlsx'.format(languages_codes[i])))
@@ -65,12 +74,19 @@ if __name__ == '__main__':
         t1 = time.time()
         for j, row in tqdm(df_dev.iterrows(), total=df_dev.shape[0], desc='Translating dev_multiclass to {}'.format(languages_names[i])):
             sentence = row['context'].strip()
-            translated = translator.translate('{}'.format(sentence), src='en', dest=languages_codes[i])
+            if sentence != "":
+                translated = translator.translate('{}'.format(sentence), src='en', dest=languages_codes[i]).text
+            else:
+                translated = ""
             df_trans = df_trans.append({
                 'Sentence': translated,
                 'Label': row['label']
             }, ignore_index=True)
+
             sleep(3)
+
+            if j % 50 == 0:
+                sleep(60)
 
             if j % 100 == 0:
                 df_trans.to_excel(os.path.join(save_dir, 'dev_multiclass_{}.xlsx'.format(languages_codes[i])))

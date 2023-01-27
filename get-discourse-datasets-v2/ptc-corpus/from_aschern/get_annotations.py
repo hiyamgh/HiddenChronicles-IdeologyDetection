@@ -23,8 +23,18 @@ df_val = pd.read_csv('annotations/dev.csv')
 
 print('df_train.shape before dropping duplicates: {}'.format(df_train.shape))
 df_train = df_train.drop_duplicates(subset=['context'])
+df_train.to_csv(os.path.join(data_dir, 'train_multiclass.csv'), index=False)
 print('df_train.shape after dropping duplicates: {}'.format(df_train.shape))
+
 
 print('df_val.shape before dropping duplicates: {}'.format(df_val.shape))
 df_val = df_val.drop_duplicates(subset=['context'])
+df_val.to_csv(os.path.join(data_dir, 'dev_multiclass.csv'), index=False)
 print('df_val.shape after dropping duplicates: {}'.format(df_val.shape))
+
+count = 0
+for label in list(set(df_val['label'])):
+    print(label, end=';')
+    count += 1
+print(count)
+
