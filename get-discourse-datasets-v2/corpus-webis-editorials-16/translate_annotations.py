@@ -1,3 +1,5 @@
+import time
+
 import pandas as pd
 import os
 from googletrans import Translator
@@ -40,16 +42,18 @@ if __name__ == '__main__':
 
         df_trans = pd.DataFrame(columns=['Sentence', 'Label'])
 
+        t1 = time.time()
         for j, row in tqdm(df.iterrows(), total=df.shape[0], desc='Translating to {}'.format(languages_names[i])):
             sentence = row['Sentence'].strip()
             translated = translator.translate('{}'.format(sentence), src='en', dest=languages_codes[i])
             df_trans = df_trans.append({
                 'Sentence': translated,
                 'Label': row['Label']
-            })
+            }, ignore_index=True)
             sleep(3)
 
             if j%100 == 0:
                 df_trans.to_excel(os.path.join(save_dir, 'sentences_annotations_{}.xlsx'.format(languages_codes[i])))
-
+        t2 = time.time()
         df_trans.to_excel(os.path.join(save_dir, 'sentences_annotations_{}.xlsx'.format(languages_codes[i])))
+        print('Time taken: {} mins'.format((t2-t1)/60))
