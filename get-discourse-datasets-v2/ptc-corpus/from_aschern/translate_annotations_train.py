@@ -69,14 +69,14 @@ if __name__ == '__main__':
 
     print('SLURM ARRAY TASK ID: {}, LANGUAGE: {}'.format(args.array_id, lang))
 
-    df = pd.read_excel('sentences_annotations.xlsx')
+    df = pd.read_csv('annotations/train_multiclass.csv')
     print('df.shape before dropping duplicates: {}'.format(df.shape))
     df = df.drop_duplicates()
     print('df.shape after dropping duplicates: {}'.format(df.shape))
     translator = Translator()
 
     df_trans = pd.DataFrame(columns=['Original', 'Sentence', 'Label'])
-    df_to_save_name = 'sentences_annotations_{}.xlsx'.format(lang)
+    df_to_save_name = 'train_multiclass_{}.xlsx'.format(lang)
 
     if os.path.isfile(os.path.join(save_dir, df_to_save_name)):
         df_trans = pd.read_excel(os.path.join(save_dir, df_to_save_name))
@@ -85,13 +85,13 @@ if __name__ == '__main__':
             t1 = time.time()
             for j, row in tqdm(df.iterrows(), total=df.shape[0], desc='Translating to {}'.format(codes2names[lang])):
                 if j >= num_rows:
-                    sentence = row['Sentence'].strip()
+                    sentence = row['context'].strip()
                     if sentence != "":
                         try:
                             translated = translator.translate('{}'.format(sentence), src='en', dest=lang).text
                         except:
                             try:
-                                print('was not able to translate row {}: {}'.format(j, row['Sentence']))
+                                print('was not able to translate row {}: {}'.format(j, row['context']))
                                 translator_temp = Translator(service_urls=['translate.googleapis.com'])
                                 translated = translator.translate("{}".format(sentence), dest=lang).text
                             except:
@@ -103,7 +103,7 @@ if __name__ == '__main__':
                     df_trans = df_trans.append({
                         'Original': sentence.strip(),
                         'Sentence': translated,
-                        'Label': row['Label']
+                        'Label': row['label']
                     }, ignore_index=True)
 
                     sleep(1 + args.array_id)
@@ -121,13 +121,13 @@ if __name__ == '__main__':
     else:
         t1 = time.time()
         for j, row in tqdm(df.iterrows(), total=df.shape[0], desc='Translating to {}'.format(codes2names[lang])):
-            sentence = row['Sentence'].strip()
+            sentence = row['context'].strip()
             if sentence != "":
                 try:
                     translated = translator.translate('{}'.format(sentence), src='en', dest=lang).text
                 except:
                     try:
-                        print('was not able to translate row {}: {}'.format(j, row['Sentence']))
+                        print('was not able to translate row {}: {}'.format(j, row['context']))
                         translator_temp = Translator(service_urls=['translate.googleapis.com'])
                         translated = translator.translate("{}".format(sentence), dest=lang).text
                     except:
@@ -139,7 +139,7 @@ if __name__ == '__main__':
             df_trans = df_trans.append({
                 'Original': sentence.strip(),
                 'Sentence': translated,
-                'Label': row['Label']
+                'Label': row['label']
             }, ignore_index=True)
 
             sleep(1 + args.array_id)

@@ -1,16 +1,16 @@
 #!/bin/bash -l
 
-#SBATCH --job-name=PTC # Job name
+#SBATCH --job-name=PTC-dev # Job name
 #SBATCH --partition=cpu # Partition
 #SBATCH --nodes=1 # Number of nodes
 #SBATCH --ntasks-per-node=1  # Number of tasks
 #SBATCH --output=%j.out # Stdout (%j=jobId)
-#SBATCH --error=%j.err # Stderr (%j=jobId)
 #SBATCH --time=23:00:00 # Walltime
 #SBATCH -A p118
+#SBATCH --array 0-13%13
 
 # Load any necessary modules, in this case OpenMPI with CUDA
 module purge
 module load Python/3.6.8-GCCcore-8.2.0
 
-python translate_annotations.py
+python translate_annotations_dev.py --array_id $SLURM_ARRAY_TASK_ID
