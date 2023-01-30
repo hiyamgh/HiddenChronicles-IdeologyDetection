@@ -18,6 +18,7 @@ if __name__ == '__main__':
         if '.xlsx' in file:
             lang = file.split('_')[1][:-5]
             path = os.path.join(dir, file)
-            print("\"VDC_{}\": \"{}\",".format(lang, path))
+            added = '../translate_corpora/Discourse_Profiling/'
+            print("\"VDC_{}\": \"{}\",".format(lang, added + path))
 
     print("\"VDC_en\": \"{}\",".format(path_en))

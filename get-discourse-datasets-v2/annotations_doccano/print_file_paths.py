@@ -9,10 +9,11 @@ annotations = ["VDS", "VDC", "PTC", "ARG"]
 for i, dir in enumerate(dirs):
     for group in groups:
         path = os.path.join(dir, group)
+        added = "../translate_corpora/annotations_doccano/"
         for file in os.listdir(path):
             if '.xlsx' in file:
                 lang = file.split('_')[2][:-5]
                 if 'Palestinian' in group:
-                    print("\"corp_PRST_{}_{}\": \"{}\",".format(lang, annotations[i], path + file))
+                    print("\"corp_PRST_{}_{}\": \"{}\",".format(lang, annotations[i], added + path + file))
                 else:
-                    print("\"corp_SSM_{}_{}\": \"{}\",".format(lang, annotations[i], path + file))
+                    print("\"corp_SSM_{}_{}\": \"{}\",".format(lang, annotations[i], added + path + file))

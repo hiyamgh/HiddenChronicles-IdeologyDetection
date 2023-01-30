@@ -7,6 +7,7 @@ if __name__ == '__main__':
         if '.xlsx' in file:
             lang = file.split('_')[2][:-5]
             path = os.path.join(dir, file)
-            print("\"ARG_{}\": \"{}\",".format(lang, path))
+            added = '../translate_corpora/corpus-webis-editorials-16/'
+            print("\"ARG_{}\": \"{}\",".format(lang, added + path))
 
     print("\"ARG_en\": \"{}\",".format(path_en))
