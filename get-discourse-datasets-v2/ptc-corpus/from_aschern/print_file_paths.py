@@ -12,12 +12,12 @@ if __name__ == '__main__':
 
     dir = 'translations_joined/'
     path_en = 'annotations/df_multiclass.xlsx'
+    added = "../translate_corpora/ptc-corpus/"
 
     for file in os.listdir(dir):
         if '.xlsx' in file:
             lang = file.split('_')[1][:-5]
             path = os.path.join(dir, file)
-            added = "../translate_corpora/ptc-corpus/"
             print("\"PTC_{}\": \"{}\",".format(lang, added + path))
 
-    print("\"PTC_en\": \"{}\",".format(path_en))
+    print("\"PTC_en\": \"{}\",".format(added + path_en))

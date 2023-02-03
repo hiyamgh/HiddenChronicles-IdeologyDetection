@@ -1,7 +1,7 @@
 import os
 if __name__ == '__main__':
     # annotations = ["VDS", "VDC", "PTC", "ARG"]
-    dir = 'translationsv2/'
+    dir = 'translationsv2_cleaned/'
     path_en = 'sentences_annotations.xlsx'
     for file in os.listdir(dir):
         if '.xlsx' in file:

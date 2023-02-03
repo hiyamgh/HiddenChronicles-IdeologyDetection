@@ -1,5 +1,5 @@
 '''
-Hiyam - doing this code in order to extract annotations and save them as a csv file for
+Hiyam - doing this code in order to extract annotations_doccano and save them as a csv file for
 later usage
 '''
 import os

@@ -11,7 +11,7 @@ if __name__ == '__main__':
     df = pd.concat([df1, df2, df3])
     df.to_excel('df.xlsx', index=False)
 
-    dir = 'translations_joined/'
+    dir = 'translations_joined_cleaned/'
     path_en = 'df.xlsx'
 
     for file in os.listdir(dir):
@@ -21,4 +21,4 @@ if __name__ == '__main__':
             added = '../translate_corpora/Discourse_Profiling/'
             print("\"VDC_{}\": \"{}\",".format(lang, added + path))
 
-    print("\"VDC_en\": \"{}\",".format(path_en))
+    print("\"VDC_en\": \"{}\",".format(added + path_en))
