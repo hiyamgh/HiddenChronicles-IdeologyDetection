@@ -95,9 +95,10 @@ class InputFeatures(object):
 
 class DiscourseProcessor:
 
-    def __init__(self, labels):
+    def __init__(self, labels, preprocess_arabert=False):
         self.labels = labels
         self.train_examples, self.dev_examples, self.test_examples = [], [], []
+        self.preprocess_arabert = preprocess_arabert
 
     def _read_dataset(self, df_path, df_id):
 
@@ -517,83 +518,3 @@ datasets = {
     "corp_SSM_fr_ARG": "../translate_corpora/annotations_doccano/translationsv2/argumentation/Sabra and Shatila Massacre/our_corpus_fr.xlsx",
     "corp_SSM_el_ARG": "../translate_corpora/annotations_doccano/translationsv2/argumentation/Sabra and Shatila Massacre/our_corpus_el.xlsx",
 }
-
-
-
-# id2dataset = {
-#     "1": "input/sentences_ocr_corrected_discourse_profiling_en_dev.csv",
-#     "2": "input/sentences_ocr_corrected_discourse_profiling_en_test.csv",
-#     "3": "input/df_en.csv",
-#     "4": "input/sentences_ocr_corrected_discourse_profiling_ar_dev.xlsx",
-#     "5": "input/sentences_ocr_corrected_discourse_profiling_ar_test.xlsx",
-#     "6": "input/df_ar.xlsx",
-# }
-
-id2dataset = {
-    "1": "input/sentences_train8.csv",
-    "2": "input/sentences_test8.csv",
-    "3": "input/df_train.csv",
-    "4": "input/sentences_train3.csv",
-    "5": "input/sentences_test3.csv",
-}
-
-# Experiment 1 - XMAML - Cross Domain + Monolingual - Ar only - 3 classes
-# dev_datasets_ids id2dataset_ar
-# dev_dataset_finetune
-# test_dataset_eval
-
-# id2dataset_multi = {
-#     "1": "input/split_general/sentences_de_train3.xlsx",
-#     "2": "input/split_general/sentences_el_train3.xlsx",
-#     "3": "input/split_general/sentences_fa_train3.xlsx",
-#     "4": "input/split_general/sentences_he_train3.xlsx",
-#     "5": "input/split_general/sentences_train3.xlsx",
-#     "6": "input/df_train.csv",
-#     "7": "input/split_general/sentences_test3.xlsx",
-#     "8": "input/translated_dp/df_train_ar.xlsx",
-#     "9": "input/translated_dp/df_train_de.xlsx",
-#     "10": "input/translated_dp/df_train_el.xlsx",
-#     "11": "input/translated_dp/df_train_fa.xlsx",
-#     "12": "input/translated_dp/df_train_he.xlsx",
-#
-#     "13": "input/split_general/sentences_hi_train3.xlsx", # new
-#     "14": "input/split_general/sentences_ru_train3.xlsx",
-#     "15": "input/split_general/sentences_sw_train3.xlsx",
-#     "16": "input/split_general/sentences_th_train3.xlsx",
-#     "17": "input/split_general/sentences_tr_train3.xlsx",
-#     "18": "input/split_general/sentences_vi_train3.xlsx",
-#
-#     "19": "input/translated_dp/df_train_hi.xlsx", # new
-#     "20": "input/translated_dp/df_train_ru.xlsx",
-#     "21": "input/translated_dp/df_train_sw.xlsx",
-#     "22": "input/translated_dp/df_train_th.xlsx",
-#     "23": "input/translated_dp/df_train_tr.xlsx",
-#     "24": "input/translated_dp/df_train_vi.xlsx"
-# }
-
-id2dataset_multi = {
-    "1": "input/joined/df_joined_de.xlsx", # German
-    "2": "input/joined/df_joined_el.xlsx", # Greek
-    "3": "input/joined/df_joined_fa.xlsx", # Farisi
-    "4": "input/joined/df_joined_he.xlsx", # Hebrew
-    "5": "input/joined/df_joined_hi.xlsx", # Hindi
-    "6": "input/joined/df_joined_ru.xlsx", # Russian
-    "7": "input/joined/df_joined_sw.xlsx", # Swahili
-    "8": "input/joined/df_joined_th.xlsx", # Thai
-    "9": "input/joined/df_joined_tr.xlsx", # Turkish
-    "10": "input/joined/df_joined_vi.xlsx", # Vietnamese
-    "11": "input/joined/df_joined_en.xlsx", # English
-    "12": "input/joined/df_joined_ar.xlsx", # Arabic
-
-    "13": "input/split_general/sentences_train3.xlsx",
-    "14": "input/split_general/sentences_test3.xlsx",
-    "15": "input/split_general/sentences_train3.csv",
-    "16": "input/split_general/sentences_test3.csv"
-}
-
-
-# all languages
-# languages close to arabic
-# multilingual bert
-# XLM Bert
-#

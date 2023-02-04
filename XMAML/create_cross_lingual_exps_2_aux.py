@@ -46,16 +46,16 @@ if __name__ == '__main__':
     lang_pairs = list(itertools.combinations(list(codes2names.keys()), 2))
 
     # Discourse profiling - contexts
-    # (meta train) corpus_PRST_aux_VDC / domain 1
-    # (fine tune) corpus_PRST_ar_VDC / domain 1
-    # (test) corpus_SSM_ar_VDC
+    # (meta train) corp_PRST_aux_VDC / domain 1
+    # (fine tune) corp_PRST_ar_VDC / domain 1
+    # (test) corp_SSM_ar_VDC
 
     with open(os.path.join(save_dir, 'VDC_cross_lingual.txt'), 'w') as f:
         for lang_pair in lang_pairs:
             if 'ar' not in lang_pair:
-                dev_dataset_ids = ['corpus_PRST_{}_VDC'.format(lang_pair[0]), 'corpus_PRST_{}_VDC'.format(lang_pair[1])]
-                dev_dataset_fine_tune_id = ['corpus_PRST_ar_VDC']
-                test_dataset_id = ['corpus_SSM_ar_VDC']
+                dev_dataset_ids = ['corp_PRST_{}_VDC'.format(lang_pair[0]), 'corp_PRST_{}_VDC'.format(lang_pair[1])]
+                dev_dataset_fine_tune_id = ['corp_PRST_ar_VDC']
+                test_dataset_id = ['corp_SSM_ar_VDC']
 
                 for n in support_sizes_grid:
                     for inner_train_step in inner_train_steps_grid:
@@ -74,16 +74,16 @@ if __name__ == '__main__':
 
 
     # Discourse profiling - speeches
-    # (meta train) corpus_PRST_aux_VDS / domain 1
-    # (fine tune) corpus_PRST_ar_VDS / domain 1
-    # (test) corpus_SSM_ar_VDS
+    # (meta train) corp_PRST_aux_VDS / domain 1
+    # (fine tune) corp_PRST_ar_VDS / domain 1
+    # (test) corp_SSM_ar_VDS
 
     with open(os.path.join(save_dir, 'VDS_cross_lingual.txt'), 'w') as f:
         for lang_pair in lang_pairs:
             if "ar" not in lang_pair:
-                dev_dataset_ids = ['corpus_PRST_{}_VDS'.format(lang_pair[0]), 'corpus_PRST_{}_VDS'.format(lang_pair[1])]
-                dev_dataset_fine_tune_id = ['corpus_PRST_ar_VDS']
-                test_dataset_id = ['corpus_SSM_ar_VDS']
+                dev_dataset_ids = ['corp_PRST_{}_VDS'.format(lang_pair[0]), 'corp_PRST_{}_VDS'.format(lang_pair[1])]
+                dev_dataset_fine_tune_id = ['corp_PRST_ar_VDS']
+                test_dataset_id = ['corp_SSM_ar_VDS']
 
                 for n in support_sizes_grid:
                     for inner_train_step in inner_train_steps_grid:
@@ -101,9 +101,9 @@ if __name__ == '__main__':
     f.close()
 
     # Argumentation
-    # (meta train) corpus_PRST_aux_ARG / domain 1
-    # (fine tune) corpus_PRST_ar_ARG / domain 1
-    # (test) corpus_SSM_ar_ARG
+    # (meta train) corp_PRST_aux_ARG / domain 1
+    # (fine tune) corp_PRST_ar_ARG / domain 1
+    # (test) corp_SSM_ar_ARG
 
     # --n: number of support samples, query = batch size - n (16)
     # --inner_train_steps: number of inner updates (3)
@@ -116,9 +116,9 @@ if __name__ == '__main__':
     with open(os.path.join(save_dir, 'argumentation_cross_lingual.txt'), 'w') as f:
         for lang_pair in lang_pairs:
             if "ar" not in lang_pair:
-                dev_dataset_ids = ['corpus_PRST_{}_ARG'.format(lang_pair[0]), 'corpus_PRST_{}_ARG'.format(lang_pair[1])]
-                dev_dataset_fine_tune_id = ['corpus_PRST_ar_ARG']
-                test_dataset_id = ['corpus_SSM_ar_ARG']
+                dev_dataset_ids = ['corp_PRST_{}_ARG'.format(lang_pair[0]), 'corp_PRST_{}_ARG'.format(lang_pair[1])]
+                dev_dataset_fine_tune_id = ['corp_PRST_ar_ARG']
+                test_dataset_id = ['corp_SSM_ar_ARG']
 
                 for n in support_sizes_grid:
                     for inner_train_step in inner_train_steps_grid:
@@ -136,16 +136,16 @@ if __name__ == '__main__':
     f.close()
 
     # Propaganda
-    # (meta train) corpus_PRST_aux_PTC / domain 1
-    # (fine tune) corpus_PRST_ar_PTC / domain 2
-    # (test) corpus_SSM_ar_PTC
+    # (meta train) corp_PRST_aux_PTC / domain 1
+    # (fine tune) corp_PRST_ar_PTC / domain 2
+    # (test) corp_SSM_ar_PTC
 
     with open(os.path.join(save_dir, 'PTC_cross_lingual.txt'), 'w') as f:
         for lang_pair in lang_pairs:
             if "ar" not in lang_pair:
-                dev_dataset_ids = ['corpus_PRST_{}_PTC'.format(lang_pair[0]), 'corpus_PRST_{}_PTC'.format(lang_pair[1])]
-                dev_dataset_fine_tune_id = ['corpus_PRST_ar_PTC']
-                test_dataset_id = ['corpus_SSM_ar_PTC']
+                dev_dataset_ids = ['corp_PRST_{}_PTC'.format(lang_pair[0]), 'corp_PRST_{}_PTC'.format(lang_pair[1])]
+                dev_dataset_fine_tune_id = ['corp_PRST_ar_PTC']
+                test_dataset_id = ['corp_SSM_ar_PTC']
 
                 for n in support_sizes_grid:
                     for inner_train_step in inner_train_steps_grid:

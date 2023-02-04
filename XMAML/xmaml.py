@@ -39,7 +39,7 @@ import itertools
 from utils_xmaml import processors as processors
 from utils_xmaml import output_modes as output_modes
 from utils_xmaml import convert_examples_to_features, load_cache_examples
-from utils_xmaml import id2dataset, datasets
+from utils_xmaml import datasets
 
 from sklearn.metrics import *
 import pandas as pd
@@ -80,7 +80,7 @@ def set_seed(args):
 #     return langs
 
 
-def x_maml_with_aux_langs(args, model, lang_datasets, tokenizer, suffix=None):
+def x_maml_with_aux_langs(args, model, lang_datasets, tokenizer, validation_dataset=None, suffix=None):
     model.train()
 
     args.output_dir_meta = os.path.join(args.output_dir_meta)
@@ -121,6 +121,7 @@ def x_maml_with_aux_langs(args, model, lang_datasets, tokenizer, suffix=None):
 
     set_seed(args)  # Added here for reproductibility (even between python 2 and 3)
 
+    validation_losses, validation_accuracies = [], []
     for mt_itr in tqdm(range(1, args.meta_learn_iter + 1)):  # outer loop learning
         inner_opt = torch.optim.SGD(model.parameters(), lr=args.inner_lr)
         losses = []
@@ -153,8 +154,7 @@ def x_maml_with_aux_langs(args, model, lang_datasets, tokenizer, suffix=None):
                         #                     'labels': batch[3]}
 
                         if args.model_type != 'distilbert':
-                            input_fast_train['token_type_ids'] = batch[2][:n_meta_lr] if args.model_type in ['bert',
-                                                                                                             'xlnet'] else None  # XLM, DistilBERT and RoBERTa don't use segment_ids
+                            input_fast_train['token_type_ids'] = batch[2][:n_meta_lr] if args.model_type in ['bert', 'xlnet'] else None  # XLM, DistilBERT and RoBERTa don't use segment_ids
 
                         outputs = fast_model(**input_fast_train)
                         loss = outputs[0]  # model outputs are always tuple in transformers (see doc)
@@ -175,17 +175,27 @@ def x_maml_with_aux_langs(args, model, lang_datasets, tokenizer, suffix=None):
                                             'attention_mask': batch[1][n_meta_lr:],
                                             'labels': batch[3][n_meta_lr:]}
                     if args.model_type != 'distilbert':
-                        input_fast_valid['token_type_ids'] = batch[2][n_meta_lr:] if args.model_type in ['bert',
-                                                                                             'xlnet'] else None  # XLM, DistilBERT and RoBERTa don't use segment_ids
+                        input_fast_valid['token_type_ids'] = batch[2][n_meta_lr:] if args.model_type in ['bert', 'xlnet'] else None  # XLM, DistilBERT and RoBERTa don't use segment_ids
                     outputs = fast_model(**input_fast_valid)
                     qry_loss = outputs[0]  # model outputs are always tuple in transformers (see doc)
                     qry_loss.backward()
                     losses.append(qry_loss.item())
 
-        print('average loss: {}'.format(np.mean(losses)))
+        # print('average loss: {}'.format(np.mean(losses)))
         optimizer.step()
         model.zero_grad()
-        logger.info("meta-learning it %s", mt_itr)
+        logger.info("meta-learning it {} - avg loss: {}".format(mt_itr, np.mean(losses)))
+
+        if validation_dataset is not None:
+            res = validate_task(args=args, model=model, val_dataset=validation_dataset)
+            validation_accuracies.append(res['acc'])
+            validation_losses.append(res['eval_loss'])
+
+    with open(os.path.join(args.output_dir_meta, 'validation_losses.pkl'), 'wb') as f:
+        pickle.dump(validation_losses, f)
+
+    with open(os.path.join(args.output_dir_meta, 'validation_accuracies.pkl'), 'wb') as f:
+        pickle.dump(validation_accuracies, f)
 
     logger.info("Saving model checkpoint to %s", args.output_dir_meta)
     # Save a trained model, configuration and tokenizer using `save_pretrained()`.
@@ -308,6 +318,57 @@ def fine_tune_task(args, model, train_dataset, tokenizer):
 
     return global_step, tr_loss / global_step, model
 
+
+def validate_task(args, model, val_dataset):
+    args.eval_batch_size = args.per_gpu_eval_batch_size * max(1, args.n_gpu)
+    # Note that DistributedSampler samples randomly
+    # @todo: take english:
+    eval_sampler = SequentialSampler(val_dataset) if args.local_rank == -1 else DistributedSampler(val_dataset)
+    eval_dataloader = DataLoader(val_dataset, sampler=eval_sampler, batch_size=args.eval_batch_size)
+
+    # Eval!
+    logger.info("***** Running validation {} *****")
+    logger.info("  Num examples = %d", len(val_dataset))
+    logger.info("  Batch size = %d", args.eval_batch_size)
+    eval_loss = 0.0
+    nb_eval_steps = 0
+    preds = None
+    out_label_ids = None
+    for batch in tqdm(eval_dataloader, desc="Validating"):
+        model.eval()
+        batch = tuple(t.to(args.device) for t in batch)
+        with torch.no_grad():
+            inputs = {'input_ids': batch[0],
+                      'attention_mask': batch[1],
+                      'labels': batch[3]}
+            if args.model_type != 'distilbert':
+                inputs['token_type_ids'] = batch[2] if args.model_type in ['bert', 'xlnet'] else None  # XLM, DistilBERT and RoBERTa don't use segment_ids
+            outputs = model(**inputs)
+            tmp_eval_loss, logits = outputs[:2]
+
+            eval_loss += tmp_eval_loss.mean().item()
+        nb_eval_steps += 1
+        if preds is None:
+            preds = logits.detach().cpu().numpy()
+            out_label_ids = inputs['labels'].detach().cpu().numpy()
+        else:
+            preds = np.append(preds, logits.detach().cpu().numpy(), axis=0)
+            out_label_ids = np.append(out_label_ids, inputs['labels'].detach().cpu().numpy(), axis=0)
+
+    eval_loss = eval_loss / nb_eval_steps
+    if args.output_mode == "classification":
+        preds = np.argmax(preds, axis=1)
+    elif args.output_mode == "regression":
+        preds = np.squeeze(preds)
+
+    result = get_accuracy(labels=out_label_ids, preds=preds)
+    result['eval_loss'] = eval_loss
+
+    logger.info("Validation loss: {} - Validation accuracy: {}".format(eval_loss, result["acc"]))
+
+    return result
+
+
 def evaluate_task(args, model, eval_dataset, label_list, early=False, prefix=""):
     eval_task =  args.task_name
     eval_output_dir = os.path.join(args.eval_task_dir,args.model_name_or_path,prefix)
@@ -337,8 +398,7 @@ def evaluate_task(args, model, eval_dataset, label_list, early=False, prefix="")
                       'attention_mask': batch[1],
                       'labels': batch[3]}
             if args.model_type != 'distilbert':
-                inputs['token_type_ids'] = batch[2] if args.model_type in ['bert',
-                                                                           'xlnet'] else None  # XLM, DistilBERT and RoBERTa don't use segment_ids
+                inputs['token_type_ids'] = batch[2] if args.model_type in ['bert', 'xlnet'] else None  # XLM, DistilBERT and RoBERTa don't use segment_ids
             outputs = model(**inputs)
             tmp_eval_loss, logits = outputs[:2]
 
@@ -359,7 +419,11 @@ def evaluate_task(args, model, eval_dataset, label_list, early=False, prefix="")
     # result = compute_metrics(eval_task, preds, out_label_ids)
     # results.update(result)
 
-    result = get_results(labels=out_label_ids, preds=preds)
+    if len(label_list) == 2:
+        result = get_results(labels=out_label_ids, preds=preds, binary=True)
+    else:
+        result = get_results(labels=out_label_ids, preds=preds)
+
     result['eval_loss'] = eval_loss
     report = classification_report(out_label_ids, preds, labels=list(range(len(label_list))), target_names=label_list)
     confusion = confusion_matrix(out_label_ids, preds)
@@ -397,19 +461,38 @@ def evaluate_task(args, model, eval_dataset, label_list, early=False, prefix="")
 
 
 
-def get_results(labels, preds):
-    accuracy = accuracy_score(y_true=labels, y_pred=preds)
-    f1 = f1_score(y_true=labels, y_pred=preds, average="macro")
-    precision = precision_score(y_true=labels, y_pred=preds, average="macro")
-    recall = recall_score(y_true=labels, y_pred=preds, average="macro")
-    return {
-        "acc": accuracy,
-        "precision": precision,
-        "recall": recall,
-        "f1": f1,
-        "acc_and_f1": (accuracy + f1) / 2,
-    }
+def get_results(labels, preds, binary=False):
+    if binary:
+        accuracy = accuracy_score(y_true=labels, y_pred=preds)
+        f1 = f1_score(y_true=labels, y_pred=preds)
+        precision = precision_score(y_true=labels, y_pred=preds)
+        recall = recall_score(y_true=labels, y_pred=preds)
+        return {
+            "acc": accuracy,
+            "precision": precision,
+            "recall": recall,
+            "f1": f1,
+            "acc_and_f1": (accuracy + f1) / 2,
+        }
 
+    else:
+        accuracy = accuracy_score(y_true=labels, y_pred=preds)
+        f1 = f1_score(y_true=labels, y_pred=preds, average="macro")
+        precision = precision_score(y_true=labels, y_pred=preds, average="macro")
+        recall = recall_score(y_true=labels, y_pred=preds, average="macro")
+        return {
+            "acc": accuracy,
+            "precision": precision,
+            "recall": recall,
+            "f1": f1,
+            "acc_and_f1": (accuracy + f1) / 2,
+        }
+
+def get_accuracy(labels, preds):
+    accuracy = accuracy_score(y_true=labels, y_pred=preds)
+    return {
+        "acc": accuracy
+    }
 
 def get_hyperparams(args):
     return {
@@ -439,7 +522,7 @@ def main():
     parser.add_argument("--test_dataset_eval", type=str, default="corp_SSM_ar_VDC")
     parser.add_argument("--labels", type=str, default="Main_Consequence,Distant_Evaluation,Cause_Specific,Distant_Anecdotal,Distant_Expectations_Consequences,Main,Distant_Historical,Cause_General")
 
-    parser.add_argument("--model_type", default='BERT', type=str,
+    parser.add_argument("--model_type", default='bert', type=str,
                         help="Model type selected in the list: ")
 
     parser.add_argument("--model_name_or_path", default='', type=str,
@@ -448,7 +531,7 @@ def main():
     parser.add_argument("--task_name", default='dp', type=str,
                         help="The name of the task to train selected in the list: " + ", ".join(processors.keys()))
 
-    parser.add_argument("--cache_dir", default='results/' , type=str,
+    parser.add_argument("--cache_dir", default='results/', type=str,
                         help="The directory where the pre-train model is .")
 
     ## Other parameters
@@ -531,8 +614,11 @@ def main():
     parser.add_argument("--do_maml", action='store_true',
                         help="Whether to run maml.")
 
-    parser.add_argument("--do_fine_tuning", type=int, default=1, help="whether to apply fine tuning after meta training (few shot) or not (zero shot)."
+    parser.add_argument("--do_finetuning", type=int, default=1, help="whether to apply fine tuning after meta training (few shot) or not (zero shot)."
                                                                       "1 if True, 0 if False")
+    parser.add_argument("--do_validation", type=int, default=1, help="whether to validate after every iteration (outerloop) on the validation dataset especially if applying hyperparameter search")
+
+    parser.add_argument("--do_evaluation", type=int, default=1, help="whether to test the trained model on the testing dataset. 1 if True, 0 if False")
 
     parser.add_argument("--do_maml_on_train", action='store_true',
                         help="Whether to run maml on MNLI train dataset.")
@@ -671,30 +757,39 @@ def main():
                                             output_mode="classification")
     test_dataset_eval = load_cache_examples(features=features)
 
-    # logger.info("Training/evaluation parameters %s", args)
-    #
-    # logger.info("Running XMAML ...")
-    # # examples, label_list, max_seq_length, tokenizer, output_mode
-    # x_maml_with_aux_langs(args=args, model=model, lang_datasets=domains_to_maml, tokenizer=tokenizer, suffix=None)
-    #
-    # if args.do_fine_tuning == 1:
-    #     logger.info("Fine Tuning ...")
-    #     # Fine tuning
-    #     model = BertForSequenceClassification.from_pretrained(args.output_dir_meta, num_labels=num_labels)
-    #     model = model.to(args.device)
-    #
-    #     fine_tune_task(args, model=model, train_dataset=dev_dataset_finetune, tokenizer=tokenizer)
-    #
-    # logger.info("Evaluating ...")
+    logger.info("Training/evaluation parameters %s", args)
 
-    if args.do_fine_tuning == 1:
-        # model loaded already
-        evaluate_task(args, model=model, eval_dataset=test_dataset_eval, label_list=label_list, prefix="")
+    logger.info("Running XMAML ...")
+    # examples, label_list, max_seq_length, tokenizer, output_mode
+    if args.do_validation:
+        x_maml_with_aux_langs(args=args, model=model, lang_datasets=domains_to_maml, validation_dataset=dev_dataset_finetune, tokenizer=tokenizer, suffix=None)
     else:
-        # Load the model then evaluate
+        x_maml_with_aux_langs(args=args, model=model, lang_datasets=domains_to_maml, tokenizer=tokenizer, suffix=None)
+
+    if args.do_finetuning == 1:
+        logger.info("Fine Tuning ...")
+        # Fine tuning
         model = BertForSequenceClassification.from_pretrained(args.output_dir_meta, num_labels=num_labels)
         model = model.to(args.device)
-        evaluate_task(args, model=model, eval_dataset=test_dataset_eval, label_list=label_list, prefix="")
+
+        fine_tune_task(args, model=model, train_dataset=dev_dataset_finetune, tokenizer=tokenizer)
+
+    logger.info("Evaluating ...")
+
+    if args.do_finetuning == 1:
+        if args.do_evaluation == 1:
+            # model loaded already
+            evaluate_task(args, model=model, eval_dataset=test_dataset_eval, label_list=label_list, prefix="")
+        else:
+            logger.info("Will not apply evaluation as --do_evaluation=0")
+    else:
+        if args.do_evaluation == 1:
+            # Load the model then evaluate
+            model = BertForSequenceClassification.from_pretrained(args.output_dir_meta, num_labels=num_labels)
+            model = model.to(args.device)
+            evaluate_task(args, model=model, eval_dataset=test_dataset_eval, label_list=label_list, prefix="")
+        else:
+            logger.info("Will not apply evaluation as --do_evaluation=0")
 
 
 if __name__ == "__main__":
