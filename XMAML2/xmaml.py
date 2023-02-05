@@ -115,7 +115,7 @@ def x_maml_with_aux_langs(args, model, lang_datasets, tokenizer, validation_data
 
     # Distributed training (should be after apex fp16 initialization)
     if args.local_rank != -1:
-        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.local_rank],
+        model = torch.nn.parallel.DistributedDataParallel(model.to("cuda:0"), device_ids=[args.local_rank],
                                                           output_device=args.local_rank,
                                                           find_unused_parameters=True)
 
@@ -140,8 +140,6 @@ def x_maml_with_aux_langs(args, model, lang_datasets, tokenizer, validation_data
             #batch=next(iter(task_dataloader))
                 with higher.innerloop_ctx(model, inner_opt, copy_initial_weights=False) as (fast_model, diffopt):
 
-                    fast_model = fast_model.to(args.device)
-
                     for itr in range(args.inner_train_steps):
                         fast_model.train()
                         #print("-------------")
@@ -163,7 +161,7 @@ def x_maml_with_aux_langs(args, model, lang_datasets, tokenizer, validation_data
                             input_fast_train['token_type_ids'] = batch[2][:n_meta_lr] if args.model_type in ['bert', 'xlnet'] else None  # XLM, DistilBERT and RoBERTa don't use segment_ids
 
                         for key, value in input_fast_train.items():
-                            input_fast_train[key] = input_fast_train[key].to(args.device)
+                            input_fast_train[key] = input_fast_train[key].to(args.local_rank)
 
                         outputs = fast_model(**input_fast_train)
                         loss = outputs[0]  # model outputs are always tuple in transformers (see doc)
@@ -187,7 +185,7 @@ def x_maml_with_aux_langs(args, model, lang_datasets, tokenizer, validation_data
                         input_fast_valid['token_type_ids'] = batch[2][n_meta_lr:] if args.model_type in ['bert', 'xlnet'] else None  # XLM, DistilBERT and RoBERTa don't use segment_ids
 
                     for key, value in input_fast_valid.items():
-                        input_fast_valid[key] = input_fast_valid[key].to(args.device)
+                        input_fast_valid[key] = input_fast_valid[key].to(args.local_rank)
 
                     outputs = fast_model(**input_fast_valid)
                     qry_loss = outputs[0]  # model outputs are always tuple in transformers (see doc)
@@ -204,14 +202,14 @@ def x_maml_with_aux_langs(args, model, lang_datasets, tokenizer, validation_data
             validation_accuracies.append(res['acc'])
             validation_losses.append(res['eval_loss'])
 
-    if validation_dataset is not None and args.local_rank == 0:
+    if validation_dataset is not None and args.rank == 0:
         with open(os.path.join(args.output_dir_meta, 'validation_losses.pkl'), 'wb') as f:
             pickle.dump(validation_losses, f)
 
         with open(os.path.join(args.output_dir_meta, 'validation_accuracies.pkl'), 'wb') as f:
             pickle.dump(validation_accuracies, f)
 
-    if args.local_rank == 0:
+    if args.rank == 0:
         logger.info("Saving model checkpoint to %s", args.output_dir_meta)
         # Save a trained model, configuration and tokenizer using `save_pretrained()`.
         # They can then be reloaded using `from_pretrained()`
@@ -355,7 +353,7 @@ def validate_task(args, model, val_dataset):
     for batch in tqdm(eval_dataloader, desc="Validating"):
         model.eval()
         # batch = tuple(t.to(args.device) for t in batch)
-        batch = tuple(t.to(args.local_rank) for t in batch)
+        batch = tuple(t.to("cuda:0") for t in batch)
         with torch.no_grad():
             inputs = {'input_ids': batch[0],
                       'attention_mask': batch[1],
@@ -716,26 +714,39 @@ def main():
 
     from socket import gethostname
     world_size = int(os.environ["WORLD_SIZE"])
-    rank = int(os.environ["SLURM_PROCID"])
+    args.rank = int(os.environ["SLURM_PROCID"])
     # gpus_per_node = int(os.environ["SLURM_GPUS_ON_NODE"])
     gpus_per_node = 1
     assert gpus_per_node == torch.cuda.device_count()
-    print(f"Hello from rank {rank} of {world_size} on {gethostname()} where there are" \
+    print(f"Hello from rank {args.rank} of {world_size} on {gethostname()} where there are" \
           f" {gpus_per_node} allocated GPUs per node.", flush=True)
 
-    setup(rank, world_size)
-    if rank == 0: print(f"Group initialized? {torch.distributed.is_initialized()}", flush=True)
-
-
-    local_rank = rank - gpus_per_node * (rank // gpus_per_node)
-    print('rank: {}, local rank: {}'.format(rank, local_rank))
+    local_rank = args.rank - gpus_per_node * (args.rank // gpus_per_node)
+    print('rank: {}, local rank: {}'.format(args.rank, local_rank))
     torch.cuda.set_device(local_rank)
 
-    args.local_rank = rank
+    # args.local_rank = rank
+    args.local_rank = args.rank % torch.cuda.device_count()
     args.device = torch.device("cuda", args.local_rank)
     device = args.device
 
     print('device is: {}'.format(args.device))
+
+
+    setup(args.rank, world_size)
+    if args.rank == 0: print(f"Group initialized? {torch.distributed.is_initialized()}", flush=True)
+
+
+    # local_rank = rank - gpus_per_node * (rank // gpus_per_node)
+    # print('rank: {}, local rank: {}'.format(rank, local_rank))
+    # torch.cuda.set_device(local_rank)
+    #
+    # # args.local_rank = rank
+    # args.local_rank = rank % torch.cuda.device_count()
+    # args.device = torch.device("cuda", args.local_rank)
+    # device = args.device
+    #
+    # print('device is: {}'.format(args.device))
 
     # Setup logging
     logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
@@ -765,10 +776,10 @@ def main():
 
     if 'xlm' in args.bert_model:
         tokenizer = AutoTokenizer.from_pretrained(args.bert_model)
-        model = AutoModelForSequenceClassification.from_pretrained(args.bert_model, num_labels=num_labels).to(args.device)
+        model = AutoModelForSequenceClassification.from_pretrained(args.bert_model, num_labels=num_labels)
     else:
         tokenizer = BertTokenizer.from_pretrained(args.bert_model, do_lower_case=args.do_lower_case)
-        model = BertForSequenceClassification.from_pretrained(args.bert_model, num_labels=num_labels).to(args.device)
+        model = BertForSequenceClassification.from_pretrained(args.bert_model, num_labels=num_labels)
 
     if args.local_rank == 0:
         torch.distributed.barrier()  # Make sure only the first process in distributed training will download model & vocab
