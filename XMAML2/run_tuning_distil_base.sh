@@ -28,5 +28,5 @@ master_addr=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)
 export MASTER_ADDR=$master_addr
 echo "MASTER_ADDR="$MASTER_ADDR
 
-srun python xmaml.py --bert_model distilbert-base-multilingual-cased--model_type bert --dev_datasets_ids ARG_ar,corp_PRST_ar_ARG --dev_dataset_finetune corp_PRST_ar_ARG --test_dataset_eval corp_SSM_ar_ARG --do_validation 1 --do_finetuning 0 --do_evaluation 0  --meta_learn_iter 20 --n 16 --inner_train_steps 3 --inner_lr 0.0001 --labels anecdote,assumption,other,common-ground,testimony,statistics --output_dir_meta results_tuning/ARG_DISTIL_BASE/
+srun python xmaml.py --bert_model distilbert-base-multilingual-cased --model_type bert --dev_datasets_ids ARG_ar,corp_PRST_ar_ARG --dev_dataset_finetune corp_PRST_ar_ARG --test_dataset_eval corp_SSM_ar_ARG --do_validation 1 --do_finetuning 0 --do_evaluation 0  --meta_learn_iter 20 --n 16 --inner_train_steps 3 --inner_lr 0.0001 --labels anecdote,assumption,other,common-ground,testimony,statistics --output_dir_meta results_tuning/ARG_DISTIL_BASE/
 
