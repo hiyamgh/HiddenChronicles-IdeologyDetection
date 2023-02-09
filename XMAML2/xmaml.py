@@ -27,7 +27,7 @@ from transformers import (
     BertTokenizer,
     AutoTokenizer,
     AutoTokenizer,
-    BertForSequenceClassification, AutoModelForSequenceClassification,
+    BertForSequenceClassification, AutoModelForSequenceClassification, DistilBertModel, DistilBertTokenizer, DistilBertForSequenceClassification,
     PreTrainedModel,
     PreTrainedTokenizer,
     get_linear_schedule_with_warmup,
@@ -86,7 +86,7 @@ def x_maml_with_aux_langs(args, model, lang_datasets, tokenizer, validation_data
     args.output_dir_meta = os.path.join(args.output_dir_meta)
 
     if not os.path.exists(args.output_dir_meta) and args.local_rank in [-1, 0]:
-        os.makedirs(args.output_dir_meta)
+        os.makedirs(args.output_dir_meta, exist_ok=True)
 
     # Loop to handle tasks in XNLI
     """ Train the model """
@@ -158,10 +158,11 @@ def x_maml_with_aux_langs(args, model, lang_datasets, tokenizer, validation_data
                         #                     'labels': batch[3]}
 
                         if args.model_type != 'distilbert':
-                            input_fast_train['token_type_ids'] = batch[2][:n_meta_lr] if args.model_type in ['bert', 'xlnet'] else None  # XLM, DistilBERT and RoBERTa don't use segment_ids
+                            input_fast_train['token_type_ids'] = batch[2][:n_meta_lr] if args.model_type in ['bert', 'xlnet', 'arabert'] else None  # XLM, DistilBERT and RoBERTa don't use segment_ids
 
                         for key, value in input_fast_train.items():
-                            input_fast_train[key] = input_fast_train[key].to(args.local_rank)
+                            if input_fast_train[key] is not None:
+                                input_fast_train[key] = input_fast_train[key].to(args.local_rank)
 
                         outputs = fast_model(**input_fast_train)
                         loss = outputs[0]  # model outputs are always tuple in transformers (see doc)
@@ -182,10 +183,11 @@ def x_maml_with_aux_langs(args, model, lang_datasets, tokenizer, validation_data
                                             'attention_mask': batch[1][n_meta_lr:],
                                             'labels': batch[3][n_meta_lr:]}
                     if args.model_type != 'distilbert':
-                        input_fast_valid['token_type_ids'] = batch[2][n_meta_lr:] if args.model_type in ['bert', 'xlnet'] else None  # XLM, DistilBERT and RoBERTa don't use segment_ids
+                        input_fast_valid['token_type_ids'] = batch[2][n_meta_lr:] if args.model_type in ['bert', 'xlnet', 'arabert'] else None  # XLM, DistilBERT and RoBERTa don't use segment_ids
 
                     for key, value in input_fast_valid.items():
-                        input_fast_valid[key] = input_fast_valid[key].to(args.local_rank)
+                        if input_fast_valid[key] is not None:
+                            input_fast_valid[key] = input_fast_valid[key].to(args.local_rank)
 
                     outputs = fast_model(**input_fast_valid)
                     qry_loss = outputs[0]  # model outputs are always tuple in transformers (see doc)
@@ -359,10 +361,11 @@ def validate_task(args, model, val_dataset):
                       'attention_mask': batch[1],
                       'labels': batch[3]}
             if args.model_type != 'distilbert':
-                inputs['token_type_ids'] = batch[2] if args.model_type in ['bert', 'xlnet'] else None  # XLM, DistilBERT and RoBERTa don't use segment_ids
+                inputs['token_type_ids'] = batch[2] if args.model_type in ['bert', 'xlnet', 'arabert'] else None  # XLM, DistilBERT and RoBERTa don't use segment_ids
 
             for key, value in inputs.items():
-                inputs[key] = inputs[key].to(args.device)
+                if inputs[key] is not None:
+                    inputs[key] = inputs[key].to(args.device)
 
             outputs = model(**inputs)
             tmp_eval_loss, logits = outputs[:2]
@@ -419,7 +422,7 @@ def evaluate_task(args, model, eval_dataset, label_list, early=False, prefix="")
                       'attention_mask': batch[1],
                       'labels': batch[3]}
             if args.model_type != 'distilbert':
-                inputs['token_type_ids'] = batch[2] if args.model_type in ['bert', 'xlnet'] else None  # XLM, DistilBERT and RoBERTa don't use segment_ids
+                inputs['token_type_ids'] = batch[2] if args.model_type in ['bert', 'xlnet', 'arabert'] else None  # XLM, DistilBERT and RoBERTa don't use segment_ids
             outputs = model(**inputs)
             tmp_eval_loss, logits = outputs[:2]
 
@@ -699,6 +702,9 @@ def main():
 
     args = parser.parse_args()
 
+    if '\n' in args.output_dir_meta:
+        args.output_dir_meta = args.output_dir_meta[:-1]
+
     # Setup CUDA, GPU & distributed training
     if args.local_rank == -1 or args.no_cuda:
         device = torch.device("cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu")
@@ -762,26 +768,45 @@ def main():
     if args.task_name not in processors:
         raise ValueError("Task not found: %s" % (args.task_name))
 
-    processor = processors[args.task_name](labels=args.labels)
+    if "arabert" in args.bert_model:
+        processor = processors[args.task_name](labels=args.labels, preprocess_arabert=True, model_name=args.bert_model)
+    else:
+        processor = processors[args.task_name](labels=args.labels)
 
     args.output_mode = output_modes[args.task_name]
-    label_list = processor.get_labels()
+
+    if 'PTC' in args.dev_datasets_ids:
+        label_list = processor.get_labels(ptc=True)
+    else:
+        label_list = processor.get_labels()
+
     num_labels = len(label_list)
 
     # Load pretrained model and tokenizer
-    if args.local_rank not in [-1, 0]:
+    # if args.local_rank not in [-1, 0]:
+    #     torch.distributed.barrier()  # Make sure only the first process in distributed training will download model & vocab
+
+    if args.rank not in [-1, 0]:
         torch.distributed.barrier()  # Make sure only the first process in distributed training will download model & vocab
 
     args.model_type = args.model_type.lower()
 
-    if 'xlm' in args.bert_model:
+    if args.model_type in ['distilbert']:
+        tokenizer = DistilBertTokenizer.from_pretrained(args.bert_model)
+        model = DistilBertForSequenceClassification.from_pretrained(args.bert_model, num_labels=num_labels)
+
+    elif args.model_type in ['xlmroberta', 'arabert']:
         tokenizer = AutoTokenizer.from_pretrained(args.bert_model)
         model = AutoModelForSequenceClassification.from_pretrained(args.bert_model, num_labels=num_labels)
+
     else:
         tokenizer = BertTokenizer.from_pretrained(args.bert_model, do_lower_case=args.do_lower_case)
         model = BertForSequenceClassification.from_pretrained(args.bert_model, num_labels=num_labels)
 
-    if args.local_rank == 0:
+    # if args.local_rank == 0:
+    #     torch.distributed.barrier()  # Make sure only the first process in distributed training will download model & vocab
+
+    if args.rank == 0:
         torch.distributed.barrier()  # Make sure only the first process in distributed training will download model & vocab
 
 
@@ -803,7 +828,7 @@ def main():
     # get dev dataset for fine tuning
     id_dev_dataset_finetune = args.dev_dataset_finetune
     df_path = datasets[id_dev_dataset_finetune]
-    tmp_examples = processor.get_examples(df_path=df_path,  df_id=id)
+    tmp_examples = processor.get_examples(df_path=df_path,  df_id=id_dev_dataset_finetune)
     features = convert_examples_to_features(examples=tmp_examples, label_list=label_list,
                                             max_seq_length=args.max_seq_length,
                                             tokenizer=tokenizer,
@@ -813,7 +838,7 @@ def main():
     # get test dataset for testing (after fine tuning (few shot) or after meta-training (zero-shot))
     id_test_dataset_eval = args.test_dataset_eval
     df_path = datasets[id_test_dataset_eval]
-    tmp_examples = processor.get_examples(df_path=df_path,  df_id=id)
+    tmp_examples = processor.get_examples(df_path=df_path,  df_id=id_test_dataset_eval)
     features = convert_examples_to_features(examples=tmp_examples, label_list=label_list,
                                             max_seq_length=args.max_seq_length,
                                             tokenizer=tokenizer,
@@ -832,10 +857,18 @@ def main():
     if args.do_finetuning == 1:
         logger.info("Fine Tuning ...")
         # Fine tuning
-        model = BertForSequenceClassification.from_pretrained(args.output_dir_meta, num_labels=num_labels)
-        model = model.to(args.device)
 
+        if args.model_type in ['distilbert']:
+            model = DistilBertForSequenceClassification.from_pretrained(args.output_dir_meta, num_labels=num_labels)
+        elif args.model_type in ['xlmroberta', 'arabert']:
+            model =  AutoModelForSequenceClassification.from_pretrained(args.output_dir_meta, num_labels=num_labels)
+        else:
+            model = BertForSequenceClassification.from_pretrained(args.output_dir_meta, num_labels=num_labels)
+
+        model = model.to(args.device)
         fine_tune_task(args, model=model, train_dataset=dev_dataset_finetune, tokenizer=tokenizer)
+    else:
+        logger.info("Will nit apply fine tuning as --do_finetuning=0")
 
     torch.distributed.destroy_process_group()
 

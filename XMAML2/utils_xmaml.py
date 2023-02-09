@@ -95,13 +95,13 @@ class InputFeatures(object):
 
 class DiscourseProcessor:
 
-    def __init__(self, labels, preprocess_arabert=False):
+    def __init__(self, labels, preprocess_arabert=False, model_name=None):
         self.labels = labels
         self.train_examples, self.dev_examples, self.test_examples = [], [], []
         self.preprocess_arabert = preprocess_arabert
+        self.model_name = model_name
 
     def _read_dataset(self, df_path, df_id):
-
         if "corp" in df_id:
             text_col = "Sentence"
             label_col = "label"
@@ -120,40 +120,38 @@ class DiscourseProcessor:
                 text_col = "Sentence"
                 label_col = "Speech_label"
 
-        if '.csv' in df_path or '.xlsx' in df_path:
-            df = pd.read_csv(df_path) if '.csv' in df_path else pd.read_excel(df_path)
+        df = pd.read_csv(df_path) if '.csv' in df_path else pd.read_excel(df_path)
 
-            # drop any NaN values
-            print('before dropping nans: df.shape: {}'.format(df.shape))
-            df = df.dropna()
-            print('after dropping nans: df.shape: {}'.format(df.shape))
+        # drop any NaN values
+        print('before dropping nans: df.shape: {}'.format(df.shape))
+        df = df.dropna()
+        print('after dropping nans: df.shape: {}'.format(df.shape))
 
-            sentences = []
+        sentences = []
+
+        if self.preprocess_arabert and self.model_name is not None:
+            print('preprocessing text through ArabertPreprocessor(model_name={})'.format(self.model_name))
+            arabert_prep = ArabertPreprocessor(model_name=self.model_name)
             for i, row in df.iterrows():
                 sentence = str(row[text_col])
                 if sentence.strip().isdigit():
                     continue
-
+                sentence = arabert_prep.preprocess(sentence)
+                label = str(row[label_col])
+                sentences.append([sentence, label])
+        else:
+            for i, row in df.iterrows():
+                sentence = str(row[text_col])
+                if sentence.strip().isdigit():
+                    continue
                 label = str(row[label_col])
                 sentences.append([sentence, label])
 
-            return sentences
+        return sentences
 
     def get_examples(self, df_path, df_id):
         print("reading the dataset from {} ...".format(df_path))
         return self._create_examples(self._read_dataset(df_path=df_path, df_id=df_id), "train")
-
-    def get_train_examples(self, df_path, df_id):
-        print('reading the training dataset from {} ...'.format(df_path))
-        return self._create_examples(self._read_dataset(df_path=df_path, df_id=df_id), "train")
-
-    def get_dev_examples(self, df_path, df_id):
-        print('reading the validation dataset from {} ...'.format(df_path))
-        return self._create_examples(self._read_dataset(df_path=df_path, df_id=df_id), "dev")
-
-    def get_test_examples(self, df_path, df_id):
-        print('reading the testing dataset from {} ...'.format(df_path))
-        return self._create_examples(self._read_dataset(df_path=df_path, df_id=df_id), "test")
 
     def _create_examples(self, data_tuples, set_type):
         """ Creates examples for the train and test sets """
@@ -169,8 +167,8 @@ class DiscourseProcessor:
     def _get_input_example(self, guid, sentence, label):
         return InputExample(guid=guid, text_a=sentence, label=label)
 
-    def get_labels(self):
-        labels = self.labels.split(",")
+    def get_labels(self, ptc=False):
+        labels = self.labels.split(";") if ptc else self.labels.split(",")
         labels = [l.strip() for l in labels if l.strip() != ""]
         return labels
 
@@ -339,7 +337,7 @@ codes2names = {
 }
 
 datasets = {
-    # Discourse Profiling (Speech + Contexts)
+    # Discourse Profiling (Contexts)
     "VDC_de": "../translate_corpora/Discourse_Profiling/translations_joined_cleaned/df_de.xlsx",
     "VDC_th": "../translate_corpora/Discourse_Profiling/translations_joined_cleaned/df_th.xlsx",
     "VDC_zh-cn": "../translate_corpora/Discourse_Profiling/translations_joined_cleaned/df_zh-cn.xlsx",
@@ -355,6 +353,23 @@ datasets = {
     "VDC_ur": "../translate_corpora/Discourse_Profiling/translations_joined_cleaned/df_ur.xlsx",
     "VDC_ar": "../translate_corpora/Discourse_Profiling/translations_joined_cleaned/df_ar.xlsx",
     "VDC_en": "../translate_corpora/Discourse_Profiling/df.xlsx",
+
+    # Discourse Profiling (Speeches)
+    "VDS_de": "../translate_corpora/Discourse_Profiling/translations_joined_cleaned/df_de.xlsx",
+    "VDS_th": "../translate_corpora/Discourse_Profiling/translations_joined_cleaned/df_th.xlsx",
+    "VDS_zh-cn": "../translate_corpora/Discourse_Profiling/translations_joined_cleaned/df_zh-cn.xlsx",
+    "VDS_ru": "../translate_corpora/Discourse_Profiling/translations_joined_cleaned/df_ru.xlsx",
+    "VDS_hi": "../translate_corpora/Discourse_Profiling/translations_joined_cleaned/df_hi.xlsx",
+    "VDS_bg": "../translate_corpora/Discourse_Profiling/translations_joined_cleaned/df_bg.xlsx",
+    "VDS_el": "../translate_corpora/Discourse_Profiling/translations_joined_cleaned/df_el.xlsx",
+    "VDS_sw": "../translate_corpora/Discourse_Profiling/translations_joined_cleaned/df_sw.xlsx",
+    "VDS_es": "../translate_corpora/Discourse_Profiling/translations_joined_cleaned/df_es.xlsx",
+    "VDS_tr": "../translate_corpora/Discourse_Profiling/translations_joined_cleaned/df_tr.xlsx",
+    "VDS_fr": "../translate_corpora/Discourse_Profiling/translations_joined_cleaned/df_fr.xlsx",
+    "VDS_vi": "../translate_corpora/Discourse_Profiling/translations_joined_cleaned/df_vi.xlsx",
+    "VDS_ur": "../translate_corpora/Discourse_Profiling/translations_joined_cleaned/df_ur.xlsx",
+    "VDS_ar": "../translate_corpora/Discourse_Profiling/translations_joined_cleaned/df_ar.xlsx",
+    "VDS_en": "../translate_corpora/Discourse_Profiling/df.xlsx",
 
 
     # Propaganda
