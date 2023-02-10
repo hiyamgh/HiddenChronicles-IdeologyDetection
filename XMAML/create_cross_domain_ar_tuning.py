@@ -11,12 +11,13 @@ if __name__ == '__main__':
     mkdir(save_dir)
 
     # define hyperparameters
-    support_sizes_grid = [8, 16, 32]
+    per_gpu_train_batch_sizes_grid = [2]
+    support_sizes_grid = [1]
     inner_train_steps_grid = [3, 5, 7, 10, 15]
     inner_lr_grid = [1e-4, 1e-5, 3e-4, 3e-5, 5e-4, 5e-5]
-    meta_learn_iters = [30] # will fix the number of iterations (outerloop) for the sake of hyper-parameter tuning
-    models = ['bert-base-multilingual-cased', 'xlm-roberta-base', 'aubmindlab/bert-base-arabertv2', 'bert-base-arabertv02', 'distilbert-base-multilingual-cased']
-    modeltypes = ['bert', 'xlmroberta', 'arabert', 'arabert', 'distilbert']
+    meta_learn_iters = [20] # will fix the number of iterations (outerloop) for the sake of hyper-parameter tuning
+    models = ['bert-base-multilingual-cased', 'xlm-roberta-base', 'xlm-roberta-large', 'aubmindlab/bert-base-arabertv2', 'aubmindlab/bert-large-arabertv02', 'aubmindlab/bert-base-arabertv02', 'distilbert-base-multilingual-cased']
+    modeltypes = ['bert', 'xlmroberta', 'xlmroberta', 'arabert', 'arabert', 'arabert', 'distilbert']
 
     labels_ARG = "assumption,anecdote,testimony,statistics,common-ground,other"
     labels_ARG_corp = "assumption,statistics,other,testimony,common-ground,anecdote"
@@ -53,21 +54,22 @@ if __name__ == '__main__':
     test_dataset_id = ['corp_SSM_ar_VDS']
     with open(os.path.join(save_dir, 'VDC_cross_domain.txt'), 'w') as f:
         for n in support_sizes_grid:
-            for inner_train_step in inner_train_steps_grid:
-                for inner_lr in inner_lr_grid:
-                    for m_iter in meta_learn_iters:
-                        model_i = 0
-                        for model in models:
-                            f.write("--bert_model {} --model_type {} --dev_datasets_ids {} --dev_dataset_finetune {} --test_dataset_eval {} --do_validation 1 --do_finetuning 0 --do_evaluation 0 --meta_learn_iter {} --n {} --inner_train_steps {} --inner_lr {} --labels {} --output_dir_meta {}\n".format(
-                                model, modeltypes[model_i],
-                                ",".join(dev_dataset_ids),
-                                ",".join(dev_dataset_fine_tune_id),
-                                ",".join(test_dataset_id),
-                                m_iter, n, inner_train_step, inner_lr,
-                                ",".join(all_labels_VDC),
-                                "results_tuning/VDC/{}-m_iter{}-inner_lr{}-inner_train_step{}-n{}/".format(model if modeltypes[model_i] != "arabert" else "_".join(model.split("/")), m_iter, inner_lr, inner_train_step, n)
-                            ))
-                            model_i += 1
+            for bs in per_gpu_train_batch_sizes_grid:
+                for inner_train_step in inner_train_steps_grid:
+                    for inner_lr in inner_lr_grid:
+                        for m_iter in meta_learn_iters:
+                            model_i = 0
+                            for model in models:
+                                f.write("--bert_model {} --model_type {} --dev_datasets_ids {} --dev_dataset_finetune {} --test_dataset_eval {} --do_validation 1 --do_finetuning 0 --do_evaluation 0 --meta_learn_iter {} --n {} --per_gpu_batch_size {} --inner_train_steps {} --inner_lr {} --labels {} --output_dir_meta {}\n".format(
+                                    model, modeltypes[model_i],
+                                    ",".join(dev_dataset_ids),
+                                    ",".join(dev_dataset_fine_tune_id),
+                                    ",".join(test_dataset_id),
+                                    m_iter, n, bs, inner_train_step, inner_lr,
+                                    ",".join(all_labels_VDC),
+                                    "results_tuning/VDC/{}-m_iter{}-inner_lr{}-inner_train_step{}-n{}-per_gpu_batch_size{}/".format(model if modeltypes[model_i] != "arabert" else "_".join(model.split("/")), m_iter, inner_lr, inner_train_step, n, bs)
+                                ))
+                                model_i += 1
     f.close()
 
 
@@ -76,27 +78,28 @@ if __name__ == '__main__':
     # (meta train) corp_PRST_ar_VDS / domain 2
     # (fine tune) corp_PRST_ar_VDS / domain 2
     # (test) corp_SSM_ar_VDS
-    dev_dataset_ids = ['VDC_ar', 'corp_PRST_ar_VDS']
+    dev_dataset_ids = ['VDS_ar', 'corp_PRST_ar_VDS']
     dev_dataset_fine_tune_id = ['corp_PRST_ar_VDS']
     test_dataset_id = ['corp_SSM_ar_VDS']
     with open(os.path.join(save_dir, 'VDS_cross_domain.txt'), 'w') as f:
         for n in support_sizes_grid:
-            for inner_train_step in inner_train_steps_grid:
-                for inner_lr in inner_lr_grid:
-                    for m_iter in meta_learn_iters:
-                        model_i = 0
-                        for model in models:
-                            f.write("--bert_model {} --model_type {} --dev_datasets_ids {} --dev_dataset_finetune {} --test_dataset_eval {} --do_validation 1 --do_finetuning 0 --do_evaluation 0  --meta_learn_iter {} --n {} --inner_train_steps {} --inner_lr {} --labels {} --output_dir_meta {}\n".format(
-                                model, modeltypes[model_i],
-                                ",".join(dev_dataset_ids),
-                                ",".join(dev_dataset_fine_tune_id),
-                                ",".join(test_dataset_id),
-                                m_iter, n, inner_train_step, inner_lr,
-                                ",".join(all_labels_VDS),
-                                "results_tuning/VDS/{}-m_iter{}-inner_lr{}-inner_train_step{}-n{}/".format(model if modeltypes[model_i] != "arabert" else "_".join(model.split("/")), m_iter, inner_lr, inner_train_step, n)
-                            ))
+            for bs in per_gpu_train_batch_sizes_grid:
+                for inner_train_step in inner_train_steps_grid:
+                    for inner_lr in inner_lr_grid:
+                        for m_iter in meta_learn_iters:
+                            model_i = 0
+                            for model in models:
+                                f.write("--bert_model {} --model_type {} --dev_datasets_ids {} --dev_dataset_finetune {} --test_dataset_eval {} --do_validation 1 --do_finetuning 0 --do_evaluation 0  --meta_learn_iter {} --n {} --per_gpu_batch_size {} --inner_train_steps {} --inner_lr {} --labels {} --output_dir_meta {}\n".format(
+                                    model, modeltypes[model_i],
+                                    ",".join(dev_dataset_ids),
+                                    ",".join(dev_dataset_fine_tune_id),
+                                    ",".join(test_dataset_id),
+                                    m_iter, n, bs, inner_train_step, inner_lr,
+                                    ",".join(all_labels_VDS),
+                                    "results_tuning/VDS/{}-m_iter{}-inner_lr{}-inner_train_step{}-n{}-per_gpu_batch_size{}/".format(model if modeltypes[model_i] != "arabert" else "_".join(model.split("/")), m_iter, inner_lr, inner_train_step, n, bs)
+                                ))
 
-                            model_i += 1
+                                model_i += 1
     f.close()
 
     # Argumentation
@@ -118,22 +121,23 @@ if __name__ == '__main__':
     test_dataset_id = ['corp_SSM_ar_ARG']
     with open(os.path.join(save_dir, 'argumentation_cross_domain.txt'), 'w') as f:
         for n in support_sizes_grid:
-            for inner_train_step in inner_train_steps_grid:
-                for inner_lr in inner_lr_grid:
-                    for m_iter in meta_learn_iters:
-                        model_i = 0
-                        for model in models:
-                            f.write("--bert_model {} --model_type {} --dev_datasets_ids {} --dev_dataset_finetune {} --test_dataset_eval {} --do_validation 1 --do_finetuning 0 --do_evaluation 0  --meta_learn_iter {} --n {} --inner_train_steps {} --inner_lr {} --labels {} --output_dir_meta {}\n".format(
-                                model, modeltypes[model_i],
-                                ",".join(dev_dataset_ids),
-                                ",".join(dev_dataset_fine_tune_id),
-                                ",".join(test_dataset_id),
-                                m_iter, n, inner_train_step, inner_lr,
-                                ",".join(all_labels_ARG),
-                                "results_tuning/ARG/{}-m_iter{}-inner_lr{}-inner_train_step{}-n{}/".format(model if modeltypes[model_i] != "arabert" else "_".join(model.split("/")), m_iter, inner_lr, inner_train_step, n)
-                            ))
+            for bs in per_gpu_train_batch_sizes_grid:
+                for inner_train_step in inner_train_steps_grid:
+                    for inner_lr in inner_lr_grid:
+                        for m_iter in meta_learn_iters:
+                            model_i = 0
+                            for model in models:
+                                f.write("--bert_model {} --model_type {} --dev_datasets_ids {} --dev_dataset_finetune {} --test_dataset_eval {} --do_validation 1 --do_finetuning 0 --do_evaluation 0  --meta_learn_iter {} --n {} --per_gpu_batch_size {} --inner_train_steps {} --inner_lr {} --labels {} --output_dir_meta {}\n".format(
+                                    model, modeltypes[model_i],
+                                    ",".join(dev_dataset_ids),
+                                    ",".join(dev_dataset_fine_tune_id),
+                                    ",".join(test_dataset_id),
+                                    m_iter, n, bs, inner_train_step, inner_lr,
+                                    ",".join(all_labels_ARG),
+                                    "results_tuning/ARG/{}-m_iter{}-inner_lr{}-inner_train_step{}-n{}-per_gpu_batch_size{}/".format(model if modeltypes[model_i] != "arabert" else "_".join(model.split("/")), m_iter, inner_lr, inner_train_step, n, bs)
+                                ))
 
-                            model_i += 1
+                                model_i += 1
     f.close()
 
     # Propaganda
@@ -146,20 +150,21 @@ if __name__ == '__main__':
     test_dataset_id = ['corp_SSM_ar_PTC']
     with open(os.path.join(save_dir, 'PTC_cross_domain.txt'), 'w') as f:
         for n in support_sizes_grid:
-            for inner_train_step in inner_train_steps_grid:
-                for inner_lr in inner_lr_grid:
-                    for m_iter in meta_learn_iters:
-                        model_i = 0
-                        for model in models:
-                            f.write("--bert_model {} --model_type {} --dev_datasets_ids {} --dev_dataset_finetune {} --test_dataset_eval {} --do_validation 1 --do_finetuning 0 --do_evaluation 0  --meta_learn_iter {} --n {} --inner_train_steps {} --inner_lr {} --labels {} --output_dir_meta {}\n".format(
-                                model, modeltypes[model_i],
-                                ",".join(dev_dataset_ids),
-                                ",".join(dev_dataset_fine_tune_id),
-                                ",".join(test_dataset_id),
-                                m_iter, n, inner_train_step, inner_lr,
-                                ";".join(all_labels_PTC),
-                                "results_tuning/PTC/{}-m_iter{}-inner_lr{}-inner_train_step{}-n{}/".format(model if modeltypes[model_i] != "arabert" else "_".join(model.split("/")), m_iter, inner_lr, inner_train_step, n)
-                            ))
+            for bs in per_gpu_train_batch_sizes_grid:
+                for inner_train_step in inner_train_steps_grid:
+                    for inner_lr in inner_lr_grid:
+                        for m_iter in meta_learn_iters:
+                            model_i = 0
+                            for model in models:
+                                f.write("--bert_model {} --model_type {} --dev_datasets_ids {} --dev_dataset_finetune {} --test_dataset_eval {} --do_validation 1 --do_finetuning 0 --do_evaluation 0  --meta_learn_iter {} --n {} --per_gpu_batch_size {} --inner_train_steps {} --inner_lr {} --labels {} --output_dir_meta {}\n".format(
+                                    model, modeltypes[model_i],
+                                    ",".join(dev_dataset_ids),
+                                    ",".join(dev_dataset_fine_tune_id),
+                                    ",".join(test_dataset_id),
+                                    m_iter, n, bs, inner_train_step, inner_lr,
+                                    ";".join(all_labels_PTC),
+                                    "results_tuning/PTC/{}-m_iter{}-inner_lr{}-inner_train_step{}-n{}-per_gpu_batch_size{}/".format(model if modeltypes[model_i] != "arabert" else "_".join(model.split("/")), m_iter, inner_lr, inner_train_step, n, bs)
+                                ))
 
-                            model_i += 1
+                                model_i += 1
     f.close()
