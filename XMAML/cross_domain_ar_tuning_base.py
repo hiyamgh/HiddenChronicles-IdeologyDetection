@@ -11,13 +11,13 @@ if __name__ == '__main__':
     mkdir(save_dir)
 
     # define hyperparameters
-    per_gpu_train_batch_sizes_grid = [4]
-    support_sizes_grid = [2]
+    per_gpu_train_batch_sizes_grid = [16]
+    support_sizes_grid = [8]
     inner_train_steps_grid = [3, 5, 7, 10, 15]
     inner_lr_grid = [1e-4, 1e-5, 3e-4, 3e-5, 5e-4, 5e-5]
     meta_learn_iters = [20] # will fix the number of iterations (outerloop) for the sake of hyper-parameter tuning
-    models = ['bert-base-multilingual-cased', 'xlm-roberta-base', 'xlm-roberta-large', 'aubmindlab/bert-base-arabertv2', 'aubmindlab/bert-large-arabertv02', 'aubmindlab/bert-base-arabertv02', 'distilbert-base-multilingual-cased']
-    modeltypes = ['bert', 'xlmroberta', 'xlmroberta', 'arabert', 'arabert', 'arabert', 'distilbert']
+    models = ['bert-base-multilingual-cased', 'xlm-roberta-base', 'aubmindlab/bert-base-arabertv2', 'aubmindlab/bert-base-arabertv02', 'distilbert-base-multilingual-cased']
+    modeltypes = ['bert', 'xlmroberta', 'arabert', 'arabert', 'distilbert']
 
     labels_ARG = "assumption,anecdote,testimony,statistics,common-ground,other"
     labels_ARG_corp = "assumption,statistics,other,testimony,common-ground,anecdote"
@@ -52,7 +52,7 @@ if __name__ == '__main__':
     dev_dataset_ids = ['VDC_ar', 'corp_PRST_ar_VDC']
     dev_dataset_fine_tune_id = ['corp_PRST_ar_VDC']
     test_dataset_id = ['corp_SSM_ar_VDS']
-    with open(os.path.join(save_dir, 'VDC_cross_domain.txt'), 'w') as f:
+    with open(os.path.join(save_dir, 'VDC_cross_domain_base.txt'), 'w') as f:
         for n in support_sizes_grid:
             for bs in per_gpu_train_batch_sizes_grid:
                 for inner_train_step in inner_train_steps_grid:
@@ -81,7 +81,7 @@ if __name__ == '__main__':
     dev_dataset_ids = ['VDS_ar', 'corp_PRST_ar_VDS']
     dev_dataset_fine_tune_id = ['corp_PRST_ar_VDS']
     test_dataset_id = ['corp_SSM_ar_VDS']
-    with open(os.path.join(save_dir, 'VDS_cross_domain.txt'), 'w') as f:
+    with open(os.path.join(save_dir, 'VDS_cross_domain_base.txt'), 'w') as f:
         for n in support_sizes_grid:
             for bs in per_gpu_train_batch_sizes_grid:
                 for inner_train_step in inner_train_steps_grid:
@@ -119,7 +119,7 @@ if __name__ == '__main__':
     dev_dataset_ids = ['ARG_ar', 'corp_PRST_ar_ARG']
     dev_dataset_fine_tune_id = ['corp_PRST_ar_ARG']
     test_dataset_id = ['corp_SSM_ar_ARG']
-    with open(os.path.join(save_dir, 'argumentation_cross_domain.txt'), 'w') as f:
+    with open(os.path.join(save_dir, 'argumentation_cross_domain_base.txt'), 'w') as f:
         for n in support_sizes_grid:
             for bs in per_gpu_train_batch_sizes_grid:
                 for inner_train_step in inner_train_steps_grid:
@@ -148,7 +148,7 @@ if __name__ == '__main__':
     dev_dataset_ids = ['PTC_ar', 'corp_PRST_ar_PTC']
     dev_dataset_fine_tune_id = ['corp_PRST_ar_PTC']
     test_dataset_id = ['corp_SSM_ar_PTC']
-    with open(os.path.join(save_dir, 'PTC_cross_domain.txt'), 'w') as f:
+    with open(os.path.join(save_dir, 'PTC_cross_domain_base.txt'), 'w') as f:
         for n in support_sizes_grid:
             for bs in per_gpu_train_batch_sizes_grid:
                 for inner_train_step in inner_train_steps_grid:
