@@ -82,7 +82,6 @@ def set_seed(args):
 
 def x_maml_with_aux_langs(args, model, lang_datasets, tokenizer, validation_dataset=None, suffix=None):
     model.train()
-
     args.output_dir_meta = os.path.join(args.output_dir_meta)
 
     if not os.path.exists(args.output_dir_meta) and args.local_rank in [-1, 0]:
@@ -139,13 +138,17 @@ def x_maml_with_aux_langs(args, model, lang_datasets, tokenizer, validation_data
                     continue
             #batch=next(iter(task_dataloader))
                 with higher.innerloop_ctx(model, inner_opt, copy_initial_weights=False) as (fast_model, diffopt):
-
+                    # fast_model.to(args.device)
                     for itr in range(args.inner_train_steps):
                         fast_model.train()
+
                         #print("-------------")
                         set_seed(args)  # Added here for reproductibility (even between python 2 and 3)
-                        # batch = tuple(t.to(args.device) for t in batch)
-                        batch = tuple(t.to(args.local_rank) for t in batch)
+                        batch = tuple(t.to(args.device) for t in batch)
+                        # if args.world_size_exists != "0":
+                        #     batch = tuple(t.to(args.local_rank) for t in batch)
+                        # else:
+                        #     batch = tuple(t.to(args.device) for t in batch)
                         # batch_valid=tuple(t.to(args.device) for t in next(iter(task_valid_dataloader)))
                         n_meta_lr = int((args.train_batch_size)/2)
                         input_fast_train = {'input_ids': batch[0][:n_meta_lr],
@@ -160,12 +163,21 @@ def x_maml_with_aux_langs(args, model, lang_datasets, tokenizer, validation_data
                         if args.model_type != 'distilbert':
                             input_fast_train['token_type_ids'] = batch[2][:n_meta_lr] if args.model_type in ['bert', 'xlnet', 'arabert'] else None  # XLM, DistilBERT and RoBERTa don't use segment_ids
 
-                        for key, value in input_fast_train.items():
-                            if input_fast_train[key] is not None:
-                                input_fast_train[key] = input_fast_train[key].to(args.local_rank)
+                        # for key, value in input_fast_train.items():
+                        #     if input_fast_train[key] is not None:
+                        #         # input_fast_train[key] = input_fast_train[key].to(args.device)
+                        #         input_fast_train[key] = input_fast_train[key].cuda()
+                        # if args.world_size_exists != "0":
+                        #     for key, value in input_fast_train.items():
+                        #         if input_fast_train[key] is not None:
+                        #             input_fast_train[key] = input_fast_train[key].to(args.local_rank)
+                        # else:
+                        #     for key, value in input_fast_train.items():
+                        #         if input_fast_train[key] is not None:
+                        #             input_fast_train[key] = input_fast_train[key].to(args.device)
 
                         outputs = fast_model(**input_fast_train)
-                        loss = outputs[0]  # model outputs are always tuple in transformers (see doc)
+                        loss = outputs[0] # model outputs are always tuple in transformers (see doc)
 
                         if args.n_gpu > 1:
                             loss = loss.mean()  # mean() to average on multi-gpu parallel training
@@ -185,9 +197,14 @@ def x_maml_with_aux_langs(args, model, lang_datasets, tokenizer, validation_data
                     if args.model_type != 'distilbert':
                         input_fast_valid['token_type_ids'] = batch[2][n_meta_lr:] if args.model_type in ['bert', 'xlnet', 'arabert'] else None  # XLM, DistilBERT and RoBERTa don't use segment_ids
 
-                    for key, value in input_fast_valid.items():
-                        if input_fast_valid[key] is not None:
-                            input_fast_valid[key] = input_fast_valid[key].to(args.local_rank)
+                    # if args.world_size_exists != "0":
+                    #     for key, value in input_fast_valid.items():
+                    #         if input_fast_valid[key] is not None:
+                    #             input_fast_valid[key] = input_fast_valid[key].to(args.local_rank)
+                    # else:
+                    #     for key, value in input_fast_valid.items():
+                    #         if input_fast_valid[key] is not None:
+                    #             input_fast_valid[key] = input_fast_valid[key].to(args.device)
 
                     outputs = fast_model(**input_fast_valid)
                     qry_loss = outputs[0]  # model outputs are always tuple in transformers (see doc)
@@ -199,7 +216,7 @@ def x_maml_with_aux_langs(args, model, lang_datasets, tokenizer, validation_data
         model.zero_grad()
         logger.info("meta-learning it {} - avg loss: {}".format(mt_itr, np.mean(losses)))
 
-        if validation_dataset is not None and args.local_rank == 0:
+        if validation_dataset is not None and args.local_rank in [-1, 0]:
             res = validate_task(args=args, model=model, val_dataset=validation_dataset)
             validation_accuracies.append(res['acc'])
             validation_losses.append(res['eval_loss'])
@@ -291,8 +308,7 @@ def fine_tune_task(args, model, train_dataset, tokenizer):
                       'attention_mask': batch[1],
                       'labels': batch[3]}
             if args.model_type != 'distilbert':
-                inputs['token_type_ids'] = batch[2] if args.model_type in ['bert',
-                                                                           'xlnet'] else None  # XLM, DistilBERT and RoBERTa don't use segment_ids
+                inputs['token_type_ids'] = batch[2] if args.model_type in ['bert', 'xlnet', 'arabert'] else None  # XLM, DistilBERT and RoBERTa don't use segment_ids
 
             inputs = inputs.to(args.device)
 
@@ -363,9 +379,14 @@ def validate_task(args, model, val_dataset):
             if args.model_type != 'distilbert':
                 inputs['token_type_ids'] = batch[2] if args.model_type in ['bert', 'xlnet', 'arabert'] else None  # XLM, DistilBERT and RoBERTa don't use segment_ids
 
-            for key, value in inputs.items():
-                if inputs[key] is not None:
-                    inputs[key] = inputs[key].to(args.device)
+            if args.world_size_exists != "0":
+                for key, value in inputs.items():
+                    if inputs[key] is not None:
+                        inputs[key] = inputs[key].to(args.device)
+            else:
+                for key, value in inputs.items():
+                    if inputs[key] is not None:
+                        inputs[key] = inputs[key].to(args.device)
 
             outputs = model(**inputs)
             tmp_eval_loss, logits = outputs[:2]
@@ -718,30 +739,46 @@ def main():
 
     # args.device = device
 
-    from socket import gethostname
-    world_size = int(os.environ["WORLD_SIZE"])
-    args.rank = int(os.environ["SLURM_PROCID"])
-    # gpus_per_node = int(os.environ["SLURM_GPUS_ON_NODE"])
-    gpus_per_node = 1
-    assert gpus_per_node == torch.cuda.device_count()
-    print(f"Hello from rank {args.rank} of {world_size} on {gethostname()} where there are" \
-          f" {gpus_per_node} allocated GPUs per node.", flush=True)
+    args.rank = 0
+    args.world_size_exists = os.getenv('WORLD_SIZE', '0')
+    if args.world_size_exists != "0":
+        from socket import gethostname
+        world_size = int(os.environ["WORLD_SIZE"])
+        args.rank = int(os.environ["SLURM_PROCID"])
+        # gpus_per_node = int(os.environ["SLURM_GPUS_ON_NODE"])
+        gpus_per_node = 1
+        assert gpus_per_node == torch.cuda.device_count()
+        print(f"Hello from rank {args.rank} of {world_size} on {gethostname()} where there are" \
+              f" {gpus_per_node} allocated GPUs per node.", flush=True)
 
-    local_rank = args.rank - gpus_per_node * (args.rank // gpus_per_node)
-    print('rank: {}, local rank: {}'.format(args.rank, local_rank))
-    torch.cuda.set_device(local_rank)
+        local_rank = args.rank - gpus_per_node * (args.rank // gpus_per_node)
+        print('rank: {}, local rank: {}'.format(args.rank, local_rank))
+        torch.cuda.set_device(local_rank)
 
-    # args.local_rank = rank
-    args.local_rank = args.rank % torch.cuda.device_count()
-    args.device = torch.device("cuda", args.local_rank)
-    device = args.device
+        # args.local_rank = rank
+        args.local_rank = args.rank % torch.cuda.device_count()
+        args.device = torch.device("cuda", args.local_rank)
+        device = args.device
 
-    print('device is: {}'.format(args.device))
+        print('device is: {}'.format(args.device))
 
-
-    setup(args.rank, world_size)
-    if args.rank == 0: print(f"Group initialized? {torch.distributed.is_initialized()}", flush=True)
-
+        setup(args.rank, world_size)
+        if args.rank == 0: print(f"Group initialized? {torch.distributed.is_initialized()}", flush=True)
+    else:
+        print('===========/././././././././././././. WORLD SIZE DOES NOT EXIST ===========/././././././././././././.')
+        # Setup CUDA, GPU & distributed training
+        if args.local_rank == -1 or args.no_cuda:
+            device = torch.device("cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu")
+            args.n_gpu = torch.cuda.device_count()
+        else:  # Initializes the distributed backend which will take care of sychronizing nodes/GPUs
+            torch.cuda.set_device(args.local_rank)
+            device = torch.device("cuda", args.local_rank)
+            torch.distributed.init_process_group(backend='nccl')
+            args.n_gpu = 1
+        args.device = device
+        print('args.device: {}'.format(args.device))
+        print('args.rank: {}'.format(args.rank))
+        print('args.local_rank: {}'.format(args.local_rank))
 
     # local_rank = rank - gpus_per_node * (rank // gpus_per_node)
     # print('rank: {}, local rank: {}'.format(rank, local_rank))
@@ -806,9 +843,8 @@ def main():
     # if args.local_rank == 0:
     #     torch.distributed.barrier()  # Make sure only the first process in distributed training will download model & vocab
 
-    if args.rank == 0:
+    if args.rank == 0 and args.world_size_exists != "0":
         torch.distributed.barrier()  # Make sure only the first process in distributed training will download model & vocab
-
 
     # get list of datasets for xmaml - meta training
     dev_ids = args.dev_datasets_ids.strip().split(",")
@@ -845,6 +881,8 @@ def main():
                                             output_mode="classification")
     test_dataset_eval = load_cache_examples(features=features)
 
+    model.to(args.device)
+
     logger.info("Training/evaluation parameters %s", args)
 
     logger.info("Running XMAML ...")
@@ -870,7 +908,8 @@ def main():
     else:
         logger.info("Will nit apply fine tuning as --do_finetuning=0")
 
-    torch.distributed.destroy_process_group()
+    if args.world_size_exists != "0":
+        torch.distributed.destroy_process_group()
 
     logger.info("Evaluating ...")
 
