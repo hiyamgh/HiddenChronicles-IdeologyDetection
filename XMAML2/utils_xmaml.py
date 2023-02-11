@@ -405,7 +405,7 @@ datasets = {
     "ARG_el": "../translate_corpora/corpus-webis-editorials-16/translationsv2_cleaned/sentences_annotations_el.xlsx",
     "ARG_de": "../translate_corpora/corpus-webis-editorials-16/translationsv2_cleaned/sentences_annotations_de.xlsx",
     "ARG_es": "../translate_corpora/corpus-webis-editorials-16/translationsv2_cleaned/sentences_annotations_es.xlsx",
-    "ARG_en": "sentences_annotations.xlsx",
+    "ARG_en": "../translate_corpora/corpus-webis-editorials-16/sentences_annotations.xlsx",
 
     # Our Corpus
     "corp_PRST_sw_VDS": "../translate_corpora/annotations_doccano/translationsv2/van_dijk_speeches/Palestinian Resistance South Lebanon/our_corpus_sw.xlsx",
