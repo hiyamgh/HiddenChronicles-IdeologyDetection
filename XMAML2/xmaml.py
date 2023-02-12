@@ -133,48 +133,52 @@ def x_maml_with_aux_langs(args, model, lang_datasets, tokenizer, validation_data
             #epoch_iterator = tqdm(task_dataloader, desc="Iteration",
             #                      disable=args.local_rank not in [-1, 0])
             # create bag of tasks from auxilary lang.
-            for step, batch in enumerate(task_dataloader):
-                if step!=mt_itr-1:
-                    continue
+
+            # if lang_id == 'corp_PRST_ar_VDC':
+            #     print('hi')
+            if mt_itr >= len(task_dataloader):
+                for step, batch in enumerate(task_dataloader):
+                    if step != mt_itr - 1 - len(task_dataloader)*(int(mt_itr/len(task_dataloader))):
+                        continue
+                    logger.info('step {} (originally {}) of {} in task_dataloader'.format(step, mt_itr, len(task_dataloader)))
+                    break
+            else:
+                for step, batch in enumerate(task_dataloader):
+                    if step!=mt_itr-1:
+                        continue
+                    logger.info('step {} of {} in task_dataloader'.format(step, len(task_dataloader)))
+                    break
+
             #batch=next(iter(task_dataloader))
                 with higher.innerloop_ctx(model, inner_opt, copy_initial_weights=False) as (fast_model, diffopt):
+
                     # fast_model.to(args.device)
                     for itr in range(args.inner_train_steps):
                         fast_model.train()
-
                         #print("-------------")
                         set_seed(args)  # Added here for reproductibility (even between python 2 and 3)
-                        batch = tuple(t.to(args.device) for t in batch)
-                        # if args.world_size_exists != "0":
-                        #     batch = tuple(t.to(args.local_rank) for t in batch)
-                        # else:
-                        #     batch = tuple(t.to(args.device) for t in batch)
-                        # batch_valid=tuple(t.to(args.device) for t in next(iter(task_valid_dataloader)))
+                        if args.world_size_exists != "0":
+                            # Multi-GPU Training (Specifically Multi-node GPU Training)
+                            batch = tuple(t.to(args.local_rank) for t in batch)
+                        else:
+                            # Single-GPU Training
+                            batch = tuple(t.to(args.device) for t in batch)
+
                         n_meta_lr = int((args.train_batch_size)/2)
                         input_fast_train = {'input_ids': batch[0][:n_meta_lr],
                                             'attention_mask': batch[1][:n_meta_lr],
                                             'labels': batch[3][:n_meta_lr]}
 
-                        # input_fast_train = input_fast_train.to(args.device)
-                        # input_fast_train = {'input_ids': batch[0],
-                        #                     'attention_mask': batch[1],
-                        #                     'labels': batch[3]}
+                        logger.info('input_ids support: {}'.format(batch[0][:n_meta_lr][0][0:10]))
 
                         if args.model_type != 'distilbert':
                             input_fast_train['token_type_ids'] = batch[2][:n_meta_lr] if args.model_type in ['bert', 'xlnet', 'arabert'] else None  # XLM, DistilBERT and RoBERTa don't use segment_ids
 
-                        # for key, value in input_fast_train.items():
-                        #     if input_fast_train[key] is not None:
-                        #         # input_fast_train[key] = input_fast_train[key].to(args.device)
-                        #         input_fast_train[key] = input_fast_train[key].cuda()
-                        # if args.world_size_exists != "0":
-                        #     for key, value in input_fast_train.items():
-                        #         if input_fast_train[key] is not None:
-                        #             input_fast_train[key] = input_fast_train[key].to(args.local_rank)
-                        # else:
-                        #     for key, value in input_fast_train.items():
-                        #         if input_fast_train[key] is not None:
-                        #             input_fast_train[key] = input_fast_train[key].to(args.device)
+                        if args.world_size_exists != "0":
+                            # Only on case of Multi-GPU Training
+                            for key, value in input_fast_train.items():
+                                if input_fast_train[key] is not None:
+                                    input_fast_train[key] = input_fast_train[key].to(args.local_rank)
 
                         outputs = fast_model(**input_fast_train)
                         loss = outputs[0] # model outputs are always tuple in transformers (see doc)
@@ -197,18 +201,19 @@ def x_maml_with_aux_langs(args, model, lang_datasets, tokenizer, validation_data
                     if args.model_type != 'distilbert':
                         input_fast_valid['token_type_ids'] = batch[2][n_meta_lr:] if args.model_type in ['bert', 'xlnet', 'arabert'] else None  # XLM, DistilBERT and RoBERTa don't use segment_ids
 
-                    # if args.world_size_exists != "0":
-                    #     for key, value in input_fast_valid.items():
-                    #         if input_fast_valid[key] is not None:
-                    #             input_fast_valid[key] = input_fast_valid[key].to(args.local_rank)
-                    # else:
-                    #     for key, value in input_fast_valid.items():
-                    #         if input_fast_valid[key] is not None:
-                    #             input_fast_valid[key] = input_fast_valid[key].to(args.device)
+                    logger.info('input_ids query: {}'.format(batch[0][n_meta_lr:][0][0:10]))
+
+                    if args.world_size_exists != "0":
+                        # Only in case of Multi-GPU Training
+                        for key, value in input_fast_valid.items():
+                            if input_fast_valid[key] is not None:
+                                input_fast_valid[key] = input_fast_valid[key].to(args.local_rank)
+
 
                     outputs = fast_model(**input_fast_valid)
                     qry_loss = outputs[0]  # model outputs are always tuple in transformers (see doc)
                     qry_loss.backward()
+                    logger.info("Query Loss: {}".format(qry_loss.item()))
                     losses.append(qry_loss.item())
 
         # print('average loss: {}'.format(np.mean(losses)))
@@ -216,7 +221,7 @@ def x_maml_with_aux_langs(args, model, lang_datasets, tokenizer, validation_data
         model.zero_grad()
         logger.info("meta-learning it {} - avg loss: {}".format(mt_itr, np.mean(losses)))
 
-        if validation_dataset is not None and args.local_rank in [-1, 0]:
+        if validation_dataset is not None and args.rank in [-1, 0]:
             res = validate_task(args=args, model=model, val_dataset=validation_dataset)
             validation_accuracies.append(res['acc'])
             validation_losses.append(res['eval_loss'])
@@ -310,7 +315,11 @@ def fine_tune_task(args, model, train_dataset, tokenizer):
             if args.model_type != 'distilbert':
                 inputs['token_type_ids'] = batch[2] if args.model_type in ['bert', 'xlnet', 'arabert'] else None  # XLM, DistilBERT and RoBERTa don't use segment_ids
 
-            inputs = inputs.to(args.device)
+            if args.world_size_exists != "0":
+                # Only in case of Multi-GPU Training
+                for key, value in inputs.items():
+                    if inputs[key] is not None:
+                        inputs[key] = inputs[key].to(args.local_rank)
 
             outputs = model(**inputs)
             loss = outputs[0]  # model outputs are always tuple in transformers (see doc)
@@ -380,10 +389,6 @@ def validate_task(args, model, val_dataset):
                 inputs['token_type_ids'] = batch[2] if args.model_type in ['bert', 'xlnet', 'arabert'] else None  # XLM, DistilBERT and RoBERTa don't use segment_ids
 
             if args.world_size_exists != "0":
-                for key, value in inputs.items():
-                    if inputs[key] is not None:
-                        inputs[key] = inputs[key].to(args.device)
-            else:
                 for key, value in inputs.items():
                     if inputs[key] is not None:
                         inputs[key] = inputs[key].to(args.device)
@@ -723,8 +728,8 @@ def main():
 
     args = parser.parse_args()
 
-    if '\n' in args.output_dir_meta:
-        args.output_dir_meta = args.output_dir_meta[:-1]
+    # args.output_dir_meta = args.output_dir_meta[:-1]
+    args.eval_task_dir = args.eval_task_dir[:-1] # remove \r from the end of the line from the txt file
 
     # Setup CUDA, GPU & distributed training
     if args.local_rank == -1 or args.no_cuda:
@@ -779,17 +784,6 @@ def main():
         print('args.device: {}'.format(args.device))
         print('args.rank: {}'.format(args.rank))
         print('args.local_rank: {}'.format(args.local_rank))
-
-    # local_rank = rank - gpus_per_node * (rank // gpus_per_node)
-    # print('rank: {}, local rank: {}'.format(rank, local_rank))
-    # torch.cuda.set_device(local_rank)
-    #
-    # # args.local_rank = rank
-    # args.local_rank = rank % torch.cuda.device_count()
-    # args.device = torch.device("cuda", args.local_rank)
-    # device = args.device
-    #
-    # print('device is: {}'.format(args.device))
 
     # Setup logging
     logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
