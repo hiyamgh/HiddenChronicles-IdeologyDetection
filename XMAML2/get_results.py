@@ -4,6 +4,9 @@ import pickle
 import os, json
 
 
+def add_years_distribution():
+    print()
+
 def get_results(labels, preds, binary=False):
     if binary:
         accuracy = accuracy_score(y_true=labels, y_pred=preds)
@@ -49,7 +52,7 @@ def get_results(labels, preds, binary=False):
         }
 
 
-def collate_results(rootdir, df_name, labels_list):
+def collate_results(rootdir, df_name, labels_list, df_test_years):
     df_results = pd.DataFrame(columns=['accuracy', 'precision_macro', 'recall_macro', 'f1_macro', 'precision_micro', 'recall_micro',
                  'f1_micro', 'precision_weighted', 'recall_weighted', 'f1_weighted', 'model', 'report'])
 
@@ -104,6 +107,7 @@ def collate_results(rootdir, df_name, labels_list):
 
     df_best_results = pd.DataFrame(columns=['model', 'accuracy', 'precision_macro', 'recall_macro', 'f1_macro', 'precision_micro', 'recall_micro',
                  'f1_micro', 'precision_weighted', 'recall_weighted', 'f1_weighted', 'report'])
+    model2yearsdist = {}
     for model in models:
         if 'aubmindlab' in model:
             model = '_'.join(model.split('/'))
@@ -160,10 +164,18 @@ def collate_results(rootdir, df_name, labels_list):
                     else:
                         exps.append('ft1')
 
+            model_name = model + ' | zero shot' if 'ft0' in row['model'] else model + ' | few shot'
+            subdir = row['model']
+            df_actvspred = pd.read_csv(os.path.join(subdir, 'test_actual_predicted.csv'))
+            df_actvspred['year'] = df_test_years['year']
+            model2yearsdist[model_name] = df_actvspred
+
             if len(exps) == 2:
                 break
 
     df_best_results.to_csv('{}_best.csv'.format(df_name), index=False)
+    with open('{}_actvspred.pickle'.format(df_name), 'wb') as handle:
+        pickle.dump(model2yearsdist, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     # get detailed results per class for every model
     df_detailed_results = pd.DataFrame(columns=['model'] + labels_list)
@@ -180,6 +192,22 @@ def collate_results(rootdir, df_name, labels_list):
 
 
 if __name__ == '__main__':
+
+    df_test_years = pd.read_excel('../translate_corpora/annotations_doccano/translationsv2/propaganda/Sabra and Shatila Massacre/our_corpus_ar.xlsx')
+    with open('groups2years_sentences.pickle', 'rb') as handle:
+        group2years_sentences = pickle.load(handle)
+
+    group = 'Sabra and Shatila Massacre'
+    years = []
+    for i, row in df_test_years.iterrows():
+        sentence = row['Sentence'].strip()
+        for year in group2years_sentences[group]:
+            if sentence in group2years_sentences[group][year]:
+                years.append(year)
+                break
+
+    df_test_years['year'] = years
+
     labels_ARG = "assumption,anecdote,testimony,statistics,common-ground,other"
     labels_ARG_corp = "assumption,statistics,other,testimony,common-ground,anecdote"
     # dropped no-unit in labels_ARG
@@ -204,6 +232,9 @@ if __name__ == '__main__':
     all_labels_VDS = list(set(labels_VDS.split(",")).union(labels_VDS_corp.split(",")))
     all_labels_PTC = list(set(labels_PTC.split(";")).union(labels_PTC_corp.split(";")))
 
-    collate_results(rootdir='results/ARG/', df_name='results_ARG', labels_list=all_labels_ARG)
-    collate_results(rootdir='results/PTC/', df_name='results_PTC', labels_list=all_labels_PTC)
-    collate_results(rootdir='results/VDC/', df_name='results_VDC', labels_list=all_labels_VDC)
+    collate_results(rootdir='results/ARG/', df_name='results_ARG', labels_list=all_labels_ARG, df_test_years=df_test_years)
+    collate_results(rootdir='results/PTC/', df_name='results_PTC', labels_list=all_labels_PTC, df_test_years=df_test_years)
+    collate_results(rootdir='results/VDC/', df_name='results_VDC', labels_list=all_labels_VDC, df_test_years=df_test_years)
+    collate_results(rootdir='results_cross_lingaul/VDC/', df_name='results_VDC_cross_lingual', labels_list=all_labels_VDC, df_test_years=df_test_years)
+
+
