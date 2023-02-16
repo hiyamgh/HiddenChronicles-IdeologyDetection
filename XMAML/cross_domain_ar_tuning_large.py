@@ -52,7 +52,7 @@ if __name__ == '__main__':
 
     dev_dataset_ids = ['VDC_ar', 'corp_PRST_ar_VDC']
     dev_dataset_fine_tune_id = ['corp_PRST_ar_VDC']
-    test_dataset_id = ['corp_SSM_ar_VDS']
+    test_dataset_id = ['corp_SSM_ar_VDC']
     with open(os.path.join(save_dir, 'VDC_cross_domain_large.txt'), 'w') as f:
         for n in support_sizes_grid:
             for bs in per_gpu_train_batch_sizes_grid:
