@@ -1,4 +1,4 @@
-# HiddenChronicles-IdeologyDetection
+# Identification of Hidden Ideologies
 
 To run Bias Quantifiction:
 
